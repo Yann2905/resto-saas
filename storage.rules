@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Images produits : lecture publique, écriture par l'owner du restaurant
+    match /restaurants/{rid}/products/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && firestore.get(
+          /databases/(default)/documents/users/$(request.auth.uid)
+        ).data.restaurantId == rid
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Refus par défaut
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
