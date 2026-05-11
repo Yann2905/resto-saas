@@ -40,17 +40,6 @@ export default function LoginPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-stone-50">
-        <div className="flex items-center gap-3 text-stone-500">
-          <span className="w-5 h-5 border-2 border-stone-300 border-t-stone-900 rounded-full animate-spin" />
-          Chargement…
-        </div>
-      </main>
-    );
-  }
-
   return (
     <main className="relative min-h-screen flex items-center justify-center bg-stone-50 p-4 overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(217,119,6,0.12),_transparent_55%)]" />

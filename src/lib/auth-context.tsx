@@ -34,31 +34,34 @@ async function loadProfile(userId: string): Promise<{
   role: UserRole | null;
   restaurant: Restaurant | null;
 }> {
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("role, restaurant_id")
-    .eq("id", userId)
-    .maybeSingle();
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, restaurant_id")
+      .eq("id", userId)
+      .maybeSingle();
 
-  if (error || !profile) {
+    if (!profile) return { role: null, restaurant: null };
+
+    const role = profile.role as UserRole;
+    if (role === "superadmin" || !profile.restaurant_id) {
+      return { role, restaurant: null };
+    }
+
+    const { data: rest } = await supabase
+      .from("restaurants")
+      .select("*")
+      .eq("id", profile.restaurant_id)
+      .maybeSingle();
+
+    return {
+      role,
+      restaurant: rest ? mapRestaurant(rest as RestaurantRow) : null,
+    };
+  } catch (e) {
+    console.warn("[auth] loadProfile failed:", e);
     return { role: null, restaurant: null };
   }
-
-  const role = profile.role as UserRole;
-  if (role === "superadmin" || !profile.restaurant_id) {
-    return { role, restaurant: null };
-  }
-
-  const { data: rest, error: restError } = await supabase
-    .from("restaurants")
-    .select("*")
-    .eq("id", profile.restaurant_id)
-    .maybeSingle();
-
-  if (restError || !rest) {
-    return { role, restaurant: null };
-  }
-  return { role, restaurant: mapRestaurant(rest as RestaurantRow) };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -82,22 +85,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!mounted) return;
-      await refresh(data.session?.user ?? null);
-      setLoading(false);
-    });
+    // Filet de sécurité : si tout échoue, on débloque loading après 5s
+    const failsafe = setTimeout(() => {
+      if (mounted) {
+        console.warn("[auth] init timeout, forcing loading=false");
+        setLoading(false);
+      }
+    }, 5000);
+
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (!mounted) return;
+        await refresh(data.session?.user ?? null);
+      } catch (e) {
+        console.error("[auth] getSession failed:", e);
+      } finally {
+        if (mounted) {
+          clearTimeout(failsafe);
+          setLoading(false);
+        }
+      }
+    })();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!mounted) return;
-      await refresh(session?.user ?? null);
-      setLoading(false);
+      try {
+        await refresh(session?.user ?? null);
+      } catch (e) {
+        console.error("[auth] onAuthStateChange refresh failed:", e);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     });
 
     return () => {
       mounted = false;
+      clearTimeout(failsafe);
       subscription.unsubscribe();
     };
   }, [refresh]);
