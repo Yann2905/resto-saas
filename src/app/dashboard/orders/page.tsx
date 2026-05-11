@@ -51,15 +51,97 @@ const STATUS_STYLES: Record<
   },
 };
 
+// AudioContext unique au module — sera "déverrouillé" au premier click utilisateur.
+let audioCtx: AudioContext | null = null;
+let audioUnlocked = false;
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  try {
+    const AC =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    audioCtx = new AC();
+    if (audioCtx.state === "suspended") void audioCtx.resume();
+    // Joue un son inaudible pour vraiment déverrouiller (geste utilisateur en cours)
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    gain.gain.value = 0;
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.01);
+    audioUnlocked = true;
+  } catch {
+    /* ignore */
+  }
+}
+
+function playChime() {
+  try {
+    if (!audioCtx) {
+      const AC =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === "suspended") void audioCtx.resume();
+    // Double bip pour attirer l'attention
+    [880, 1100].forEach((freq, i) => {
+      const osc = audioCtx!.createOscillator();
+      const gain = audioCtx!.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx!.destination);
+      osc.frequency.value = freq;
+      const t = audioCtx!.currentTime + i * 0.18;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.35, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+      osc.start(t);
+      osc.stop(t + 0.4);
+    });
+  } catch (e) {
+    console.warn("[chime] échec lecture audio:", e);
+  }
+}
+
+function tryNotify(tableNumber: number, total: number) {
+  try {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    new Notification(`Nouvelle commande · Table ${tableNumber}`, {
+      body: `Total : ${total.toLocaleString("fr-FR")} FCFA`,
+      icon: "/favicon.ico",
+      tag: "new-order",
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
 export default function OrdersPage() {
   const router = useRouter();
   const { user, restaurant, loading, signOut } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
   const knownIds = useRef<Set<string>>(new Set());
-  const firstLoad = useRef(true);
+  const firstLoadDone = useRef(false);
   const [notifPerm, setNotifPerm] =
     useState<NotificationPermission>("default");
+  const [realtimeStatus, setRealtimeStatus] =
+    useState<string>("connecting");
+
+  // Déverrouille l'audio au premier clic n'importe où sur la page
+  useEffect(() => {
+    const handler = () => unlockAudio();
+    window.addEventListener("click", handler, { once: true });
+    window.addEventListener("keydown", handler, { once: true });
+    return () => {
+      window.removeEventListener("click", handler);
+      window.removeEventListener("keydown", handler);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -83,35 +165,79 @@ export default function OrdersPage() {
         .order("created_at", { ascending: false });
       if (cancelled) return;
       const list = (data ?? []).map((o) => mapOrder(o as OrderRow));
-      if (!firstLoad.current) {
-        for (const o of list) {
-          if (!knownIds.current.has(o.id) && o.status === "pending") {
-            playChime();
-            tryNotify(o.tableNumber, o.total);
-            break;
-          }
-        }
-      }
       knownIds.current = new Set(list.map((o) => o.id));
-      firstLoad.current = false;
+      firstLoadDone.current = true;
       setOrders(list);
     };
 
     fetchOrders();
 
     const channel = supabase
-      .channel(`orders-${restaurant.id}`)
+      .channel(`orders-${restaurant.id}`, {
+        config: { broadcast: { self: false } },
+      })
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "orders",
           filter: `restaurant_id=eq.${restaurant.id}`,
         },
-        fetchOrders
+        (payload) => {
+          console.log("[realtime] INSERT", payload);
+          const newOrder = mapOrder(payload.new as OrderRow);
+          if (knownIds.current.has(newOrder.id)) return;
+          knownIds.current.add(newOrder.id);
+          setOrders((prev) => [newOrder, ...prev]);
+          if (newOrder.status === "pending" && firstLoadDone.current) {
+            playChime();
+            tryNotify(newOrder.tableNumber, newOrder.total);
+          }
+        }
       )
-      .subscribe();
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "orders",
+          filter: `restaurant_id=eq.${restaurant.id}`,
+        },
+        (payload) => {
+          console.log("[realtime] UPDATE", payload);
+          const updated = mapOrder(payload.new as OrderRow);
+          setOrders((prev) => {
+            const exists = prev.some((o) => o.id === updated.id);
+            if (!exists) {
+              if (updated.status === "served") return prev;
+              return [updated, ...prev];
+            }
+            return prev
+              .map((o) => (o.id === updated.id ? updated : o))
+              .filter((o) => o.status !== "served");
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "orders",
+          filter: `restaurant_id=eq.${restaurant.id}`,
+        },
+        (payload) => {
+          const oldId = (payload.old as { id?: string })?.id;
+          if (!oldId) return;
+          knownIds.current.delete(oldId);
+          setOrders((prev) => prev.filter((o) => o.id !== oldId));
+        }
+      )
+      .subscribe((status, err) => {
+        console.log("[realtime] status:", status, err ?? "");
+        setRealtimeStatus(status);
+      });
 
     return () => {
       cancelled = true;
@@ -190,6 +316,8 @@ export default function OrdersPage() {
     );
   }
 
+  const liveOk = realtimeStatus === "SUBSCRIBED";
+
   return (
     <main className="min-h-screen bg-stone-50 pb-20 md:pb-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
@@ -198,19 +326,33 @@ export default function OrdersPage() {
             <h2 className="text-2xl font-bold text-stone-900 tracking-tight">
               Commandes en cours
             </h2>
-            <p className="text-sm text-stone-500 mt-0.5">
-              Mises à jour en temps réel.
+            <p className="text-sm text-stone-500 mt-0.5 flex items-center gap-2">
+              <span
+                className={`inline-block w-1.5 h-1.5 rounded-full ${
+                  liveOk ? "bg-emerald-500 animate-pulse" : "bg-stone-400"
+                }`}
+              />
+              {liveOk ? "Temps réel actif" : `Realtime : ${realtimeStatus}`}
             </p>
           </div>
-          {notifPerm !== "granted" && (
+          <div className="flex gap-2 flex-wrap">
             <button
-              onClick={requestNotif}
-              className="rounded-full bg-amber-100 text-amber-800 hover:bg-amber-200 px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5"
-              title="Recevoir une notification du navigateur dès qu'une commande arrive, même si l'onglet est en arrière-plan."
+              onClick={() => playChime()}
+              className="rounded-full bg-stone-100 text-stone-700 hover:bg-stone-200 px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5"
+              title="Tester le son"
             >
-              🔔 Activer les notifications
+              🔊 Tester son
             </button>
-          )}
+            {notifPerm !== "granted" && (
+              <button
+                onClick={requestNotif}
+                className="rounded-full bg-amber-100 text-amber-800 hover:bg-amber-200 px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5"
+                title="Notifications système même onglet en arrière-plan"
+              >
+                🔔 Activer notifications
+              </button>
+            )}
+          </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <StatCard label="En attente" value={counts.pending} color="amber" />
@@ -348,10 +490,15 @@ export default function OrdersPage() {
                         </button>
                       )}
                       <button
-                        onClick={() => window.print()}
+                        onClick={() =>
+                          window.open(
+                            `/dashboard/orders/${order.id}/receipt?print=auto`,
+                            "_blank"
+                          )
+                        }
                         className="px-3.5 bg-stone-100 text-stone-700 rounded-xl text-sm hover:bg-stone-200 transition-colors"
-                        aria-label="Imprimer"
-                        title="Imprimer"
+                        aria-label="Imprimer le reçu"
+                        title="Imprimer le reçu"
                       >
                         🖨
                       </button>
@@ -398,40 +545,4 @@ function StatCard({
       </div>
     </div>
   );
-}
-
-function playChime() {
-  try {
-    const AC =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext;
-    const ctx = new AC();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.5);
-  } catch {
-    /* ignore */
-  }
-}
-
-function tryNotify(tableNumber: number, total: number) {
-  try {
-    if (typeof window === "undefined" || !("Notification" in window)) return;
-    if (Notification.permission !== "granted") return;
-    new Notification(`Nouvelle commande · Table ${tableNumber}`, {
-      body: `Total : ${total.toLocaleString("fr-FR")} FCFA`,
-      icon: "/favicon.ico",
-      tag: "new-order",
-    });
-  } catch {
-    /* ignore */
-  }
 }
