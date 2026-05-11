@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { BarChart3, Store, LogOut, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { confirmAction } from "@/lib/swal";
@@ -14,7 +14,6 @@ const TABS: Tab[] = [
 
 export default function AdminNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const { user, role, signOut } = useAuth();
 
   if (pathname === "/admin/login" || !user || role !== "superadmin") {
@@ -28,8 +27,8 @@ export default function AdminNav() {
       confirmText: "Se déconnecter",
     });
     if (!ok) return;
-    await signOut();
-    router.replace("/admin/login");
+    void signOut();
+    window.location.href = "/admin/login";
   };
 
   const isActive = (tab: Tab) =>

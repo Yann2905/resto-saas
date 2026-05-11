@@ -202,11 +202,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    // Clear local first so l'UI réagit immédiatement
+    clearCache();
     setUser(null);
     setRole(null);
     setRestaurant(null);
-    clearCache();
+    // Le call réseau ne bloque pas la suite — il peut hang sur cold start.
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("[auth] supabase signOut failed:", e);
+    }
   }, []);
 
   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   ClipboardList,
   UtensilsCrossed,
@@ -24,7 +24,6 @@ const TABS: Array<{ href: string; label: string; Icon: LucideIcon }> = [
 
 export default function DashboardNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const { user, restaurant, signOut } = useAuth();
 
   if (pathname === "/dashboard/login" || !user || !restaurant) return null;
@@ -36,8 +35,12 @@ export default function DashboardNav() {
       confirmText: "Se déconnecter",
     });
     if (!ok) return;
-    await signOut();
-    router.replace("/dashboard/login");
+    // On lance signOut (qui clear le state local immédiatement + supprime la
+    // session côté Supabase en arrière-plan) et on force une vraie navigation.
+    // window.location.href est immuable face aux unmounts React et garantit
+    // un repaint complet sur la page de login.
+    void signOut();
+    window.location.href = "/dashboard/login";
   };
 
   return (
