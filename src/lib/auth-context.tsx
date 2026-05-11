@@ -30,13 +30,9 @@ const Ctx = createContext<AuthCtx>({
   signOut: async () => {},
 });
 
-// ----- Cache localStorage -----
-// Quand l'utilisateur revient sur l'app après une pause, on affiche
-// immédiatement ce qui était en cache, puis on rafraîchit en arrière-plan.
-// Plus de freeze "Chargement..." pendant 5-10s à cause du cold start Vercel.
-
+// Cache localStorage : restitution instantanée + survit aux refresh ratés
 const CACHE_KEY = "resto-saas:auth-v1";
-const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h
+const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 type AuthCache = {
   userId: string;
@@ -63,7 +59,7 @@ function writeCache(data: AuthCache) {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(CACHE_KEY, JSON.stringify(data));
   } catch {
-    // quota / mode privé : on ignore
+    // ignore
   }
 }
 
@@ -116,20 +112,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // refresh : met à jour le state SEULEMENT si le fetch retourne des données.
+  // Quand on a déjà des données en mémoire/cache, un fetch raté ne doit JAMAIS
+  // les effacer (sinon retour d'onglet sur cold-start = "Chargement..." infini).
   const refresh = useCallback(async (u: User | null) => {
-    setUser(u);
     if (!u) {
+      setUser(null);
       setRole(null);
       setRestaurant(null);
       clearCache();
       return;
     }
+    setUser(u);
     const { role: r, restaurant: rest } = await loadProfile(u.id);
-    setRole(r);
-    setRestaurant(rest);
     if (r) {
+      setRole(r);
+      setRestaurant(rest);
       writeCache({ userId: u.id, role: r, restaurant: rest, ts: Date.now() });
     }
+    // Si r est null = échec/réseau. On garde silencieusement l'ancien state.
   }, []);
 
   useEffect(() => {
@@ -143,27 +144,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }, 5000);
 
+    // Première initialisation : tente d'utiliser le cache pour rendre instantanément
+    const cachedSync = readCache();
+    if (cachedSync) {
+      setRole(cachedSync.role);
+      setRestaurant(cachedSync.restaurant);
+    }
+
     (async () => {
       try {
         const { data } = await supabase.auth.getSession();
         if (!mounted) return;
-
         const sessionUser = data.session?.user ?? null;
 
-        // Hot path : on a une session ET un cache valide pour ce user
-        // → on affiche tout de suite, puis on refresh en silence.
-        if (sessionUser) {
-          const cache = readCache();
-          if (cache && cache.userId === sessionUser.id) {
-            setUser(sessionUser);
-            setRole(cache.role);
-            setRestaurant(cache.restaurant);
-            setLoading(false);
-            clearTimeout(failsafe);
-            // Refresh en background (silencieux)
-            void refresh(sessionUser);
-            return;
-          }
+        if (sessionUser && cachedSync && cachedSync.userId === sessionUser.id) {
+          // Hot path : cache valide → on rend tout de suite, refresh silencieux
+          setUser(sessionUser);
+          setLoading(false);
+          clearTimeout(failsafe);
+          void refresh(sessionUser);
+          return;
         }
 
         await refresh(sessionUser);
@@ -181,8 +181,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
-      // On ignore TOKEN_REFRESHED qui se déclenche en boucle et ne change rien.
+      // Le TOKEN_REFRESHED se déclenche en boucle, ne change rien d'utile.
       if (event === "TOKEN_REFRESHED") return;
+      // INITIAL_SESSION duplique le getSession qu'on a déjà fait.
+      if (event === "INITIAL_SESSION") return;
       try {
         await refresh(session?.user ?? null);
       } catch (e) {
@@ -192,21 +194,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Quand l'utilisateur revient sur l'onglet, on refresh silencieusement
-    // ses données (au cas où elles auraient changé pendant son absence).
-    const onVisible = () => {
-      if (document.visibilityState !== "visible") return;
-      void supabase.auth.getSession().then(({ data }) => {
-        if (data.session?.user) void refresh(data.session.user);
-      });
-    };
-    document.addEventListener("visibilitychange", onVisible);
-
     return () => {
       mounted = false;
       clearTimeout(failsafe);
       subscription.unsubscribe();
-      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [refresh]);
 
