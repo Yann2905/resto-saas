@@ -123,7 +123,7 @@ function tryNotify(tableNumber: number, total: number) {
 
 export default function OrdersPage() {
   const router = useRouter();
-  const { user, restaurant, loading, signOut } = useAuth();
+  const { user, restaurant, loading, profileLoading, signOut } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
   const knownIds = useRef<Set<string>>(new Set());
@@ -282,7 +282,7 @@ export default function OrdersPage() {
   const filteredOrders =
     filter === "all" ? orders : orders.filter((o) => o.status === filter);
 
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-stone-50">
         <div className="flex items-center gap-3 text-stone-500">

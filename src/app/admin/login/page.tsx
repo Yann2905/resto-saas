@@ -60,31 +60,38 @@ export default function AdminLoginPage() {
         throw authError ?? new Error("Email ou mot de passe incorrect");
       }
 
-      // Vérif role superadmin avec timeout court — si timeout, on navigue
-      // quand même : AdminGuard côté /admin renverra ici si non-superadmin.
+      // Vérif role superadmin
+      const profileRes = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", data.user.id)
+            .maybeSingle()
+        ),
+        PROFILE_TIMEOUT_MS,
+        "Vérification du profil"
+      );
+      const role = (profileRes.data as { role?: string } | null)?.role;
+      if (role !== "superadmin") {
+        await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+        throw new Error("Ce compte n'est pas un super-administrateur.");
+      }
+
+      // Préchauffe le cache pour que /admin ait directement le bon role
+      // au premier rendu (évite la race "Accès réservé" pendant le refresh).
       try {
-        const profileRes = await withTimeout(
-          Promise.resolve(
-            supabase
-              .from("profiles")
-              .select("role")
-              .eq("id", data.user.id)
-              .maybeSingle()
-          ),
-          PROFILE_TIMEOUT_MS,
-          "Vérification du profil"
+        localStorage.setItem(
+          "resto-saas:auth-v1",
+          JSON.stringify({
+            userId: data.user.id,
+            role: "superadmin",
+            restaurant: null,
+            ts: Date.now(),
+          })
         );
-        const role = (profileRes.data as { role?: string } | null)?.role;
-        if (role && role !== "superadmin") {
-          await supabase.auth.signOut({ scope: "local" }).catch(() => {});
-          throw new Error("Ce compte n'est pas un super-administrateur.");
-        }
-      } catch (e) {
-        if (e instanceof Error && e.message.includes("super-administrateur")) {
-          throw e;
-        }
-        // Timeout sur la vérif role → on continue, AdminGuard décidera
-        console.warn("[admin-login] profile check skipped (slow):", e);
+      } catch {
+        /* ignore */
       }
 
       window.location.replace("/admin");

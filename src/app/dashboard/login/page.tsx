@@ -64,41 +64,105 @@ export default function LoginPage() {
         throw authError ?? new Error("Email ou mot de passe incorrect");
       }
 
-      // Détermine la destination via le profile. Si la requête est trop lente,
-      // on navigue par défaut vers /dashboard/orders (le DashboardGuard / page
-      // gérera s'il manque le restaurant).
-      let destination = "/dashboard/orders";
-      try {
-        const profileRes = await withTimeout(
-          Promise.resolve(
-            supabase
-              .from("profiles")
-              .select("role, restaurant_id")
-              .eq("id", data.user.id)
-              .maybeSingle()
-          ),
-          PROFILE_TIMEOUT_MS,
-          "Vérification du profil"
-        );
-        const profile = profileRes.data as {
-          role?: string;
-          restaurant_id?: string | null;
-        } | null;
-        if (profile?.role === "superadmin") destination = "/admin";
-        else if (profile?.role === "owner" && profile?.restaurant_id)
-          destination = "/dashboard/orders";
-        else if (profile) {
-          await supabase.auth.signOut({ scope: "local" }).catch(() => {});
-          throw new Error("Aucun restaurant n'est associé à ce compte.");
+      // Récupère le profile
+      const profileRes = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("profiles")
+            .select("role, restaurant_id")
+            .eq("id", data.user.id)
+            .maybeSingle()
+        ),
+        PROFILE_TIMEOUT_MS,
+        "Vérification du profil"
+      );
+      const profile = profileRes.data as {
+        role?: string;
+        restaurant_id?: string | null;
+      } | null;
+
+      if (profile?.role === "superadmin") {
+        try {
+          localStorage.setItem(
+            "resto-saas:auth-v1",
+            JSON.stringify({
+              userId: data.user.id,
+              role: "superadmin",
+              restaurant: null,
+              ts: Date.now(),
+            })
+          );
+        } catch {
+          /* ignore */
         }
-      } catch (e) {
-        if (e instanceof Error && e.message.includes("Aucun restaurant")) {
-          throw e;
-        }
-        console.warn("[dashboard-login] profile check skipped (slow):", e);
+        window.location.replace("/admin");
+        return;
       }
 
-      window.location.replace(destination);
+      if (profile?.role === "owner" && profile?.restaurant_id) {
+        // Charge le restaurant pour préchauffer le cache
+        let restaurantCache = null;
+        try {
+          const restRes = await withTimeout(
+            Promise.resolve(
+              supabase
+                .from("restaurants")
+                .select("*")
+                .eq("id", profile.restaurant_id)
+                .maybeSingle()
+            ),
+            PROFILE_TIMEOUT_MS,
+            "Chargement du restaurant"
+          );
+          const r = restRes.data as {
+            id: string;
+            slug: string;
+            name: string;
+            address: string | null;
+            phone: string | null;
+            logo_url: string | null;
+            active: boolean;
+            subscription_expires_at: string | null;
+            opening_hours: unknown;
+            created_at: string;
+          } | null;
+          if (r) {
+            restaurantCache = {
+              id: r.id,
+              slug: r.slug,
+              name: r.name,
+              address: r.address,
+              phone: r.phone,
+              logoUrl: r.logo_url,
+              active: r.active,
+              subscriptionExpiresAt: r.subscription_expires_at,
+              openingHours: r.opening_hours,
+              createdAt: r.created_at,
+            };
+          }
+        } catch (e) {
+          console.warn("[dashboard-login] restaurant prefetch failed:", e);
+        }
+        try {
+          localStorage.setItem(
+            "resto-saas:auth-v1",
+            JSON.stringify({
+              userId: data.user.id,
+              role: "owner",
+              restaurant: restaurantCache,
+              ts: Date.now(),
+            })
+          );
+        } catch {
+          /* ignore */
+        }
+        window.location.replace("/dashboard/orders");
+        return;
+      }
+
+      // Profile pas valide
+      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+      throw new Error("Aucun restaurant n'est associé à ce compte.");
     } catch (err) {
       console.error("[dashboard-login]", err);
       setError(

@@ -10,12 +10,18 @@ export default function AdminGuard({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, profileLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
+  // On considère "encore en train de vérifier" si :
+  // - auth-context init pas fini
+  // - OU le profile est en cours de chargement
+  // - OU on a un user mais pas encore son role (race entre setUser et setRole)
+  const verifying = loading || profileLoading || (user && !role);
+
   useEffect(() => {
-    if (loading) return;
+    if (verifying) return;
     if (pathname === "/admin/login") return;
     if (!user) {
       router.replace("/admin/login");
@@ -24,11 +30,11 @@ export default function AdminGuard({
     if (role !== "superadmin") {
       router.replace("/admin/login");
     }
-  }, [loading, user, role, pathname, router]);
+  }, [verifying, user, role, pathname, router]);
 
   if (pathname === "/admin/login") return <>{children}</>;
 
-  if (loading) {
+  if (verifying) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-stone-950 text-stone-100">
         <div className="flex items-center gap-3 text-stone-400">

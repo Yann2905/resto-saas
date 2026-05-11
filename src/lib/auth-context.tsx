@@ -19,6 +19,9 @@ type AuthCtx = {
   restaurant: Restaurant | null;
   role: UserRole | null;
   loading: boolean;
+  // true tant que le profile/restaurant n'a pas été chargé après un signin
+  // (évite que les pages affichent "Aucun restaurant" pendant le chargement)
+  profileLoading: boolean;
   signOut: () => Promise<void>;
 };
 
@@ -27,6 +30,7 @@ const Ctx = createContext<AuthCtx>({
   restaurant: null,
   role: null,
   loading: true,
+  profileLoading: false,
   signOut: async () => {},
 });
 
@@ -111,10 +115,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
 
-  // refresh : met à jour le state SEULEMENT si le fetch retourne des données.
-  // Quand on a déjà des données en mémoire/cache, un fetch raté ne doit JAMAIS
-  // les effacer (sinon retour d'onglet sur cold-start = "Chargement..." infini).
   const refresh = useCallback(async (u: User | null) => {
     if (!u) {
       setUser(null);
@@ -124,13 +126,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     setUser(u);
-    const { role: r, restaurant: rest } = await loadProfile(u.id);
-    if (r) {
-      setRole(r);
-      setRestaurant(rest);
-      writeCache({ userId: u.id, role: r, restaurant: rest, ts: Date.now() });
+    setProfileLoading(true);
+    try {
+      const { role: r, restaurant: rest } = await loadProfile(u.id);
+      if (r) {
+        setRole(r);
+        setRestaurant(rest);
+        writeCache({
+          userId: u.id,
+          role: r,
+          restaurant: rest,
+          ts: Date.now(),
+        });
+      }
+      // Si r est null = échec/réseau. On garde silencieusement l'ancien state.
+    } finally {
+      setProfileLoading(false);
     }
-    // Si r est null = échec/réseau. On garde silencieusement l'ancien state.
   }, []);
 
   useEffect(() => {
@@ -234,7 +246,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <Ctx.Provider value={{ user, restaurant, role, loading, signOut }}>
+    <Ctx.Provider
+      value={{ user, restaurant, role, loading, profileLoading, signOut }}
+    >
       {children}
     </Ctx.Provider>
   );
