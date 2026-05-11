@@ -70,6 +70,34 @@ export async function getRevenueByDay(
   }));
 }
 
+function toIsoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export async function getRevenueSeries(
+  restaurantId: string,
+  from: Date,
+  to: Date
+): Promise<DayRevenue[]> {
+  const { data } = await supabase.rpc("restaurant_revenue_series", {
+    p_restaurant_id: restaurantId,
+    p_from: toIsoDate(from),
+    p_to: toIsoDate(to),
+  });
+  return ((data ?? []) as Array<{
+    day: string;
+    revenue: number;
+    orders_count: number;
+  }>).map((r) => ({
+    day: r.day,
+    revenue: Number(r.revenue),
+    ordersCount: Number(r.orders_count),
+  }));
+}
+
 export async function getTopProducts(
   restaurantId: string,
   from: Date,

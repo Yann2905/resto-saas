@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { formatFCFA } from "@/lib/format";
+import { formatCompactFCFA, formatFCFA } from "@/lib/format";
 import {
   DayRevenue,
   PeakHour,
@@ -11,6 +11,7 @@ import {
   TopProduct,
   getPeakHours,
   getRevenueByDay,
+  getRevenueSeries,
   getSummary,
   getTopProducts,
 } from "@/lib/stats";
@@ -24,9 +25,20 @@ const RANGE_LABELS: Record<Range, string> = {
   all: "Tout",
 };
 
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function endOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
 function rangeDates(r: Range): { from: Date; to: Date; days: number } {
-  const to = new Date();
-  to.setHours(23, 59, 59, 999);
+  const to = endOfDay(new Date());
   const from = new Date(to);
   if (r === "7d") {
     from.setDate(from.getDate() - 6);
@@ -40,26 +52,48 @@ function rangeDates(r: Range): { from: Date; to: Date; days: number } {
     from.setDate(from.getDate() - 29);
     return { from: startOfDay(from), to, days: 30 };
   }
-  // all : depuis 1 an arrière pour limiter, mais on affiche days = 30 sur le graphique
+  // all : 1 an en arrière
   from.setFullYear(from.getFullYear() - 1);
   return { from: startOfDay(from), to, days: 30 };
 }
 
-function startOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
+// monthKey : "YYYY-MM"
+function monthRange(monthKey: string): { from: Date; to: Date } {
+  const [y, m] = monthKey.split("-").map((v) => parseInt(v, 10));
+  const from = startOfDay(new Date(y, m - 1, 1));
+  // Dernier jour = jour 0 du mois suivant
+  const to = endOfDay(new Date(y, m, 0));
+  return { from, to };
+}
+
+function lastNMonths(n = 12): Array<{ key: string; label: string }> {
+  const out: Array<{ key: string; label: string }> = [];
+  const now = new Date();
+  for (let i = 0; i < n; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleDateString("fr-FR", {
+      month: "long",
+      year: "numeric",
+    });
+    out.push({ key, label: label.charAt(0).toUpperCase() + label.slice(1) });
+  }
+  return out;
 }
 
 export default function StatsPage() {
   const router = useRouter();
   const { user, restaurant, loading } = useAuth();
+  // Mode "range" (7d/14d/30d/all) ou "month" (un mois précis)
   const [range, setRange] = useState<Range>("14d");
+  const [month, setMonth] = useState<string>(""); // "" = mode range
   const [summary, setSummary] = useState<StatsSummary | null>(null);
   const [byDay, setByDay] = useState<DayRevenue[]>([]);
   const [top, setTop] = useState<TopProduct[]>([]);
   const [peak, setPeak] = useState<PeakHour[]>([]);
   const [fetching, setFetching] = useState(true);
+
+  const months = useMemo(() => lastNMonths(12), []);
 
   useEffect(() => {
     if (!loading && !user) router.push("/dashboard/login");
@@ -68,11 +102,19 @@ export default function StatsPage() {
   useEffect(() => {
     if (!restaurant) return;
     let cancelled = false;
-    const { from, to, days } = rangeDates(range);
+
+    const { from, to } = month
+      ? monthRange(month)
+      : rangeDates(range);
+
     setFetching(true);
+    const dayQuery = month
+      ? getRevenueSeries(restaurant.id, from, to)
+      : getRevenueByDay(restaurant.id, rangeDates(range).days);
+
     Promise.all([
       getSummary(restaurant.id, from, to),
-      getRevenueByDay(restaurant.id, days),
+      dayQuery,
       getTopProducts(restaurant.id, from, to, 5),
       getPeakHours(restaurant.id, from, to),
     ])
@@ -90,7 +132,11 @@ export default function StatsPage() {
     return () => {
       cancelled = true;
     };
-  }, [restaurant, range]);
+  }, [restaurant, range, month]);
+
+  const periodLabel = month
+    ? months.find((m) => m.key === month)?.label ?? month
+    : RANGE_LABELS[range];
 
   if (loading || !restaurant) {
     return (
@@ -112,23 +158,79 @@ export default function StatsPage() {
               Statistiques
             </h2>
             <p className="text-sm text-stone-500 mt-0.5">
-              Activité de votre restaurant sur la période choisie.
+              Période : <span className="font-semibold">{periodLabel}</span>
             </p>
           </div>
-          <div className="flex gap-1 bg-white border border-stone-200 rounded-full p-1">
-            {(Object.keys(RANGE_LABELS) as Range[]).map((r) => (
-              <button
-                key={r}
-                onClick={() => setRange(r)}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
-                  range === r
-                    ? "bg-stone-900 text-white"
-                    : "text-stone-600 hover:bg-stone-100"
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Toggles relatifs : 7j / 14j / 30j / Tout */}
+            <div className="flex gap-1 bg-white border border-stone-200 rounded-full p-1">
+              {(Object.keys(RANGE_LABELS) as Range[]).map((r) => {
+                const active = !month && range === r;
+                return (
+                  <button
+                    key={r}
+                    onClick={() => {
+                      setMonth("");
+                      setRange(r);
+                    }}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+                      active
+                        ? "bg-stone-900 text-white"
+                        : "text-stone-600 hover:bg-stone-100"
+                    }`}
+                  >
+                    {RANGE_LABELS[r]}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Sélecteur mois précis */}
+            <div className="relative">
+              <select
+                value={month}
+                onChange={(e) => setMonth(e.target.value)}
+                className={`appearance-none rounded-full pl-9 pr-9 py-2 text-xs font-semibold border transition-all cursor-pointer ${
+                  month
+                    ? "bg-stone-900 text-white border-stone-900"
+                    : "bg-white text-stone-700 border-stone-200 hover:bg-stone-50"
                 }`}
               >
-                {RANGE_LABELS[r]}
+                <option value="">— Choisir un mois —</option>
+                {months.map((m) => (
+                  <option key={m.key} value={m.key}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <span
+                className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs ${
+                  month ? "text-white" : "text-stone-500"
+                }`}
+                aria-hidden
+              >
+                📅
+              </span>
+              <span
+                className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs ${
+                  month ? "text-white" : "text-stone-500"
+                }`}
+                aria-hidden
+              >
+                ▾
+              </span>
+            </div>
+
+            {month && (
+              <button
+                onClick={() => setMonth("")}
+                className="rounded-full px-3 py-1.5 text-xs font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors"
+                title="Revenir à une période relative"
+              >
+                ✕
               </button>
-            ))}
+            )}
           </div>
         </div>
 
@@ -158,7 +260,8 @@ export default function StatsPage() {
             <div>
               <h3 className="font-bold text-stone-900">Revenu par jour</h3>
               <p className="text-xs text-stone-500 mt-0.5">
-                {byDay.length} jour{byDay.length > 1 ? "s" : ""} affichés
+                {periodLabel} · {byDay.length} jour
+                {byDay.length > 1 ? "s" : ""}
               </p>
             </div>
           </div>
@@ -304,7 +407,7 @@ function RevenueChart({ data }: { data: DayRevenue[] }) {
             fontSize="10"
             fill="#78716c"
           >
-            {formatFCFA(t.value)}
+            {formatCompactFCFA(t.value)}
           </text>
         ))}
         <defs>
@@ -334,7 +437,7 @@ function RevenueChart({ data }: { data: DayRevenue[] }) {
                 fontWeight="600"
                 fill="#92400e"
               >
-                {formatFCFA(data[i].revenue)}
+                {formatCompactFCFA(data[i].revenue)}
               </text>
             )}
             <title>
