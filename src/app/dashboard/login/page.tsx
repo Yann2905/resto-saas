@@ -3,66 +3,113 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/lib/auth-context";
+
+const SIGNIN_TIMEOUT_MS = 12000;
+const PROFILE_TIMEOUT_MS = 5000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} : délai dépassé`)), ms)
+    ),
+  ]);
+}
 
 export default function LoginPage() {
-  const { loading, user, role, restaurant } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Auto-redirect si déjà connecté (synchrone, depuis le cache localStorage)
   useEffect(() => {
-    if (loading || !user) return;
-    if (role === "superadmin") window.location.href = "/admin";
-    else if (restaurant) window.location.href = "/dashboard/orders";
-  }, [loading, user, role, restaurant]);
+    try {
+      const raw = localStorage.getItem("resto-saas:auth-v1");
+      if (!raw) return;
+      const cache = JSON.parse(raw) as {
+        role?: string;
+        restaurant?: unknown;
+      };
+      if (cache.role === "superadmin") {
+        window.location.replace("/admin");
+      } else if (cache.role === "owner" && cache.restaurant) {
+        window.location.replace("/dashboard/orders");
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
+
     try {
-      // Clear toute session résiduelle (admin -> owner ou autre)
-      try {
-        await supabase.auth.signOut();
-      } catch {
-        /* ignore */
-      }
       try {
         localStorage.removeItem("resto-saas:auth-v1");
       } catch {
         /* ignore */
       }
-
-      const { data, error: authError } = await supabase.auth.signInWithPassword(
-        { email, password }
-      );
-      if (authError || !data.user) {
-        throw authError ?? new Error("Erreur d'authentification");
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } catch {
+        /* ignore */
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", data.user.id)
-        .maybeSingle();
+      const { data, error: authError } = await withTimeout(
+        supabase.auth.signInWithPassword({ email, password }),
+        SIGNIN_TIMEOUT_MS,
+        "Connexion"
+      );
 
-      // Hard navigation selon le rôle réel
-      if (profile?.role === "superadmin") {
-        window.location.href = "/admin";
+      if (authError || !data?.user) {
+        throw authError ?? new Error("Email ou mot de passe incorrect");
+      }
+
+      let role: string | null = null;
+      let restaurantId: string | null = null;
+      try {
+        const profileRes = await withTimeout(
+          Promise.resolve(
+            supabase
+              .from("profiles")
+              .select("role, restaurant_id")
+              .eq("id", data.user.id)
+              .maybeSingle()
+          ),
+          PROFILE_TIMEOUT_MS,
+          "Vérification du profil"
+        );
+        const profile = profileRes.data as {
+          role?: string;
+          restaurant_id?: string | null;
+        } | null;
+        role = profile?.role ?? null;
+        restaurantId = profile?.restaurant_id ?? null;
+      } catch (e) {
+        console.warn("[dashboard-login] profile check failed:", e);
+        await supabase.auth.signOut().catch(() => {});
+        throw new Error("Connexion lente, réessayez dans un instant.");
+      }
+
+      if (role === "superadmin") {
+        window.location.replace("/admin");
+      } else if (role === "owner" && restaurantId) {
+        window.location.replace("/dashboard/orders");
       } else {
-        window.location.href = "/dashboard/orders";
+        await supabase.auth.signOut().catch(() => {});
+        throw new Error("Aucun restaurant n'est associé à ce compte.");
       }
     } catch (err) {
-      console.error("[dashboard-login] signin failed:", err);
+      console.error("[dashboard-login]", err);
       setError(
         err instanceof Error && err.message
           ? err.message
           : "Email ou mot de passe incorrect"
       );
-    } finally {
       setSubmitting(false);
     }
   };
@@ -111,6 +158,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="owner@restaurant.com"
+              autoComplete="email"
               className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-stone-900 placeholder:text-stone-400 focus:bg-white focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 transition-colors"
             />
           </div>
@@ -126,6 +174,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
+                autoComplete="current-password"
                 className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 pr-12 text-stone-900 placeholder:text-stone-400 focus:bg-white focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 transition-colors"
               />
               <button
@@ -149,7 +198,10 @@ export default function LoginPage() {
 
           {error && (
             <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 animate-fade-in-up">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
+              <AlertTriangle
+                className="w-4 h-4 flex-shrink-0 mt-0.5"
+                aria-hidden
+              />
               <span>{error}</span>
             </div>
           )}

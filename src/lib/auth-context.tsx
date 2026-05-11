@@ -136,15 +136,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Filet : si tout échoue, on débloque loading après 5s
+    // Failsafe ultime : 3s max avant de débloquer l'UI
     const failsafe = setTimeout(() => {
       if (mounted) {
         console.warn("[auth] init timeout, forcing loading=false");
         setLoading(false);
       }
-    }, 5000);
+    }, 3000);
 
-    // Première initialisation : tente d'utiliser le cache pour rendre instantanément
+    // Cache synchrone pour rendre instantanément
     const cachedSync = readCache();
     if (cachedSync) {
       setRole(cachedSync.role);
@@ -153,12 +153,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       try {
-        const { data } = await supabase.auth.getSession();
+        // getSession() peut hang sur cold start — on lui met un timeout dur de 2.5s.
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<{ data: { session: null } }>((resolve) =>
+            setTimeout(() => resolve({ data: { session: null } }), 2500)
+          ),
+        ]);
         if (!mounted) return;
-        const sessionUser = data.session?.user ?? null;
+        const sessionUser = sessionResult.data.session?.user ?? null;
 
         if (sessionUser && cachedSync && cachedSync.userId === sessionUser.id) {
-          // Hot path : cache valide → on rend tout de suite, refresh silencieux
           setUser(sessionUser);
           setLoading(false);
           clearTimeout(failsafe);
@@ -202,14 +207,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const signOut = useCallback(async () => {
-    // Clear local first so l'UI réagit immédiatement
     clearCache();
     setUser(null);
     setRole(null);
     setRestaurant(null);
-    // Le call réseau ne bloque pas la suite — il peut hang sur cold start.
     try {
-      await supabase.auth.signOut();
+      // scope:'local' = clear le storage local sans appel réseau (instantané)
+      await supabase.auth.signOut({ scope: "local" });
     } catch (e) {
       console.warn("[auth] supabase signOut failed:", e);
     }

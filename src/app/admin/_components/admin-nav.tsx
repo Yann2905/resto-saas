@@ -27,7 +27,7 @@ export default function AdminNav() {
       confirmText: "Se déconnecter",
     });
     if (!ok) return;
-    void signOut();
+    await signOut();
     window.location.href = "/admin/login";
   };
 

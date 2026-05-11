@@ -3,68 +3,106 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, ArrowRight, Eye, EyeOff, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/lib/auth-context";
+
+const SIGNIN_TIMEOUT_MS = 12000;
+const PROFILE_TIMEOUT_MS = 5000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} : délai dépassé`)), ms)
+    ),
+  ]);
+}
 
 export default function AdminLoginPage() {
-  const { user, role, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Auto-redirect si déjà connecté en tant que superadmin (synchrone, depuis cache)
   useEffect(() => {
-    if (!authLoading && user && role === "superadmin") {
-      window.location.href = "/admin";
+    try {
+      const raw = localStorage.getItem("resto-saas:auth-v1");
+      if (!raw) return;
+      const cache = JSON.parse(raw) as { role?: string };
+      if (cache.role === "superadmin") {
+        window.location.replace("/admin");
+      }
+    } catch {
+      /* ignore */
     }
-  }, [authLoading, user, role]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
     try {
-      // Force-clear toute session/cache résiduel avant d'ouvrir la nouvelle.
-      // Si on est passé de owner -> admin, l'ancien profile reste sinon.
-      try {
-        await supabase.auth.signOut();
-      } catch {
-        /* ignore */
-      }
+      // Nettoyer toute session/cache résiduel (admin venant d'un autre compte)
       try {
         localStorage.removeItem("resto-saas:auth-v1");
       } catch {
         /* ignore */
       }
+      try {
+        // scope:'local' = clear instantané sans call réseau
+        await supabase.auth.signOut({ scope: "local" });
+      } catch {
+        /* ignore */
+      }
 
-      const { data, error: authError } =
-        await supabase.auth.signInWithPassword({ email, password });
-      if (authError || !data.user) {
-        throw authError ?? new Error("Erreur d'authentification");
+      const { data, error: authError } = await withTimeout(
+        supabase.auth.signInWithPassword({ email, password }),
+        SIGNIN_TIMEOUT_MS,
+        "Connexion"
+      );
+
+      if (authError || !data?.user) {
+        throw authError ?? new Error("Email ou mot de passe incorrect");
       }
-      const { data: profile, error: profErr } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", data.user.id)
-        .maybeSingle();
-      if (profErr) {
-        console.error("[admin-login] profile fetch error:", profErr);
+
+      // Vérif role superadmin avec timeout court
+      let isSuperadmin = false;
+      try {
+        const profileRes = await withTimeout(
+          Promise.resolve(
+            supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", data.user.id)
+              .maybeSingle()
+          ),
+          PROFILE_TIMEOUT_MS,
+          "Vérification du profil"
+        );
+        isSuperadmin =
+          (profileRes.data as { role?: string } | null)?.role === "superadmin";
+      } catch (e) {
+        console.warn("[admin-login] profile check failed:", e);
+        // En cas de timeout sur la vérif, on signOut et on demande de réessayer
+        await supabase.auth.signOut().catch(() => {});
+        throw new Error("Connexion lente, réessayez dans un instant.");
       }
-      if (!profile || profile.role !== "superadmin") {
-        await supabase.auth.signOut();
-        setError("Ce compte n'est pas un super-administrateur.");
-        return;
+
+      if (!isSuperadmin) {
+        await supabase.auth.signOut().catch(() => {});
+        throw new Error("Ce compte n'est pas un super-administrateur.");
       }
-      // Hard navigation : pas de race avec les redirections useEffect.
-      window.location.href = "/admin";
+
+      // Navigation dure — pas de race possible
+      window.location.replace("/admin");
     } catch (e) {
-      console.error("[admin-login] signin failed:", e);
+      console.error("[admin-login]", e);
       setError(
         e instanceof Error && e.message
           ? e.message
           : "Email ou mot de passe incorrect"
       );
-    } finally {
       setLoading(false);
     }
   };
@@ -114,6 +152,7 @@ export default function AdminLoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="admin@restosaas.com"
+              autoComplete="email"
               className="w-full rounded-xl border border-stone-700 bg-stone-950/60 px-4 py-3 text-stone-100 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-colors"
             />
           </div>
@@ -129,6 +168,7 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
+                autoComplete="current-password"
                 className="w-full rounded-xl border border-stone-700 bg-stone-950/60 px-4 py-3 pr-12 text-stone-100 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-colors"
               />
               <button
@@ -139,7 +179,7 @@ export default function AdminLoginPage() {
                     ? "Masquer le mot de passe"
                     : "Afficher le mot de passe"
                 }
-                className="absolute inset-y-0 right-0 flex items-center justify-center w-11 text-stone-400 hover:text-amber-400 active:text-amber-500 transition-colors touch-manipulation"
+                className="absolute inset-y-0 right-0 flex items-center justify-center w-11 text-stone-400 hover:text-amber-400 active:text-amber-500 transition-colors"
               >
                 {showPassword ? (
                   <EyeOff className="w-5 h-5" aria-hidden />
@@ -152,7 +192,10 @@ export default function AdminLoginPage() {
 
           {error && (
             <div className="flex items-start gap-2 rounded-xl border border-red-900/50 bg-red-950/40 p-3 text-sm text-red-300 animate-fade-in-up">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
+              <AlertTriangle
+                className="w-4 h-4 flex-shrink-0 mt-0.5"
+                aria-hidden
+              />
               <span>{error}</span>
             </div>
           )}
@@ -169,7 +212,8 @@ export default function AdminLoginPage() {
               </>
             ) : (
               <>
-                Accéder à la console <ArrowRight className="w-4 h-4" aria-hidden />
+                Accéder à la console{" "}
+                <ArrowRight className="w-4 h-4" aria-hidden />
               </>
             )}
           </button>

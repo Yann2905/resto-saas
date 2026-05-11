@@ -35,11 +35,9 @@ export default function DashboardNav() {
       confirmText: "Se déconnecter",
     });
     if (!ok) return;
-    // On lance signOut (qui clear le state local immédiatement + supprime la
-    // session côté Supabase en arrière-plan) et on force une vraie navigation.
-    // window.location.href est immuable face aux unmounts React et garantit
-    // un repaint complet sur la page de login.
-    void signOut();
+    // signOut utilise scope:'local' = instantané (pas de call réseau).
+    // window.location.href = navigation dure qui survit aux unmounts React.
+    await signOut();
     window.location.href = "/dashboard/login";
   };
 
