@@ -234,6 +234,19 @@ function SkeletonChart() {
   );
 }
 
+// Round up to the next "nice" round number for axis scale (100/500/1k/5k/etc.)
+function niceCeil(n: number): number {
+  if (n <= 0) return 1000;
+  const pow = Math.pow(10, Math.floor(Math.log10(n)));
+  const norm = n / pow;
+  let nice: number;
+  if (norm <= 1) nice = 1;
+  else if (norm <= 2) nice = 2;
+  else if (norm <= 5) nice = 5;
+  else nice = 10;
+  return nice * pow;
+}
+
 function RevenueChart({ data }: { data: DayRevenue[] }) {
   if (data.length === 0) {
     return (
@@ -242,17 +255,19 @@ function RevenueChart({ data }: { data: DayRevenue[] }) {
       </div>
     );
   }
-  const max = Math.max(...data.map((d) => d.revenue), 1);
+  const rawMax = Math.max(...data.map((d) => d.revenue), 0);
+  // Si aucune vente : on garde une échelle minimale lisible (1000 FCFA)
+  const niceMax = rawMax > 0 ? niceCeil(rawMax) : 1000;
   const w = 800;
-  const h = 220;
-  const pad = { l: 40, r: 12, t: 12, b: 24 };
+  const h = 240;
+  const pad = { l: 64, r: 16, t: 16, b: 28 };
   const innerW = w - pad.l - pad.r;
   const innerH = h - pad.t - pad.b;
   const step = data.length > 1 ? innerW / (data.length - 1) : 0;
 
   const pts = data.map((d, i) => {
     const x = pad.l + i * step;
-    const y = pad.t + innerH - (d.revenue / max) * innerH;
+    const y = pad.t + innerH - (d.revenue / niceMax) * innerH;
     return [x, y] as const;
   });
   const polyline = pts.map(([x, y]) => `${x},${y}`).join(" ");
@@ -260,33 +275,36 @@ function RevenueChart({ data }: { data: DayRevenue[] }) {
     pad.t + innerH
   }`;
 
-  // gridlines : 4
-  const gridY = [0, 0.25, 0.5, 0.75, 1].map((p) => pad.t + innerH * p);
+  // 5 graduations Y : 0, 25%, 50%, 75%, 100% de niceMax
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((p) => ({
+    y: pad.t + innerH * (1 - p),
+    value: Math.round(niceMax * p),
+  }));
 
   return (
     <div className="overflow-x-auto">
       <svg viewBox={`0 0 ${w} ${h}`} className="w-full min-w-[600px]">
-        {gridY.map((y, i) => (
+        {yTicks.map((t, i) => (
           <line
-            key={i}
+            key={`g-${i}`}
             x1={pad.l}
             x2={pad.l + innerW}
-            y1={y}
-            y2={y}
+            y1={t.y}
+            y2={t.y}
             stroke="#e7e5e4"
             strokeDasharray="3 3"
           />
         ))}
-        {[0, 0.5, 1].map((p, i) => (
+        {yTicks.map((t, i) => (
           <text
-            key={i}
-            x={pad.l - 6}
-            y={pad.t + innerH * (1 - p) + 4}
+            key={`l-${i}`}
+            x={pad.l - 8}
+            y={t.y + 4}
             textAnchor="end"
             fontSize="10"
-            fill="#a8a29e"
+            fill="#78716c"
           >
-            {formatFCFA(Math.round(max * p))}
+            {formatFCFA(t.value)}
           </text>
         ))}
         <defs>
@@ -306,7 +324,19 @@ function RevenueChart({ data }: { data: DayRevenue[] }) {
         />
         {pts.map(([x, y], i) => (
           <g key={i}>
-            <circle cx={x} cy={y} r={3} fill="#d97706" />
+            <circle cx={x} cy={y} r={data[i].revenue > 0 ? 4 : 3} fill="#d97706" />
+            {data[i].revenue > 0 && (
+              <text
+                x={x}
+                y={y - 8}
+                textAnchor="middle"
+                fontSize="10"
+                fontWeight="600"
+                fill="#92400e"
+              >
+                {formatFCFA(data[i].revenue)}
+              </text>
+            )}
             <title>
               {formatDay(data[i].day)} : {formatFCFA(data[i].revenue)} (
               {data[i].ordersCount} commande
