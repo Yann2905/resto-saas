@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getRestaurantBySlug, isSubscriptionActive } from "@/lib/restaurants";
+import { getRestaurantBySlug, isSubscriptionActive } from "@/lib/restaurants-server";
 import CartClient from "./cart-client";
 
 export default async function CartPage({

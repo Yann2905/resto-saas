@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 
 const TABS = [
@@ -14,14 +12,14 @@ const TABS = [
 export default function AdminNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, role } = useAuth();
+  const { user, role, signOut } = useAuth();
 
   if (pathname === "/admin/login" || !user || role !== "superadmin") {
     return null;
   }
 
   const handleLogout = async () => {
-    await signOut(auth);
+    await signOut();
     router.push("/admin/login");
   };
 

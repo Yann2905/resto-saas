@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getRestaurantBySlug } from "@/lib/restaurants";
+import { getRestaurantBySlug } from "@/lib/restaurants-server";
 import OrderTracker from "./order-tracker";
 
 export default async function OrderPage({

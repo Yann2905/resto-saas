@@ -3,9 +3,9 @@ import DashboardNav from "./_components/dashboard-nav";
 
 export default function DashboardLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <AuthProvider>
       <DashboardNav />

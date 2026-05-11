@@ -2,9 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { collection, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { Restaurant } from "@/types";
+import { supabase } from "@/lib/supabase";
+import {
+  Restaurant,
+  RestaurantRow,
+  mapRestaurant,
+} from "@/types";
 
 type RecentActivity = {
   id: string;
@@ -18,53 +21,66 @@ export default function AdminOverview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "restaurants"), (snap) => {
-      const list: Restaurant[] = snap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<Restaurant, "id">),
-      }));
-      setRestaurants(list);
+    let cancelled = false;
+
+    const fetchAll = async () => {
+      const { data } = await supabase
+        .from("restaurants")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      setRestaurants((data ?? []).map((r) => mapRestaurant(r as RestaurantRow)));
       setLoading(false);
-    });
-    return () => unsub();
+    };
+
+    fetchAll();
+
+    const channel = supabase
+      .channel("admin-restaurants")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "restaurants" },
+        fetchAll
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const stats = useMemo(() => {
     const total = restaurants.length;
-    const active = restaurants.filter((r) => {
-      if (!r.active) return false;
-      if (!r.subscriptionExpiresAt) return true;
-      return r.subscriptionExpiresAt.toMillis() > Date.now();
-    }).length;
+    const expMillis = (r: Restaurant) =>
+      r.subscriptionExpiresAt
+        ? new Date(r.subscriptionExpiresAt).getTime()
+        : Infinity;
+    const active = restaurants.filter(
+      (r) => r.active && expMillis(r) > Date.now()
+    ).length;
     const inactive = restaurants.filter((r) => !r.active).length;
-    const expired = restaurants.filter((r) => {
-      if (!r.active) return false;
-      if (!r.subscriptionExpiresAt) return false;
-      return r.subscriptionExpiresAt.toMillis() <= Date.now();
-    }).length;
+    const expired = restaurants.filter(
+      (r) => r.active && expMillis(r) <= Date.now()
+    ).length;
     const expiringSoon = restaurants.filter((r) => {
       if (!r.active || !r.subscriptionExpiresAt) return false;
-      const diff = r.subscriptionExpiresAt.toMillis() - Date.now();
+      const diff = new Date(r.subscriptionExpiresAt).getTime() - Date.now();
       return diff > 0 && diff < 7 * 24 * 60 * 60 * 1000;
     }).length;
     return { total, active, inactive, expired, expiringSoon };
   }, [restaurants]);
 
-  const recent: RecentActivity[] = useMemo(() => {
-    return [...restaurants]
-      .sort((a, b) => {
-        const ta = a.createdAt?.toMillis?.() ?? 0;
-        const tb = b.createdAt?.toMillis?.() ?? 0;
-        return tb - ta;
-      })
-      .slice(0, 6)
-      .map((r) => ({
+  const recent: RecentActivity[] = useMemo(
+    () =>
+      restaurants.slice(0, 6).map((r) => ({
         id: r.id,
         name: r.name,
         slug: r.slug,
-        createdAt: r.createdAt?.toDate?.() ?? null,
-      }));
-  }, [restaurants]);
+        createdAt: r.createdAt ? new Date(r.createdAt) : null,
+      })),
+    [restaurants]
+  );
 
   if (loading) {
     return (
@@ -207,7 +223,6 @@ export default function AdminOverview() {
           </div>
         </div>
 
-        {/* Info CTA */}
         <div className="mt-6 rounded-2xl border border-stone-800 bg-gradient-to-br from-stone-900 to-stone-800 text-white p-6 sm:p-8 animate-fade-in-up overflow-hidden relative">
           <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-amber-500/10 blur-3xl" />
           <div className="relative">
@@ -303,8 +318,7 @@ function Bar({
       <div className="flex items-baseline justify-between text-sm mb-1.5">
         <span className="text-stone-700 font-medium">{label}</span>
         <span className="text-stone-500 tabular-nums">
-          {value}{" "}
-          <span className="text-xs text-stone-400">({pct}%)</span>
+          {value} <span className="text-xs text-stone-400">({pct}%)</span>
         </span>
       </div>
       <div className="h-2 rounded-full bg-stone-100 overflow-hidden">
@@ -316,4 +330,3 @@ function Bar({
     </div>
   );
 }
-

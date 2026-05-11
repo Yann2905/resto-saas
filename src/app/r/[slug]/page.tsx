@@ -4,7 +4,8 @@ import {
   getCategories,
   getProducts,
   isSubscriptionActive,
-} from "@/lib/restaurants";
+} from "@/lib/restaurants-server";
+import { isOpenAt, formatTodayHours } from "@/lib/opening-hours";
 import MenuClient from "./menu-client";
 
 export default async function RestaurantMenuPage({
@@ -27,6 +28,24 @@ export default async function RestaurantMenuPage({
           <h1 className="text-2xl font-bold mb-2">Service indisponible</h1>
           <p className="text-gray-600">
             Ce restaurant est temporairement indisponible.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  const open = isOpenAt(restaurant.openingHours);
+  if (!open) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-6 text-center bg-stone-50">
+        <div>
+          <div className="text-5xl mb-3">🌙</div>
+          <h1 className="text-2xl font-bold mb-2">Restaurant fermé</h1>
+          <p className="text-stone-600 mb-1">
+            Nous serons heureux de vous accueillir bientôt.
+          </p>
+          <p className="text-sm text-stone-500">
+            {formatTodayHours(restaurant.openingHours)}
           </p>
         </div>
       </main>

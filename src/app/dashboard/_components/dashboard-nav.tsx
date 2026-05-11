@@ -2,25 +2,25 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 
 const TABS = [
   { href: "/dashboard/orders", label: "Commandes", icon: "📋" },
   { href: "/dashboard/menu", label: "Menu", icon: "🍽" },
+  { href: "/dashboard/stats", label: "Stats", icon: "📊" },
   { href: "/dashboard/qrcodes", label: "QR codes", icon: "📱" },
+  { href: "/dashboard/settings", label: "Réglages", icon: "⚙" },
 ];
 
 export default function DashboardNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, restaurant } = useAuth();
+  const { user, restaurant, signOut } = useAuth();
 
   if (pathname === "/dashboard/login" || !user || !restaurant) return null;
 
   const handleLogout = async () => {
-    await signOut(auth);
+    await signOut();
     router.push("/dashboard/login");
   };
 
@@ -80,7 +80,7 @@ export default function DashboardNav() {
 
       {/* Bottom tab bar mobile */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-stone-200 pb-[env(safe-area-inset-bottom)]">
-        <div className="grid grid-cols-3">
+        <div className="grid grid-cols-5">
           {TABS.map((tab) => {
             const active = pathname.startsWith(tab.href);
             return (

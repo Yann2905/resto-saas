@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { Restaurant } from "@/types";
+import { supabase } from "@/lib/supabase";
+import { Restaurant, RestaurantRow, mapRestaurant } from "@/types";
 import {
   createRestaurantWithOwner,
-  deleteRestaurantAndSubcollections,
+  deleteRestaurant,
   setRestaurantActive,
   setRestaurantSubscription,
   updateRestaurantInfo,
@@ -15,12 +14,18 @@ import {
 
 type Filter = "all" | "active" | "expiring" | "inactive";
 
+function expMillis(r: Restaurant): number {
+  return r.subscriptionExpiresAt
+    ? new Date(r.subscriptionExpiresAt).getTime()
+    : Infinity;
+}
+
 function restaurantStatus(
   r: Restaurant
 ): "active" | "expiring" | "expired" | "inactive" {
   if (!r.active) return "inactive";
-  if (!r.subscriptionExpiresAt) return "active";
-  const diff = r.subscriptionExpiresAt.toMillis() - Date.now();
+  const diff = expMillis(r) - Date.now();
+  if (!Number.isFinite(diff)) return "active";
   if (diff <= 0) return "expired";
   if (diff < 7 * 24 * 60 * 60 * 1000) return "expiring";
   return "active";
@@ -70,20 +75,29 @@ export default function AdminRestaurantsPage() {
   } | null>(null);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "restaurants"), (snap) => {
-      const list: Restaurant[] = snap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<Restaurant, "id">),
-      }));
-      list.sort((a, b) => {
-        const ta = a.createdAt?.toMillis?.() ?? 0;
-        const tb = b.createdAt?.toMillis?.() ?? 0;
-        return tb - ta;
-      });
-      setRestaurants(list);
+    let cancelled = false;
+    const fetchAll = async () => {
+      const { data } = await supabase
+        .from("restaurants")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      setRestaurants((data ?? []).map((r) => mapRestaurant(r as RestaurantRow)));
       setLoading(false);
-    });
-    return () => unsub();
+    };
+    fetchAll();
+    const channel = supabase
+      .channel("admin-restaurants-page")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "restaurants" },
+        fetchAll
+      )
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const filtered = useMemo(() => {
@@ -168,11 +182,8 @@ export default function AdminRestaurantsPage() {
     }
     setBusyId(r.id);
     try {
-      await deleteRestaurantAndSubcollections(r.id);
-      showToast(
-        "success",
-        `« ${r.name} » supprimé (n'oubliez pas de supprimer l'utilisateur Auth depuis la console Firebase)`
-      );
+      await deleteRestaurant(r.id);
+      showToast("success", `« ${r.name} » supprimé`);
     } catch (e) {
       showToast("error", e instanceof Error ? e.message : "Erreur");
     } finally {
@@ -212,7 +223,6 @@ export default function AdminRestaurantsPage() {
           />
         )}
 
-        {/* Search + filters */}
         <div className="bg-white rounded-2xl border border-stone-200 p-3 mb-4 flex flex-col sm:flex-row gap-2 sm:items-center">
           <div className="relative flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">
@@ -236,7 +246,7 @@ export default function AdminRestaurantsPage() {
             ).map((f) => (
               <button
                 key={f.key}
-                onClick={() => setFilter(f.key as Filter)}
+                onClick={() => setFilter(f.key)}
                 className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                   filter === f.key
                     ? "bg-stone-900 text-white"
@@ -290,7 +300,7 @@ export default function AdminRestaurantsPage() {
                       onSave={(payload) => handleSaveEdit(r, payload)}
                     />
                   ) : (
-                    <RestaurantRow
+                    <RestaurantRowView
                       restaurant={r}
                       statusStyle={st}
                       busy={busyId === r.id}
@@ -309,7 +319,6 @@ export default function AdminRestaurantsPage() {
         )}
       </div>
 
-      {/* Toast */}
       {toast && (
         <div
           className={`fixed bottom-20 md:bottom-4 inset-x-4 md:inset-x-auto md:right-4 md:max-w-sm z-50 animate-fade-in-up rounded-2xl border shadow-xl backdrop-blur p-4 ${
@@ -328,7 +337,7 @@ export default function AdminRestaurantsPage() {
   );
 }
 
-function RestaurantRow({
+function RestaurantRowView({
   restaurant,
   statusStyle,
   busy,
@@ -343,7 +352,9 @@ function RestaurantRow({
   onToggleActive: () => void;
   onDelete: () => void;
 }) {
-  const expiry = restaurant.subscriptionExpiresAt?.toDate?.();
+  const expiry = restaurant.subscriptionExpiresAt
+    ? new Date(restaurant.subscriptionExpiresAt)
+    : null;
   return (
     <div className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:items-center">
       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -428,7 +439,7 @@ function EditForm({
   }) => void;
 }) {
   const expiryIso = restaurant.subscriptionExpiresAt
-    ? restaurant.subscriptionExpiresAt.toDate().toISOString().slice(0, 10)
+    ? new Date(restaurant.subscriptionExpiresAt).toISOString().slice(0, 10)
     : "";
   const [form, setForm] = useState({
     name: restaurant.name,

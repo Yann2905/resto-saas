@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { Order, OrderStatus } from "@/types";
+import { supabase } from "@/lib/supabase";
+import { Order, OrderRow, OrderStatus, mapOrder } from "@/types";
 import { formatFCFA } from "@/lib/format";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -39,7 +38,6 @@ type Props = {
 };
 
 export default function OrderTracker({
-  restaurantId,
   restaurantName,
   restaurantSlug,
   orderId,
@@ -49,15 +47,42 @@ export default function OrderTracker({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const ref = doc(db, "restaurants", restaurantId, "orders", orderId);
-    const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        setOrder({ id: snap.id, ...(snap.data() as Omit<Order, "id">) });
-      }
+    let cancelled = false;
+
+    const fetchOrder = async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", orderId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (data) setOrder(mapOrder(data as OrderRow));
       setLoading(false);
-    });
-    return () => unsub();
-  }, [restaurantId, orderId]);
+    };
+
+    fetchOrder();
+
+    const channel = supabase
+      .channel(`order-${orderId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "orders",
+          filter: `id=eq.${orderId}`,
+        },
+        (payload) => {
+          setOrder(mapOrder(payload.new as OrderRow));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [orderId]);
 
   if (loading) {
     return (

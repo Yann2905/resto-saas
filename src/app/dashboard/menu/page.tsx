@@ -2,18 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  collection,
-  doc,
-  onSnapshot,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 import { uploadProductImage } from "@/lib/storage";
 import { useAuth } from "@/lib/auth-context";
-import { Category, Product } from "@/types";
+import {
+  Category,
+  CategoryRow,
+  Product,
+  ProductRow,
+  mapCategory,
+  mapProduct,
+} from "@/types";
 import { formatFCFA } from "@/lib/format";
 
 type ProductForm = {
@@ -59,31 +58,57 @@ export default function MenuAdminPage() {
 
   useEffect(() => {
     if (!restaurant) return;
-    const unsubCat = onSnapshot(
-      collection(db, "restaurants", restaurant.id, "categories"),
-      (snap) => {
-        const list: Category[] = snap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<Category, "id">),
-        }));
-        list.sort((a, b) => a.order - b.order);
-        setCategories(list);
-      }
-    );
-    const unsubProd = onSnapshot(
-      collection(db, "restaurants", restaurant.id, "products"),
-      (snap) => {
-        const list: Product[] = snap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<Product, "id">),
-        }));
-        list.sort((a, b) => a.order - b.order);
-        setProducts(list);
-      }
-    );
+    let cancelled = false;
+
+    const fetchCategories = async () => {
+      const { data } = await supabase
+        .from("categories")
+        .select("*")
+        .eq("restaurant_id", restaurant.id)
+        .order("order", { ascending: true });
+      if (cancelled) return;
+      setCategories((data ?? []).map((c) => mapCategory(c as CategoryRow)));
+    };
+    const fetchProducts = async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("*")
+        .eq("restaurant_id", restaurant.id)
+        .order("order", { ascending: true });
+      if (cancelled) return;
+      setProducts((data ?? []).map((p) => mapProduct(p as ProductRow)));
+    };
+
+    fetchCategories();
+    fetchProducts();
+
+    const channel = supabase
+      .channel(`menu-${restaurant.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "categories",
+          filter: `restaurant_id=eq.${restaurant.id}`,
+        },
+        fetchCategories
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "products",
+          filter: `restaurant_id=eq.${restaurant.id}`,
+        },
+        fetchProducts
+      )
+      .subscribe();
+
     return () => {
-      unsubCat();
-      unsubProd();
+      cancelled = true;
+      supabase.removeChannel(channel);
     };
   }, [restaurant]);
 
@@ -92,14 +117,11 @@ export default function MenuAdminPage() {
     [categories]
   );
   const leafCategories = useMemo(() => {
-    const parentIds = new Set(parentCategories.map((p) => p.id));
     const hasChildren = new Set(
       categories.filter((c) => c.parentId).map((c) => c.parentId as string)
     );
-    // Leafs = catégories qui n'ont pas d'enfants. Si un parent a des enfants,
-    // on ne peut pas y attacher un produit directement.
-    return categories.filter((c) => !hasChildren.has(c.id) || !parentIds.has(c.id));
-  }, [categories, parentCategories]);
+    return categories.filter((c) => !hasChildren.has(c.id));
+  }, [categories]);
 
   const categoryName = (id: string): string => {
     const cat = categories.find((c) => c.id === id);
@@ -116,33 +138,27 @@ export default function MenuAdminPage() {
       ? products
       : products.filter((p) => p.categoryId === filterCat);
 
-  // CRUD produits
   const saveProduct = async (id: string | null, form: ProductForm) => {
     if (!restaurant) return;
     setSaving(true);
     try {
       const payload = {
+        restaurant_id: restaurant.id,
         name: form.name.trim(),
         price: parseInt(form.price, 10) || 0,
-        categoryId: form.categoryId,
-        stockQuantity: parseInt(form.stockQuantity, 10) || 0,
-        imageUrl: form.imageUrl.trim(),
+        category_id: form.categoryId,
+        stock_quantity: parseInt(form.stockQuantity, 10) || 0,
+        image_url: form.imageUrl.trim() || null,
         available: form.available,
         order: id
           ? products.find((p) => p.id === id)?.order ?? products.length + 1
           : products.length + 1,
       };
       if (id) {
-        await updateDoc(
-          doc(db, "restaurants", restaurant.id, "products", id),
-          payload
-        );
+        await supabase.from("products").update(payload).eq("id", id);
         setEditingProductId(null);
       } else {
-        await addDoc(
-          collection(db, "restaurants", restaurant.id, "products"),
-          payload
-        );
+        await supabase.from("products").insert(payload);
         setShowAddProduct(false);
       }
     } finally {
@@ -151,20 +167,17 @@ export default function MenuAdminPage() {
   };
 
   const deleteProduct = async (id: string) => {
-    if (!restaurant) return;
     if (!confirm("Supprimer ce produit ?")) return;
-    await deleteDoc(doc(db, "restaurants", restaurant.id, "products", id));
+    await supabase.from("products").delete().eq("id", id);
   };
 
   const toggleAvailable = async (p: Product) => {
-    if (!restaurant) return;
-    await updateDoc(
-      doc(db, "restaurants", restaurant.id, "products", p.id),
-      { available: !p.available }
-    );
+    await supabase
+      .from("products")
+      .update({ available: !p.available })
+      .eq("id", p.id);
   };
 
-  // CRUD catégories
   const saveCategory = async (id: string | null, form: CategoryForm) => {
     if (!restaurant) return;
     setSaving(true);
@@ -174,18 +187,17 @@ export default function MenuAdminPage() {
       const order = id
         ? categories.find((c) => c.id === id)?.order ?? siblings.length + 1
         : siblings.length + 1;
-      const payload = { name: form.name.trim(), parentId, order };
+      const payload = {
+        restaurant_id: restaurant.id,
+        name: form.name.trim(),
+        parent_id: parentId,
+        order,
+      };
       if (id) {
-        await updateDoc(
-          doc(db, "restaurants", restaurant.id, "categories", id),
-          payload
-        );
+        await supabase.from("categories").update(payload).eq("id", id);
         setEditingCategoryId(null);
       } else {
-        await addDoc(
-          collection(db, "restaurants", restaurant.id, "categories"),
-          payload
-        );
+        await supabase.from("categories").insert(payload);
         setShowAddCategory(false);
       }
     } finally {
@@ -194,7 +206,6 @@ export default function MenuAdminPage() {
   };
 
   const deleteCategory = async (id: string) => {
-    if (!restaurant) return;
     const hasChildren = categories.some((c) => c.parentId === id);
     const hasProducts = products.some((p) => p.categoryId === id);
     if (hasChildren) {
@@ -206,7 +217,7 @@ export default function MenuAdminPage() {
       return;
     }
     if (!confirm("Supprimer cette catégorie ?")) return;
-    await deleteDoc(doc(db, "restaurants", restaurant.id, "categories", id));
+    await supabase.from("categories").delete().eq("id", id);
   };
 
   if (loading || !restaurant) {
@@ -235,7 +246,6 @@ export default function MenuAdminPage() {
           </div>
         </div>
 
-        {/* Catégories */}
         <section className="mb-8 bg-white rounded-2xl border border-stone-200 p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -277,7 +287,7 @@ export default function MenuAdminPage() {
                     key={parent.id}
                     className="rounded-xl border border-stone-200 bg-stone-50/60"
                   >
-                    <CategoryRow
+                    <CategoryRowView
                       category={parent}
                       editing={editingCategoryId === parent.id}
                       parentOptions={parentCategories.filter(
@@ -296,7 +306,7 @@ export default function MenuAdminPage() {
                     {subs.length > 0 && (
                       <div className="pl-6 pr-3 pb-3 space-y-1">
                         {subs.map((sub) => (
-                          <CategoryRow
+                          <CategoryRowView
                             key={sub.id}
                             category={sub}
                             editing={editingCategoryId === sub.id}
@@ -320,7 +330,6 @@ export default function MenuAdminPage() {
           )}
         </section>
 
-        {/* Produits */}
         <section className="bg-white rounded-2xl border border-stone-200 p-5">
           <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
             <div>
@@ -358,7 +367,6 @@ export default function MenuAdminPage() {
             />
           )}
 
-          {/* Filter */}
           {categories.length > 0 && (
             <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
               <button
@@ -372,7 +380,8 @@ export default function MenuAdminPage() {
                 Toutes ({products.length})
               </button>
               {leafCategories.map((cat) => {
-                const n = products.filter((p) => p.categoryId === cat.id).length;
+                const n = products.filter((p) => p.categoryId === cat.id)
+                  .length;
                 return (
                   <button
                     key={cat.id}
@@ -416,7 +425,7 @@ export default function MenuAdminPage() {
                     saving={saving}
                   />
                 ) : (
-                  <ProductRow
+                  <ProductRowView
                     key={p.id}
                     product={p}
                     categoryLabel={categoryName(p.categoryId)}
@@ -437,7 +446,7 @@ export default function MenuAdminPage() {
   );
 }
 
-function ProductRow({
+function ProductRowView({
   product,
   categoryLabel,
   onEdit,
@@ -470,9 +479,7 @@ function ProductRow({
           <div className="font-semibold text-stone-900 truncate">
             {product.name}
           </div>
-          <div className="text-xs text-stone-500 truncate">
-            {categoryLabel}
-          </div>
+          <div className="text-xs text-stone-500 truncate">{categoryLabel}</div>
           <div className="mt-1 flex items-center gap-3 text-xs flex-wrap">
             <span className="font-semibold text-stone-700">
               {formatFCFA(product.price)}
@@ -498,7 +505,6 @@ function ProductRow({
               ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
               : "bg-stone-100 text-stone-500 hover:bg-stone-200"
           }`}
-          title={product.available ? "Désactiver" : "Activer"}
         >
           {product.available ? "Actif" : "Off"}
         </button>
@@ -538,10 +544,7 @@ function ProductFormInline({
   saving: boolean;
 }) {
   const [form, setForm] = useState<ProductForm>(
-    initial ?? {
-      ...emptyProductForm,
-      categoryId: leafCategories[0]?.id ?? "",
-    }
+    initial ?? { ...emptyProductForm, categoryId: leafCategories[0]?.id ?? "" }
   );
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -562,9 +565,7 @@ function ProductFormInline({
       const url = await uploadProductImage(restaurantId, file);
       setForm((f) => ({ ...f, imageUrl: url }));
     } catch (e) {
-      setUploadError(
-        e instanceof Error ? e.message : "Échec de l'upload"
-      );
+      setUploadError(e instanceof Error ? e.message : "Échec de l'upload");
     } finally {
       setUploading(false);
     }
@@ -582,7 +583,6 @@ function ProductFormInline({
       className="rounded-2xl border-2 border-stone-900 bg-white p-4 sm:p-5 mb-3 animate-fade-in-up"
     >
       <div className="grid grid-cols-1 sm:grid-cols-[9rem_1fr] gap-4 sm:gap-5">
-        {/* Image upload */}
         <div className="flex flex-col items-center">
           <div className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 flex items-center justify-center">
             {form.imageUrl ? (
@@ -628,7 +628,6 @@ function ProductFormInline({
           )}
         </div>
 
-        {/* Champs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Nom" className="sm:col-span-2">
             <input
@@ -643,9 +642,7 @@ function ProductFormInline({
             <select
               required
               value={form.categoryId}
-              onChange={(e) =>
-                setForm({ ...form, categoryId: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
               className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 bg-white"
             >
               <option value="">— Choisir —</option>
@@ -716,7 +713,7 @@ function ProductFormInline({
   );
 }
 
-function CategoryRow({
+function CategoryRowView({
   category,
   editing,
   parentOptions,
@@ -756,7 +753,9 @@ function CategoryRow({
   return (
     <div
       className={`flex items-center justify-between gap-2 ${
-        isParent ? "px-4 py-3" : "px-3 py-2 rounded-lg bg-white border border-stone-200"
+        isParent
+          ? "px-4 py-3"
+          : "px-3 py-2 rounded-lg bg-white border border-stone-200"
       }`}
     >
       <div className="flex items-center gap-2 min-w-0">

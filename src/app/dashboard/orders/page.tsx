@@ -2,22 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  collection,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  updateDoc,
-  serverTimestamp,
-  where,
-} from "firebase/firestore";
-import { signOut } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { Order, OrderStatus } from "@/types";
+import { Order, OrderRow, OrderStatus, mapOrder } from "@/types";
 import { formatFCFA } from "@/lib/format";
-// Le header global est rendu par DashboardNav dans le layout.
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "En attente",
@@ -65,11 +53,18 @@ const STATUS_STYLES: Record<
 
 export default function OrdersPage() {
   const router = useRouter();
-  const { user, restaurant, loading } = useAuth();
+  const { user, restaurant, loading, signOut } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
   const knownIds = useRef<Set<string>>(new Set());
   const firstLoad = useRef(true);
+  const [notifPerm, setNotifPerm] =
+    useState<NotificationPermission>("default");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if ("Notification" in window) setNotifPerm(Notification.permission);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) router.push("/dashboard/login");
@@ -77,22 +72,22 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (!restaurant) return;
-    const q = query(
-      collection(db, "restaurants", restaurant.id, "orders"),
-      where("status", "!=", "served"),
-      orderBy("status"),
-      orderBy("createdAt", "desc")
-    );
-    const unsub = onSnapshot(q, (snap) => {
-      const list: Order[] = snap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<Order, "id">),
-      }));
+    let cancelled = false;
 
+    const fetchOrders = async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("restaurant_id", restaurant.id)
+        .neq("status", "served")
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      const list = (data ?? []).map((o) => mapOrder(o as OrderRow));
       if (!firstLoad.current) {
         for (const o of list) {
           if (!knownIds.current.has(o.id) && o.status === "pending") {
             playChime();
+            tryNotify(o.tableNumber, o.total);
             break;
           }
         }
@@ -100,23 +95,45 @@ export default function OrdersPage() {
       knownIds.current = new Set(list.map((o) => o.id));
       firstLoad.current = false;
       setOrders(list);
-    });
-    return () => unsub();
+    };
+
+    fetchOrders();
+
+    const channel = supabase
+      .channel(`orders-${restaurant.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+          filter: `restaurant_id=eq.${restaurant.id}`,
+        },
+        fetchOrders
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, [restaurant]);
 
   const advance = async (order: Order) => {
-    if (!restaurant) return;
     const next = NEXT_STATUS[order.status];
     if (!next) return;
-    await updateDoc(
-      doc(db, "restaurants", restaurant.id, "orders", order.id),
-      { status: next, updatedAt: serverTimestamp() }
-    );
+    await supabase.from("orders").update({ status: next }).eq("id", order.id);
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
+    await signOut();
     router.push("/dashboard/login");
+  };
+
+  const requestNotif = async () => {
+    if (!("Notification" in window)) return;
+    const perm = await Notification.requestPermission();
+    setNotifPerm(perm);
   };
 
   const counts = useMemo(() => {
@@ -176,20 +193,27 @@ export default function OrdersPage() {
   return (
     <main className="min-h-screen bg-stone-50 pb-20 md:pb-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-stone-900 tracking-tight">
-            Commandes en cours
-          </h2>
-          <p className="text-sm text-stone-500 mt-0.5">
-            Mises à jour en temps réel.
-          </p>
+        <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="text-2xl font-bold text-stone-900 tracking-tight">
+              Commandes en cours
+            </h2>
+            <p className="text-sm text-stone-500 mt-0.5">
+              Mises à jour en temps réel.
+            </p>
+          </div>
+          {notifPerm !== "granted" && (
+            <button
+              onClick={requestNotif}
+              className="rounded-full bg-amber-100 text-amber-800 hover:bg-amber-200 px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5"
+              title="Recevoir une notification du navigateur dès qu'une commande arrive, même si l'onglet est en arrière-plan."
+            >
+              🔔 Activer les notifications
+            </button>
+          )}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <StatCard
-            label="En attente"
-            value={counts.pending}
-            color="amber"
-          />
+          <StatCard label="En attente" value={counts.pending} color="amber" />
           <StatCard
             label="En préparation"
             value={counts.preparing}
@@ -246,6 +270,9 @@ export default function OrdersPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredOrders.map((order) => {
               const st = STATUS_STYLES[order.status];
+              const created = order.createdAt
+                ? new Date(order.createdAt)
+                : null;
               return (
                 <div
                   key={order.id}
@@ -264,11 +291,11 @@ export default function OrdersPage() {
                         </div>
                         <div className="text-xs text-stone-500 mt-0.5 font-mono">
                           #{order.id.slice(0, 6).toUpperCase()} ·{" "}
-                          {order.createdAt?.toDate
-                            ? order.createdAt.toDate().toLocaleTimeString(
-                                "fr-FR",
-                                { hour: "2-digit", minute: "2-digit" }
-                              )
+                          {created
+                            ? created.toLocaleTimeString("fr-FR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
                             : "--:--"}
                         </div>
                       </div>
@@ -390,6 +417,20 @@ function playChime() {
     gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
     osc.start();
     osc.stop(ctx.currentTime + 0.5);
+  } catch {
+    /* ignore */
+  }
+}
+
+function tryNotify(tableNumber: number, total: number) {
+  try {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    new Notification(`Nouvelle commande · Table ${tableNumber}`, {
+      body: `Total : ${total.toLocaleString("fr-FR")} FCFA`,
+      icon: "/favicon.ico",
+      tag: "new-order",
+    });
   } catch {
     /* ignore */
   }

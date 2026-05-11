@@ -1,12 +1,11 @@
+import { supabase } from "./supabase";
 import {
-  collection,
-  doc,
-  runTransaction,
-  serverTimestamp,
-  Timestamp,
-} from "firebase/firestore";
-import { db } from "./firebase";
-import { CartItem, OrderItem, Product } from "@/types";
+  CartItem,
+  Order,
+  OrderRow,
+  OrderStatus,
+  mapOrder,
+} from "@/types";
 
 export type CreateOrderResult =
   | { ok: true; orderId: string }
@@ -19,63 +18,59 @@ export async function createOrder(
 ): Promise<CreateOrderResult> {
   if (items.length === 0) return { ok: false, error: "Panier vide" };
 
-  try {
-    const orderRef = doc(collection(db, "restaurants", restaurantId, "orders"));
+  const payload = items.map((i) => ({
+    productId: i.productId,
+    quantity: i.quantity,
+  }));
 
-    const result = await runTransaction(db, async (tx) => {
-      const productRefs = items.map((i) =>
-        doc(db, "restaurants", restaurantId, "products", i.productId)
-      );
-      const productSnaps = await Promise.all(productRefs.map((r) => tx.get(r)));
+  const { data, error } = await supabase.rpc("create_order", {
+    p_restaurant_id: restaurantId,
+    p_table_number: tableNumber,
+    p_items: payload,
+  });
 
-      const orderItems: OrderItem[] = [];
-      let total = 0;
-
-      for (let i = 0; i < items.length; i++) {
-        const snap = productSnaps[i];
-        if (!snap.exists()) throw new Error(`Produit introuvable: ${items[i].name}`);
-        const p = snap.data() as Product;
-        if (!p.available) throw new Error(`Indisponible: ${p.name}`);
-        if (p.stockQuantity < items[i].quantity) {
-          throw new Error(
-            `Stock insuffisant pour ${p.name} (reste ${p.stockQuantity})`
-          );
-        }
-        const lineTotal = p.price * items[i].quantity;
-        total += lineTotal;
-        orderItems.push({
-          productId: items[i].productId,
-          name: p.name,
-          price: p.price,
-          quantity: items[i].quantity,
-          total: lineTotal,
-        });
-      }
-
-      for (let i = 0; i < items.length; i++) {
-        const snap = productSnaps[i];
-        const p = snap.data() as Product;
-        const newStock = p.stockQuantity - items[i].quantity;
-        tx.update(productRefs[i], {
-          stockQuantity: newStock,
-          available: newStock > 0 ? p.available : false,
-        });
-      }
-
-      tx.set(orderRef, {
-        tableNumber,
-        items: orderItems,
-        total,
-        status: "pending",
-        createdAt: serverTimestamp() as unknown as Timestamp,
-        updatedAt: serverTimestamp() as unknown as Timestamp,
-      });
-
-      return orderRef.id;
-    });
-
-    return { ok: true, orderId: result };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Erreur" };
+  if (error) {
+    return { ok: false, error: error.message };
   }
+  return { ok: true, orderId: data as string };
+}
+
+export async function getOrderById(id: string): Promise<Order | null> {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapOrder(data as OrderRow);
+}
+
+export async function listOrdersByRestaurant(
+  restaurantId: string,
+  opts: { since?: Date; statuses?: OrderStatus[] } = {}
+): Promise<Order[]> {
+  let q = supabase
+    .from("orders")
+    .select("*")
+    .eq("restaurant_id", restaurantId)
+    .order("created_at", { ascending: false });
+
+  if (opts.since) q = q.gte("created_at", opts.since.toISOString());
+  if (opts.statuses && opts.statuses.length > 0)
+    q = q.in("status", opts.statuses);
+
+  const { data, error } = await q;
+  if (error || !data) return [];
+  return (data as OrderRow[]).map(mapOrder);
+}
+
+export async function updateOrderStatus(
+  orderId: string,
+  status: OrderStatus
+): Promise<void> {
+  const { error } = await supabase
+    .from("orders")
+    .update({ status })
+    .eq("id", orderId);
+  if (error) throw error;
 }
