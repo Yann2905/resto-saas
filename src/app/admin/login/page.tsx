@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, ArrowRight, Eye, EyeOff, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-const SIGNIN_TIMEOUT_MS = 12000;
-const PROFILE_TIMEOUT_MS = 5000;
+const SIGNIN_TIMEOUT_MS = 8000;
+const PROFILE_TIMEOUT_MS = 3000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
@@ -43,15 +43,9 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      // Nettoyer toute session/cache résiduel (admin venant d'un autre compte)
+      // Clear le cache local (pas la session Supabase — signInWithPassword la remplace)
       try {
         localStorage.removeItem("resto-saas:auth-v1");
-      } catch {
-        /* ignore */
-      }
-      try {
-        // scope:'local' = clear instantané sans call réseau
-        await supabase.auth.signOut({ scope: "local" });
       } catch {
         /* ignore */
       }
@@ -66,8 +60,8 @@ export default function AdminLoginPage() {
         throw authError ?? new Error("Email ou mot de passe incorrect");
       }
 
-      // Vérif role superadmin avec timeout court
-      let isSuperadmin = false;
+      // Vérif role superadmin avec timeout court — si timeout, on navigue
+      // quand même : AdminGuard côté /admin renverra ici si non-superadmin.
       try {
         const profileRes = await withTimeout(
           Promise.resolve(
@@ -80,21 +74,19 @@ export default function AdminLoginPage() {
           PROFILE_TIMEOUT_MS,
           "Vérification du profil"
         );
-        isSuperadmin =
-          (profileRes.data as { role?: string } | null)?.role === "superadmin";
+        const role = (profileRes.data as { role?: string } | null)?.role;
+        if (role && role !== "superadmin") {
+          await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+          throw new Error("Ce compte n'est pas un super-administrateur.");
+        }
       } catch (e) {
-        console.warn("[admin-login] profile check failed:", e);
-        // En cas de timeout sur la vérif, on signOut et on demande de réessayer
-        await supabase.auth.signOut().catch(() => {});
-        throw new Error("Connexion lente, réessayez dans un instant.");
+        if (e instanceof Error && e.message.includes("super-administrateur")) {
+          throw e;
+        }
+        // Timeout sur la vérif role → on continue, AdminGuard décidera
+        console.warn("[admin-login] profile check skipped (slow):", e);
       }
 
-      if (!isSuperadmin) {
-        await supabase.auth.signOut().catch(() => {});
-        throw new Error("Ce compte n'est pas un super-administrateur.");
-      }
-
-      // Navigation dure — pas de race possible
       window.location.replace("/admin");
     } catch (e) {
       console.error("[admin-login]", e);

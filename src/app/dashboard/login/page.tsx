@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-const SIGNIN_TIMEOUT_MS = 12000;
-const PROFILE_TIMEOUT_MS = 5000;
+const SIGNIN_TIMEOUT_MS = 8000;
+const PROFILE_TIMEOUT_MS = 3000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
@@ -53,11 +53,6 @@ export default function LoginPage() {
       } catch {
         /* ignore */
       }
-      try {
-        await supabase.auth.signOut({ scope: "local" });
-      } catch {
-        /* ignore */
-      }
 
       const { data, error: authError } = await withTimeout(
         supabase.auth.signInWithPassword({ email, password }),
@@ -69,8 +64,10 @@ export default function LoginPage() {
         throw authError ?? new Error("Email ou mot de passe incorrect");
       }
 
-      let role: string | null = null;
-      let restaurantId: string | null = null;
+      // Détermine la destination via le profile. Si la requête est trop lente,
+      // on navigue par défaut vers /dashboard/orders (le DashboardGuard / page
+      // gérera s'il manque le restaurant).
+      let destination = "/dashboard/orders";
       try {
         const profileRes = await withTimeout(
           Promise.resolve(
@@ -87,22 +84,21 @@ export default function LoginPage() {
           role?: string;
           restaurant_id?: string | null;
         } | null;
-        role = profile?.role ?? null;
-        restaurantId = profile?.restaurant_id ?? null;
+        if (profile?.role === "superadmin") destination = "/admin";
+        else if (profile?.role === "owner" && profile?.restaurant_id)
+          destination = "/dashboard/orders";
+        else if (profile) {
+          await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+          throw new Error("Aucun restaurant n'est associé à ce compte.");
+        }
       } catch (e) {
-        console.warn("[dashboard-login] profile check failed:", e);
-        await supabase.auth.signOut().catch(() => {});
-        throw new Error("Connexion lente, réessayez dans un instant.");
+        if (e instanceof Error && e.message.includes("Aucun restaurant")) {
+          throw e;
+        }
+        console.warn("[dashboard-login] profile check skipped (slow):", e);
       }
 
-      if (role === "superadmin") {
-        window.location.replace("/admin");
-      } else if (role === "owner" && restaurantId) {
-        window.location.replace("/dashboard/orders");
-      } else {
-        await supabase.auth.signOut().catch(() => {});
-        throw new Error("Aucun restaurant n'est associé à ce compte.");
-      }
+      window.location.replace(destination);
     } catch (err) {
       console.error("[dashboard-login]", err);
       setError(
