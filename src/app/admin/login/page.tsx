@@ -4,8 +4,38 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, ArrowRight, Eye, EyeOff, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-const SIGNIN_TIMEOUT_MS = 8000;
-const PROFILE_TIMEOUT_MS = 3000;
+const SIGNIN_TIMEOUT_MS = 10000;
+const PROFILE_TIMEOUT_MS = 8000;
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+async function fetchProfileRest(
+  userId: string,
+  accessToken: string
+): Promise<{ role?: string; restaurant_id?: string | null } | null> {
+  // On utilise un fetch direct REST (PostgREST) avec le token tout frais.
+  // Bypass complet du client supabase-js et de ses verrous internes.
+  const ctrl = new AbortController();
+  const timeoutId = setTimeout(() => ctrl.abort(), PROFILE_TIMEOUT_MS);
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=role,restaurant_id`,
+      {
+        headers: {
+          apikey: SUPABASE_ANON,
+          authorization: `Bearer ${accessToken}`,
+          accept: "application/vnd.pgrst.object+json",
+        },
+        signal: ctrl.signal,
+      }
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as { role?: string; restaurant_id?: string | null };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
@@ -60,26 +90,17 @@ export default function AdminLoginPage() {
         throw authError ?? new Error("Email ou mot de passe incorrect");
       }
 
-      // Vérif role superadmin
-      const profileRes = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", data.user.id)
-            .maybeSingle()
-        ),
-        PROFILE_TIMEOUT_MS,
-        "Vérification du profil"
+      // Vérif role via REST direct (token tout frais, zéro lock supabase-js)
+      const profile = await fetchProfileRest(
+        data.user.id,
+        data.session!.access_token
       );
-      const role = (profileRes.data as { role?: string } | null)?.role;
-      if (role !== "superadmin") {
+      if (profile?.role !== "superadmin") {
         await supabase.auth.signOut({ scope: "local" }).catch(() => {});
         throw new Error("Ce compte n'est pas un super-administrateur.");
       }
 
-      // Préchauffe le cache pour que /admin ait directement le bon role
-      // au premier rendu (évite la race "Accès réservé" pendant le refresh).
+      // Préchauffe le cache pour rendu instantané sur /admin
       try {
         localStorage.setItem(
           "resto-saas:auth-v1",

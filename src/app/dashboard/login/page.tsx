@@ -4,8 +4,33 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-const SIGNIN_TIMEOUT_MS = 8000;
-const PROFILE_TIMEOUT_MS = 3000;
+const SIGNIN_TIMEOUT_MS = 10000;
+const PROFILE_TIMEOUT_MS = 8000;
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+async function fetchRest<T>(
+  path: string,
+  accessToken: string
+): Promise<T | null> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), PROFILE_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      headers: {
+        apikey: SUPABASE_ANON,
+        authorization: `Bearer ${accessToken}`,
+        accept: "application/vnd.pgrst.object+json",
+      },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } finally {
+    clearTimeout(t);
+  }
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
@@ -64,22 +89,16 @@ export default function LoginPage() {
         throw authError ?? new Error("Email ou mot de passe incorrect");
       }
 
-      // Récupère le profile
-      const profileRes = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("profiles")
-            .select("role, restaurant_id")
-            .eq("id", data.user.id)
-            .maybeSingle()
-        ),
-        PROFILE_TIMEOUT_MS,
-        "Vérification du profil"
-      );
-      const profile = profileRes.data as {
+      const accessToken = data.session!.access_token;
+
+      // Profile via REST direct (token tout frais, pas de lock)
+      const profile = await fetchRest<{
         role?: string;
         restaurant_id?: string | null;
-      } | null;
+      }>(
+        `profiles?id=eq.${data.user.id}&select=role,restaurant_id`,
+        accessToken
+      );
 
       if (profile?.role === "superadmin") {
         try {
@@ -100,34 +119,25 @@ export default function LoginPage() {
       }
 
       if (profile?.role === "owner" && profile?.restaurant_id) {
-        // Charge le restaurant pour préchauffer le cache
-        let restaurantCache = null;
-        try {
-          const restRes = await withTimeout(
-            Promise.resolve(
-              supabase
-                .from("restaurants")
-                .select("*")
-                .eq("id", profile.restaurant_id)
-                .maybeSingle()
-            ),
-            PROFILE_TIMEOUT_MS,
-            "Chargement du restaurant"
-          );
-          const r = restRes.data as {
-            id: string;
-            slug: string;
-            name: string;
-            address: string | null;
-            phone: string | null;
-            logo_url: string | null;
-            active: boolean;
-            subscription_expires_at: string | null;
-            opening_hours: unknown;
-            created_at: string;
-          } | null;
-          if (r) {
-            restaurantCache = {
+        // Restaurant via REST direct
+        const r = await fetchRest<{
+          id: string;
+          slug: string;
+          name: string;
+          address: string | null;
+          phone: string | null;
+          logo_url: string | null;
+          active: boolean;
+          subscription_expires_at: string | null;
+          opening_hours: unknown;
+          created_at: string;
+        }>(
+          `restaurants?id=eq.${profile.restaurant_id}&select=*`,
+          accessToken
+        );
+
+        const restaurantCache = r
+          ? {
               id: r.id,
               slug: r.slug,
               name: r.name,
@@ -138,11 +148,9 @@ export default function LoginPage() {
               subscriptionExpiresAt: r.subscription_expires_at,
               openingHours: r.opening_hours,
               createdAt: r.created_at,
-            };
-          }
-        } catch (e) {
-          console.warn("[dashboard-login] restaurant prefetch failed:", e);
-        }
+            }
+          : null;
+
         try {
           localStorage.setItem(
             "resto-saas:auth-v1",
@@ -160,7 +168,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Profile pas valide
+      // Profile null ou pas valide
       await supabase.auth.signOut({ scope: "local" }).catch(() => {});
       throw new Error("Aucun restaurant n'est associé à ce compte.");
     } catch (err) {
