@@ -14,6 +14,7 @@ import {
   mapProduct,
 } from "@/types";
 import { formatFCFA } from "@/lib/format";
+import { confirmDanger, toastError, toastSuccess } from "@/lib/swal";
 
 type ProductForm = {
   name: string;
@@ -167,15 +168,42 @@ export default function MenuAdminPage() {
   };
 
   const deleteProduct = async (id: string) => {
-    if (!confirm("Supprimer ce produit ?")) return;
-    await supabase.from("products").delete().eq("id", id);
+    const product = products.find((p) => p.id === id);
+    if (!product) return;
+    const ok = await confirmDanger({
+      title: `Supprimer « ${product.name} » ?`,
+      text: "Ce plat sera retiré du menu. Cette action est irréversible.",
+      confirmText: "Oui, supprimer",
+    });
+    if (!ok) return;
+
+    // Optimistic UI : retire tout de suite
+    const previous = products;
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) {
+      setProducts(previous); // rollback
+      await toastError(error.message || "Suppression impossible");
+      return;
+    }
+    await toastSuccess(`« ${product.name} » supprimé`);
   };
 
   const toggleAvailable = async (p: Product) => {
-    await supabase
+    // Optimistic UI
+    const previous = products;
+    setProducts((prev) =>
+      prev.map((x) => (x.id === p.id ? { ...x, available: !p.available } : x))
+    );
+    const { error } = await supabase
       .from("products")
       .update({ available: !p.available })
       .eq("id", p.id);
+    if (error) {
+      setProducts(previous);
+      await toastError(error.message || "Mise à jour impossible");
+    }
   };
 
   const saveCategory = async (id: string | null, form: CategoryForm) => {
@@ -206,18 +234,35 @@ export default function MenuAdminPage() {
   };
 
   const deleteCategory = async (id: string) => {
+    const cat = categories.find((c) => c.id === id);
+    if (!cat) return;
     const hasChildren = categories.some((c) => c.parentId === id);
     const hasProducts = products.some((p) => p.categoryId === id);
     if (hasChildren) {
-      alert("Impossible : cette catégorie contient des sous-catégories.");
+      await toastError("Cette catégorie contient des sous-catégories.");
       return;
     }
     if (hasProducts) {
-      alert("Impossible : cette catégorie contient des produits.");
+      await toastError("Cette catégorie contient des produits.");
       return;
     }
-    if (!confirm("Supprimer cette catégorie ?")) return;
-    await supabase.from("categories").delete().eq("id", id);
+    const ok = await confirmDanger({
+      title: `Supprimer « ${cat.name} » ?`,
+      text: "Cette catégorie sera retirée du menu.",
+      confirmText: "Oui, supprimer",
+    });
+    if (!ok) return;
+
+    const previous = categories;
+    setCategories((prev) => prev.filter((c) => c.id !== id));
+
+    const { error } = await supabase.from("categories").delete().eq("id", id);
+    if (error) {
+      setCategories(previous);
+      await toastError(error.message || "Suppression impossible");
+      return;
+    }
+    await toastSuccess(`« ${cat.name} » supprimée`);
   };
 
   if (loading || !restaurant) {

@@ -419,6 +419,13 @@ alter publication supabase_realtime add table public.products;
 alter publication supabase_realtime add table public.categories;
 alter publication supabase_realtime add table public.restaurants;
 
+-- REPLICA IDENTITY FULL : nécessaire pour que les events DELETE et les
+-- filtres realtime sur des colonnes non-PK (ex: restaurant_id) marchent.
+alter table public.orders      replica identity full;
+alter table public.products    replica identity full;
+alter table public.categories  replica identity full;
+alter table public.restaurants replica identity full;
+
 -- ==========================================================================
 -- Storage buckets
 -- ==========================================================================
