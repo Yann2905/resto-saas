@@ -187,12 +187,24 @@ create policy "products_owner_all" on public.products
   with check (public.owns_restaurant(auth.uid(), restaurant_id));
 
 -- ---- orders ----
+-- Insert : l'anonyme (client à table) peut créer une commande via la RPC
+-- create_order, qui est SECURITY DEFINER et bypasse RLS. Insert direct
+-- aussi autorisé en fallback, scoped au restaurant actif.
 create policy "orders_public_insert" on public.orders
   for insert with check (
     exists (select 1 from public.restaurants r where r.id = restaurant_id and r.active = true)
   );
+
+-- Select : ouvert. Nécessaire pour que le client suive sa commande via
+-- l'URL contenant l'UUID v4 (cryptographiquement secret). Trade-off :
+-- avec l'anon key, un acteur malveillant peut lister TOUTES les commandes
+-- de TOUS les restos. Information modérée (table, items, total, statut)
+-- — pas de PII client. À durcir plus tard via :
+--   1) RPC publique get_order_public(p_id uuid) + RLS owner-only
+--   2) Supabase Broadcast au lieu de postgres_changes pour le tracker client
 create policy "orders_public_read" on public.orders
   for select using (true);
+
 create policy "orders_owner_update" on public.orders
   for update using (public.owns_restaurant(auth.uid(), restaurant_id));
 
