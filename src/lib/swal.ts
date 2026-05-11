@@ -1,6 +1,7 @@
 "use client";
 
 import Swal, { SweetAlertResult } from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
 
 // Préréglages cohérents avec le design (stone/amber).
 // Toutes les fonctions sont safe-by-default : si le user annule, on renvoie false.
