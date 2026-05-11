@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
-  const router = useRouter();
   const { loading, user, role, restaurant } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,24 +15,52 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (loading || !user) return;
-    if (role === "superadmin") router.replace("/admin");
-    else if (restaurant) router.replace("/dashboard/orders");
-  }, [loading, user, role, restaurant, router]);
+    if (role === "superadmin") window.location.href = "/admin";
+    else if (restaurant) window.location.href = "/dashboard/orders";
+  }, [loading, user, role, restaurant]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (authError) throw authError;
-      // redirection gérée par l'effect
+      // Clear toute session résiduelle (admin -> owner ou autre)
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        /* ignore */
+      }
+      try {
+        localStorage.removeItem("resto-saas:auth-v1");
+      } catch {
+        /* ignore */
+      }
+
+      const { data, error: authError } = await supabase.auth.signInWithPassword(
+        { email, password }
+      );
+      if (authError || !data.user) {
+        throw authError ?? new Error("Erreur d'authentification");
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      // Hard navigation selon le rôle réel
+      if (profile?.role === "superadmin") {
+        window.location.href = "/admin";
+      } else {
+        window.location.href = "/dashboard/orders";
+      }
     } catch (err) {
+      console.error("[dashboard-login] signin failed:", err);
       setError(
-        err instanceof Error ? err.message : "Email ou mot de passe incorrect"
+        err instanceof Error && err.message
+          ? err.message
+          : "Email ou mot de passe incorrect"
       );
     } finally {
       setSubmitting(false);

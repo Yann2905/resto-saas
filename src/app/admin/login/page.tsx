@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowRight, Eye, EyeOff, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const { user, role, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,33 +15,55 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     if (!authLoading && user && role === "superadmin") {
-      router.replace("/admin");
+      window.location.href = "/admin";
     }
-  }, [authLoading, user, role, router]);
+  }, [authLoading, user, role]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
+      // Force-clear toute session/cache résiduel avant d'ouvrir la nouvelle.
+      // Si on est passé de owner -> admin, l'ancien profile reste sinon.
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        /* ignore */
+      }
+      try {
+        localStorage.removeItem("resto-saas:auth-v1");
+      } catch {
+        /* ignore */
+      }
+
       const { data, error: authError } =
         await supabase.auth.signInWithPassword({ email, password });
       if (authError || !data.user) {
         throw authError ?? new Error("Erreur d'authentification");
       }
-      const { data: profile } = await supabase
+      const { data: profile, error: profErr } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", data.user.id)
         .maybeSingle();
+      if (profErr) {
+        console.error("[admin-login] profile fetch error:", profErr);
+      }
       if (!profile || profile.role !== "superadmin") {
         await supabase.auth.signOut();
         setError("Ce compte n'est pas un super-administrateur.");
         return;
       }
-      router.replace("/admin");
-    } catch {
-      setError("Email ou mot de passe incorrect");
+      // Hard navigation : pas de race avec les redirections useEffect.
+      window.location.href = "/admin";
+    } catch (e) {
+      console.error("[admin-login] signin failed:", e);
+      setError(
+        e instanceof Error && e.message
+          ? e.message
+          : "Email ou mot de passe incorrect"
+      );
     } finally {
       setLoading(false);
     }
