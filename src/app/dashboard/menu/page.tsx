@@ -592,6 +592,7 @@ function ProductFormInline({
     initial ?? { ...emptyProductForm, categoryId: leafCategories[0]?.id ?? "" }
   );
   const [uploading, setUploading] = useState(false);
+  const [uploadStep, setUploadStep] = useState<string>("");
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleFile = async (file: File | null) => {
@@ -601,16 +602,22 @@ function ProductFormInline({
       setUploadError("Fichier invalide (image uniquement).");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError("Image trop lourde (max 5 Mo).");
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("Image trop lourde (max 10 Mo).");
       return;
     }
     setUploading(true);
+    setUploadStep("Compression…");
     try {
+      // Petit yield pour que le label s'affiche avant le travail bloquant
+      await new Promise((r) => setTimeout(r, 30));
+      setUploadStep("Envoi…");
       const url = await uploadProductImage(restaurantId, file);
       setForm((f) => ({ ...f, imageUrl: url }));
+      setUploadStep("");
     } catch (e) {
       setUploadError(e instanceof Error ? e.message : "Échec de l'upload");
+      setUploadStep("");
     } finally {
       setUploading(false);
     }
@@ -641,8 +648,11 @@ function ProductFormInline({
               <span className="text-4xl text-stone-300">🍽</span>
             )}
             {uploading && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 text-white">
                 <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="text-[11px] font-medium tracking-wide">
+                  {uploadStep}
+                </span>
               </div>
             )}
           </div>
