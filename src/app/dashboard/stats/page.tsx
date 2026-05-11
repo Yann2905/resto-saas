@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { Wallet, Receipt, Target, Calendar, ChevronDown } from "lucide-react";
 import { formatCompactFCFA, formatFCFA } from "@/lib/format";
 import {
   DayRevenue,
@@ -186,7 +187,6 @@ export default function StatsPage() {
               })}
             </div>
 
-            {/* Sélecteur mois précis */}
             <div className="relative">
               <select
                 value={month}
@@ -204,22 +204,18 @@ export default function StatsPage() {
                   </option>
                 ))}
               </select>
-              <span
-                className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs ${
+              <Calendar
+                className={`pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 ${
                   month ? "text-white" : "text-stone-500"
                 }`}
                 aria-hidden
-              >
-                📅
-              </span>
-              <span
-                className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs ${
+              />
+              <ChevronDown
+                className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 ${
                   month ? "text-white" : "text-stone-500"
                 }`}
                 aria-hidden
-              >
-                ▾
-              </span>
+              />
             </div>
 
             {month && (
@@ -227,8 +223,9 @@ export default function StatsPage() {
                 onClick={() => setMonth("")}
                 className="rounded-full px-3 py-1.5 text-xs font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors"
                 title="Revenir à une période relative"
+                aria-label="Effacer la sélection du mois"
               >
-                ✕
+                Effacer
               </button>
             )}
           </div>
@@ -239,19 +236,19 @@ export default function StatsPage() {
             label="Chiffre d'affaires"
             value={formatFCFA(summary?.totalRevenue ?? 0)}
             color="emerald"
-            icon="💰"
+            Icon={Wallet}
           />
           <KPI
             label="Commandes"
             value={String(summary?.totalOrders ?? 0)}
             color="blue"
-            icon="🧾"
+            Icon={Receipt}
           />
           <KPI
             label="Ticket moyen"
             value={formatFCFA(Math.round(summary?.avgTicket ?? 0))}
             color="amber"
-            icon="🎯"
+            Icon={Target}
           />
         </div>
 
@@ -298,17 +295,17 @@ function KPI({
   label,
   value,
   color,
-  icon,
+  Icon,
 }: {
   label: string;
   value: string;
   color: "emerald" | "blue" | "amber";
-  icon: string;
+  Icon: typeof Wallet;
 }) {
   const map = {
-    emerald: "from-emerald-50 text-emerald-700",
-    blue: "from-blue-50 text-blue-700",
-    amber: "from-amber-50 text-amber-700",
+    emerald: "bg-emerald-50 text-emerald-700",
+    blue: "bg-blue-50 text-blue-700",
+    amber: "bg-amber-50 text-amber-700",
   };
   return (
     <div className="relative overflow-hidden bg-white rounded-2xl border border-stone-200 p-4 sm:p-5">
@@ -321,10 +318,8 @@ function KPI({
             {value}
           </div>
         </div>
-        <div
-          className={`text-lg rounded-xl bg-gradient-to-br ${map[color]} px-2.5 py-1.5 font-bold`}
-        >
-          {icon}
+        <div className={`rounded-xl ${map[color]} p-2.5`}>
+          <Icon className="w-5 h-5" aria-hidden />
         </div>
       </div>
     </div>
@@ -425,14 +420,23 @@ function RevenueChart({ data }: { data: DayRevenue[] }) {
           strokeLinejoin="round"
           strokeLinecap="round"
         />
-        {pts.map(([x, y], i) => (
+        {pts.map(([x, y], i) => {
+          const isFirst = i === 0;
+          const isLast = i === pts.length - 1;
+          const anchor: "start" | "end" | "middle" = isFirst
+            ? "start"
+            : isLast
+              ? "end"
+              : "middle";
+          const labelX = isFirst ? x + 4 : isLast ? x - 4 : x;
+          return (
           <g key={i}>
             <circle cx={x} cy={y} r={data[i].revenue > 0 ? 4 : 3} fill="#d97706" />
             {data[i].revenue > 0 && (
               <text
-                x={x}
+                x={labelX}
                 y={y - 8}
-                textAnchor="middle"
+                textAnchor={anchor}
                 fontSize="10"
                 fontWeight="600"
                 fill="#92400e"
@@ -446,7 +450,8 @@ function RevenueChart({ data }: { data: DayRevenue[] }) {
               {data[i].ordersCount > 1 ? "s" : ""})
             </title>
           </g>
-        ))}
+          );
+        })}
         {data.map((d, i) => {
           const x = pad.l + i * step;
           const show =

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AlertTriangle, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 
@@ -67,7 +68,7 @@ export default function LoginPage() {
         >
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-stone-900">
-              Bon retour 👋
+              Bon retour
             </h1>
             <p className="text-sm text-stone-500 mt-1">
               Connectez-vous pour gérer votre restaurant.
@@ -111,14 +112,18 @@ export default function LoginPage() {
                 }
                 className="absolute inset-y-0 right-0 flex items-center justify-center w-11 text-stone-400 hover:text-stone-900 transition-colors"
               >
-                {showPassword ? "🙈" : "👁"}
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" aria-hidden />
+                ) : (
+                  <Eye className="w-5 h-5" aria-hidden />
+                )}
               </button>
             </div>
           </div>
 
           {error && (
             <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 animate-fade-in-up">
-              <span>⚠</span>
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
               <span>{error}</span>
             </div>
           )}
@@ -135,7 +140,7 @@ export default function LoginPage() {
               </>
             ) : (
               <>
-                Se connecter <span aria-hidden>→</span>
+                Se connecter <ArrowRight className="w-4 h-4" aria-hidden />
               </>
             )}
           </button>

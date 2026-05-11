@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AlertTriangle, ArrowRight, Eye, EyeOff, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 
@@ -74,8 +75,9 @@ export default function AdminLoginPage() {
           className="rounded-3xl border border-stone-800 bg-stone-900/70 backdrop-blur p-7 shadow-2xl shadow-black/40 space-y-5"
         >
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Zone restreinte 🔒
+            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              Zone restreinte
+              <Lock className="w-5 h-5 text-amber-400" aria-hidden />
             </h1>
             <p className="text-sm text-stone-400 mt-1">
               Accès réservé aux administrateurs de la plateforme.
@@ -119,14 +121,18 @@ export default function AdminLoginPage() {
                 }
                 className="absolute inset-y-0 right-0 flex items-center justify-center w-11 text-stone-400 hover:text-amber-400 active:text-amber-500 transition-colors touch-manipulation"
               >
-                {showPassword ? "🙈" : "👁"}
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" aria-hidden />
+                ) : (
+                  <Eye className="w-5 h-5" aria-hidden />
+                )}
               </button>
             </div>
           </div>
 
           {error && (
             <div className="flex items-start gap-2 rounded-xl border border-red-900/50 bg-red-950/40 p-3 text-sm text-red-300 animate-fade-in-up">
-              <span>⚠</span>
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
               <span>{error}</span>
             </div>
           )}
@@ -143,7 +149,7 @@ export default function AdminLoginPage() {
               </>
             ) : (
               <>
-                Accéder à la console <span aria-hidden>→</span>
+                Accéder à la console <ArrowRight className="w-4 h-4" aria-hidden />
               </>
             )}
           </button>

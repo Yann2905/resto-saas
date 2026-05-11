@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Check, Plus, QrCode, UtensilsCrossed } from "lucide-react";
 import { Category, Product } from "@/types";
 import { formatFCFA } from "@/lib/format";
 import { addToCart, cartCount, getCart } from "@/lib/cart";
@@ -70,8 +71,8 @@ export default function MenuClient({
     return (
       <main className="min-h-screen flex items-center justify-center p-6 bg-stone-50">
         <div className="max-w-sm text-center">
-          <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-5 text-3xl">
-            📱
+          <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-5">
+            <QrCode className="w-8 h-8 text-amber-700" aria-hidden />
           </div>
           <h1 className="text-2xl font-bold mb-2 text-stone-900">
             Table non identifiée
@@ -211,8 +212,8 @@ function ProductCard({
           className="w-24 h-24 rounded-xl object-cover flex-shrink-0 bg-stone-100"
         />
       ) : (
-        <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-stone-100 to-stone-200 flex-shrink-0 flex items-center justify-center text-2xl text-stone-400">
-          🍽
+        <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-stone-100 to-stone-200 flex-shrink-0 flex items-center justify-center text-stone-400">
+          <UtensilsCrossed className="w-8 h-8" aria-hidden />
         </div>
       )}
       <div className="flex-1 min-w-0 py-1">
@@ -239,14 +240,18 @@ function ProductCard({
       <button
         onClick={onAdd}
         disabled={disabled}
-        className={`flex-shrink-0 w-11 h-11 rounded-full text-xl font-semibold transition-all shadow-sm disabled:bg-stone-200 disabled:text-stone-400 disabled:shadow-none ${
+        className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-semibold transition-all shadow-sm disabled:bg-stone-200 disabled:text-stone-400 disabled:shadow-none ${
           justAdded
             ? "bg-emerald-500 text-white scale-110"
             : "bg-stone-900 text-white hover:bg-stone-800 active:scale-95"
         }`}
         aria-label="Ajouter au panier"
       >
-        {justAdded ? "✓" : "+"}
+        {justAdded ? (
+          <Check className="w-5 h-5" aria-hidden />
+        ) : (
+          <Plus className="w-5 h-5" aria-hidden />
+        )}
       </button>
     </div>
   );

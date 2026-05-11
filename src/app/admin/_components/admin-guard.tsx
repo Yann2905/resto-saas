@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { Lock } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 export default function AdminGuard({
@@ -42,7 +43,7 @@ export default function AdminGuard({
     return (
       <main className="min-h-screen flex items-center justify-center bg-stone-950 text-stone-100 p-6 text-center">
         <div>
-          <div className="text-5xl mb-3">🔒</div>
+          <Lock className="w-12 h-12 mx-auto mb-3 text-amber-400" aria-hidden />
           <p className="font-semibold">Accès réservé</p>
           <p className="text-sm text-stone-400 mt-1">
             Redirection vers la page de connexion…

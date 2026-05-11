@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check, Lightbulb } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
   WEEK_KEYS,
@@ -153,8 +154,9 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <p className="text-xs text-stone-500 mt-4 text-center">
-          💡 Astuce : les passages d'une journée à l'autre (ex : 18h → 02h) sont
+        <p className="text-xs text-stone-500 mt-4 text-center flex items-center justify-center gap-1.5">
+          <Lightbulb className="w-3.5 h-3.5" aria-hidden />
+          Astuce : les passages d'une journée à l'autre (ex : 18h → 02h) sont
           gérés automatiquement.
         </p>
       </div>
@@ -162,7 +164,7 @@ export default function SettingsPage() {
       {toast && (
         <div className="fixed bottom-20 md:bottom-4 inset-x-4 md:inset-x-auto md:right-4 md:max-w-sm z-50 animate-fade-in-up rounded-2xl border shadow-xl backdrop-blur p-4 bg-emerald-50/95 border-emerald-200 text-emerald-900">
           <div className="flex items-start gap-2 text-sm">
-            <span>✓</span>
+            <Check className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
             <span className="flex-1">{toast}</span>
           </div>
         </div>

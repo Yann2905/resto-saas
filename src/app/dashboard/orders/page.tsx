@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Bell, Lock, Printer, Volume2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { Order, OrderRow, OrderStatus, mapOrder } from "@/types";
@@ -296,8 +297,8 @@ export default function OrdersPage() {
     return (
       <main className="min-h-screen flex items-center justify-center p-4 bg-stone-50">
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4 text-3xl">
-            🔒
+          <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-8 h-8 text-red-700" aria-hidden />
           </div>
           <p className="font-semibold text-stone-900 mb-1">
             Aucun restaurant associé
@@ -341,7 +342,7 @@ export default function OrdersPage() {
               className="rounded-full bg-stone-100 text-stone-700 hover:bg-stone-200 px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5"
               title="Tester le son"
             >
-              🔊 Tester son
+              <Volume2 className="w-3.5 h-3.5" /> Tester son
             </button>
             {notifPerm !== "granted" && (
               <button
@@ -349,7 +350,7 @@ export default function OrdersPage() {
                 className="rounded-full bg-amber-100 text-amber-800 hover:bg-amber-200 px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5"
                 title="Notifications système même onglet en arrière-plan"
               >
-                🔔 Activer notifications
+                <Bell className="w-3.5 h-3.5" /> Activer notifications
               </button>
             )}
           </div>
@@ -398,8 +399,8 @@ export default function OrdersPage() {
 
         {filteredOrders.length === 0 ? (
           <div className="text-center py-24 animate-fade-in-up">
-            <div className="w-20 h-20 rounded-2xl bg-stone-100 flex items-center justify-center mx-auto mb-5 text-4xl">
-              🍽
+            <div className="w-20 h-20 rounded-2xl bg-stone-100 flex items-center justify-center mx-auto mb-5">
+              <Bell className="w-10 h-10 text-stone-400" aria-hidden />
             </div>
             <h2 className="text-lg font-bold text-stone-900 mb-1">
               Aucune commande
@@ -486,7 +487,6 @@ export default function OrdersPage() {
                           className="flex-1 bg-stone-900 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors flex items-center justify-center gap-1.5"
                         >
                           {STATUS_LABELS[NEXT_STATUS[order.status]!]}
-                          <span aria-hidden>→</span>
                         </button>
                       )}
                       <button
@@ -496,11 +496,11 @@ export default function OrdersPage() {
                             "_blank"
                           )
                         }
-                        className="px-3.5 bg-stone-100 text-stone-700 rounded-xl text-sm hover:bg-stone-200 transition-colors"
+                        className="px-3.5 bg-stone-100 text-stone-700 rounded-xl text-sm hover:bg-stone-200 transition-colors flex items-center justify-center"
                         aria-label="Imprimer le reçu"
                         title="Imprimer le reçu"
                       >
-                        🖨
+                        <Printer className="w-4 h-4" aria-hidden />
                       </button>
                     </div>
                   </div>

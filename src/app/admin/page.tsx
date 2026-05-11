@@ -2,6 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Check,
+  Clock,
+  Store,
+  type LucideIcon,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
   Restaurant,
@@ -109,7 +117,7 @@ export default function AdminOverview() {
             href="/admin/restaurants"
             className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-all hover:scale-105 flex items-center gap-2"
           >
-            Gérer les restaurants <span aria-hidden>→</span>
+            Gérer les restaurants <ArrowRight className="w-4 h-4" aria-hidden />
           </Link>
         </div>
 
@@ -119,7 +127,7 @@ export default function AdminOverview() {
             value={stats.total}
             sub="au total"
             color="stone"
-            icon="🏪"
+            Icon={Store}
             delay={0}
           />
           <HeroStat
@@ -127,7 +135,7 @@ export default function AdminOverview() {
             value={stats.active}
             sub={`/ ${stats.total}`}
             color="emerald"
-            icon="✓"
+            Icon={Check}
             delay={50}
           />
           <HeroStat
@@ -135,7 +143,7 @@ export default function AdminOverview() {
             value={stats.expiringSoon}
             sub="< 7 jours"
             color="amber"
-            icon="⏰"
+            Icon={Clock}
             delay={100}
           />
           <HeroStat
@@ -143,7 +151,7 @@ export default function AdminOverview() {
             value={stats.expired + stats.inactive}
             sub="à régulariser"
             color="red"
-            icon="⚠"
+            Icon={AlertTriangle}
             delay={150}
           />
         </div>
@@ -255,32 +263,27 @@ function HeroStat({
   value,
   sub,
   color,
-  icon,
+  Icon,
   delay = 0,
 }: {
   label: string;
   value: number | string;
   sub: string;
   color: "stone" | "emerald" | "amber" | "red";
-  icon: string;
+  Icon: LucideIcon;
   delay?: number;
 }) {
   const colorMap = {
-    stone: "from-stone-100 text-stone-700",
-    emerald: "from-emerald-50 text-emerald-700",
-    amber: "from-amber-50 text-amber-700",
-    red: "from-red-50 text-red-700",
+    stone: "bg-stone-100 text-stone-700",
+    emerald: "bg-emerald-50 text-emerald-700",
+    amber: "bg-amber-50 text-amber-700",
+    red: "bg-red-50 text-red-700",
   };
   return (
     <div
       className="relative overflow-hidden bg-white rounded-2xl border border-stone-200 p-4 sm:p-5 animate-fade-in-up hover:shadow-md hover:-translate-y-0.5 transition-all"
       style={{ animationDelay: `${delay}ms` }}
     >
-      <div
-        className={`absolute -top-6 -right-6 w-24 h-24 rounded-full bg-gradient-to-br ${colorMap[color]
-          .split(" ")[0]
-          .replace("from-", "bg-")} opacity-60 blur-2xl pointer-events-none`}
-      />
       <div className="relative flex items-start justify-between">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-wider text-stone-500">
@@ -291,10 +294,8 @@ function HeroStat({
           </div>
           <div className="text-[11px] text-stone-500 mt-1">{sub}</div>
         </div>
-        <div
-          className={`text-lg sm:text-xl rounded-xl bg-gradient-to-br ${colorMap[color]} px-2.5 py-1.5 font-bold`}
-        >
-          {icon}
+        <div className={`rounded-xl ${colorMap[color]} p-2.5`}>
+          <Icon className="w-5 h-5" aria-hidden />
         </div>
       </div>
     </div>

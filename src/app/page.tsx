@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Boxes, QrCode, Zap, type LucideIcon } from "lucide-react";
 
 export default function Home() {
   return (
@@ -63,34 +64,36 @@ export default function Home() {
         className="relative z-10 max-w-6xl mx-auto px-6 pb-24"
       >
         <div className="grid md:grid-cols-3 gap-4">
-          {[
+          {([
             {
               title: "QR code par table",
               desc: "Vos clients scannent et accèdent instantanément à votre menu, sans app à installer.",
-              icon: "📱",
+              Icon: QrCode,
             },
             {
               title: "Temps réel en cuisine",
               desc: "Chaque commande arrive avec un signal sonore. Statut mis à jour en un tap.",
-              icon: "⚡",
+              Icon: Zap,
             },
             {
               title: "Stock & indisponibilité",
               desc: "Décrément atomique du stock. Fini les commandes de plats épuisés.",
-              icon: "📦",
+              Icon: Boxes,
             },
-          ].map((f) => (
-            <div
-              key={f.title}
-              className="group rounded-2xl border border-stone-800 bg-stone-900/40 backdrop-blur p-6 hover:border-amber-600/50 hover:bg-stone-900/70 transition-all"
-            >
-              <div className="text-3xl mb-4">{f.icon}</div>
-              <h3 className="font-semibold text-lg mb-2">{f.title}</h3>
-              <p className="text-sm text-stone-400 leading-relaxed">
-                {f.desc}
-              </p>
-            </div>
-          ))}
+          ] as Array<{ title: string; desc: string; Icon: LucideIcon }>).map(
+            (f) => (
+              <div
+                key={f.title}
+                className="group rounded-2xl border border-stone-800 bg-stone-900/40 backdrop-blur p-6 hover:border-amber-600/50 hover:bg-stone-900/70 transition-all"
+              >
+                <f.Icon className="w-8 h-8 mb-4 text-amber-400" aria-hidden />
+                <h3 className="font-semibold text-lg mb-2">{f.title}</h3>
+                <p className="text-sm text-stone-400 leading-relaxed">
+                  {f.desc}
+                </p>
+              </div>
+            )
+          )}
         </div>
       </section>
 

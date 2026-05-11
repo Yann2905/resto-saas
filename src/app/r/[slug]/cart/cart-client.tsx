@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AlertTriangle, ShoppingCart } from "lucide-react";
 import { CartItem } from "@/types";
 import {
   cartTotal,
@@ -77,8 +78,8 @@ export default function CartClient({ restaurant, tableNumber }: Props) {
       <div className="max-w-2xl mx-auto px-5 py-6">
         {items.length === 0 ? (
           <div className="mt-16 text-center animate-fade-in-up">
-            <div className="w-20 h-20 rounded-2xl bg-stone-100 flex items-center justify-center mx-auto mb-5 text-4xl">
-              🛒
+            <div className="w-20 h-20 rounded-2xl bg-stone-100 flex items-center justify-center mx-auto mb-5">
+              <ShoppingCart className="w-10 h-10 text-stone-400" aria-hidden />
             </div>
             <h2 className="text-xl font-bold text-stone-900 mb-1">
               Panier vide
@@ -137,7 +138,7 @@ export default function CartClient({ restaurant, tableNumber }: Props) {
 
         {error && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-start gap-2 animate-fade-in-up">
-            <span>⚠</span>
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
             <span>{error}</span>
           </div>
         )}

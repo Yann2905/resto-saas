@@ -13,6 +13,7 @@ import {
   mapCategory,
   mapProduct,
 } from "@/types";
+import { UtensilsCrossed, X } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
 import { confirmDanger, toastError, toastSuccess } from "@/lib/swal";
 
@@ -516,8 +517,8 @@ function ProductRowView({
             className="w-16 h-16 sm:w-14 sm:h-14 rounded-lg object-cover flex-shrink-0 bg-stone-100"
           />
         ) : (
-          <div className="w-16 h-16 sm:w-14 sm:h-14 rounded-lg bg-stone-100 flex-shrink-0 flex items-center justify-center text-xl text-stone-400">
-            🍽
+          <div className="w-16 h-16 sm:w-14 sm:h-14 rounded-lg bg-stone-100 flex-shrink-0 flex items-center justify-center text-stone-400">
+            <UtensilsCrossed className="w-6 h-6" aria-hidden />
           </div>
         )}
         <div className="flex-1 min-w-0">
@@ -561,10 +562,10 @@ function ProductRowView({
         </button>
         <button
           onClick={onDelete}
-          className="rounded-lg px-3 py-2 text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+          className="rounded-lg px-3 py-2 text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 transition-colors flex items-center justify-center"
           aria-label="Supprimer"
         >
-          ✕
+          <X className="w-3.5 h-3.5" aria-hidden />
         </button>
       </div>
     </div>
@@ -645,7 +646,7 @@ function ProductFormInline({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-4xl text-stone-300">🍽</span>
+              <UtensilsCrossed className="w-10 h-10 text-stone-300" aria-hidden />
             )}
             {uploading && (
               <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 text-white">
@@ -814,7 +815,6 @@ function CategoryRowView({
       }`}
     >
       <div className="flex items-center gap-2 min-w-0">
-        {isParent && <span className="text-xs">📁</span>}
         <span
           className={`truncate ${
             isParent ? "font-bold text-stone-900" : "text-sm text-stone-700"
@@ -832,10 +832,10 @@ function CategoryRowView({
         </button>
         <button
           onClick={onDelete}
-          className="rounded-lg px-2 py-1 text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+          className="rounded-lg px-2 py-1 text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 transition-colors flex items-center justify-center"
           aria-label="Supprimer"
         >
-          ✕
+          <X className="w-3.5 h-3.5" aria-hidden />
         </button>
       </div>
     </div>

@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { BarChart3, Store, LogOut, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { confirmAction } from "@/lib/swal";
 
-const TABS = [
-  { href: "/admin", label: "Vue d'ensemble", icon: "📊", exact: true },
-  { href: "/admin/restaurants", label: "Restaurants", icon: "🏪" },
+type Tab = { href: string; label: string; Icon: LucideIcon; exact?: boolean };
+const TABS: Tab[] = [
+  { href: "/admin", label: "Vue d'ensemble", Icon: BarChart3, exact: true },
+  { href: "/admin/restaurants", label: "Restaurants", Icon: Store },
 ];
 
 export default function AdminNav() {
@@ -19,11 +22,17 @@ export default function AdminNav() {
   }
 
   const handleLogout = async () => {
+    const ok = await confirmAction({
+      title: "Voulez-vous vraiment vous déconnecter ?",
+      text: "Vous quitterez la console super-administrateur.",
+      confirmText: "Se déconnecter",
+    });
+    if (!ok) return;
     await signOut();
-    router.push("/admin/login");
+    router.replace("/admin/login");
   };
 
-  const isActive = (tab: (typeof TABS)[number]) =>
+  const isActive = (tab: Tab) =>
     tab.exact ? pathname === tab.href : pathname.startsWith(tab.href);
 
   return (
@@ -55,19 +64,18 @@ export default function AdminNav() {
           <nav className="hidden md:flex items-center gap-1 bg-stone-900 border border-stone-800 rounded-full p-1">
             {TABS.map((tab) => {
               const active = isActive(tab);
+              const Icon = tab.Icon;
               return (
                 <Link
                   key={tab.href}
                   href={tab.href}
-                  className={`relative rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                  className={`relative rounded-full px-4 py-2 text-sm font-medium transition-all flex items-center gap-1.5 ${
                     active
                       ? "bg-gradient-to-b from-amber-400 to-amber-600 text-stone-950 shadow-md shadow-amber-900/30"
                       : "text-stone-300 hover:text-white"
                   }`}
                 >
-                  <span className="mr-1.5" aria-hidden>
-                    {tab.icon}
-                  </span>
+                  <Icon className="w-4 h-4" aria-hidden />
                   {tab.label}
                 </Link>
               );
@@ -75,12 +83,13 @@ export default function AdminNav() {
           </nav>
 
           <button
+            type="button"
             onClick={handleLogout}
-            className="flex-shrink-0 flex items-center gap-1.5 text-sm text-stone-300 hover:text-white rounded-full px-3 sm:px-4 py-2 hover:bg-stone-900 transition-colors"
+            className="flex-shrink-0 flex items-center gap-1.5 text-sm text-stone-300 hover:text-white hover:bg-stone-900 rounded-full px-3 sm:px-4 py-2 transition-colors"
             aria-label="Déconnexion"
           >
+            <LogOut className="w-4 h-4" aria-hidden />
             <span className="hidden sm:inline">Déconnexion</span>
-            <span aria-hidden className="text-base">↪</span>
           </button>
         </div>
       </header>
@@ -89,6 +98,7 @@ export default function AdminNav() {
         <div className="grid grid-cols-2">
           {TABS.map((tab) => {
             const active = isActive(tab);
+            const Icon = tab.Icon;
             return (
               <Link
                 key={tab.href}
@@ -100,9 +110,7 @@ export default function AdminNav() {
                 {active && (
                   <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 rounded-full bg-amber-400" />
                 )}
-                <span className="text-xl leading-none" aria-hidden>
-                  {tab.icon}
-                </span>
+                <Icon className="w-5 h-5" aria-hidden />
                 <span>{tab.label}</span>
               </Link>
             );

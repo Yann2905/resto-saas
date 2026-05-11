@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
+import { Printer } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 export default function QrCodesPage() {
@@ -90,9 +91,9 @@ export default function QrCodesPage() {
           </div>
           <button
             onClick={handlePrint}
-            className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors flex items-center gap-2"
+            className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors flex items-center gap-1.5"
           >
-            🖨 Imprimer tout
+            <Printer className="w-4 h-4" aria-hidden /> Imprimer tout
           </button>
         </div>
 

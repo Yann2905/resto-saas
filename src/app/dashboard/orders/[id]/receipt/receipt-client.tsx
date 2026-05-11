@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { ArrowLeft, Printer } from "lucide-react";
 import { Order, Restaurant, OrderStatus } from "@/types";
 import { formatFCFA } from "@/lib/format";
 
@@ -39,15 +40,17 @@ export default function ReceiptClient({
       <div className="fixed top-4 right-4 flex gap-2 z-10 print:hidden">
         <Link
           href="/dashboard/orders"
-          className="rounded-full bg-white border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors shadow-sm"
+          className="rounded-full bg-white border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors shadow-sm flex items-center gap-1.5"
         >
-          ← Retour
+          <ArrowLeft className="w-4 h-4" aria-hidden />
+          Retour
         </Link>
         <button
           onClick={() => window.print()}
           className="rounded-full bg-stone-900 text-white px-5 py-2 text-sm font-semibold hover:bg-stone-800 transition-colors shadow-sm flex items-center gap-1.5"
         >
-          🖨 Imprimer
+          <Printer className="w-4 h-4" aria-hidden />
+          Imprimer
         </button>
       </div>
 

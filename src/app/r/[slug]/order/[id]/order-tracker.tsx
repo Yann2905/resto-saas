@@ -2,6 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  BellRing,
+  CheckCircle2,
+  ChefHat,
+  Inbox,
+  Search,
+  type LucideIcon,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Order, OrderRow, OrderStatus, mapOrder } from "@/types";
 import { formatFCFA } from "@/lib/format";
@@ -20,11 +28,11 @@ const STATUS_SUB: Record<OrderStatus, string> = {
   served: "Bon appétit ! Merci de votre visite.",
 };
 
-const STATUS_ICON: Record<OrderStatus, string> = {
-  pending: "📨",
-  preparing: "🔥",
-  ready: "🛎",
-  served: "✨",
+const STATUS_ICON: Record<OrderStatus, LucideIcon> = {
+  pending: Inbox,
+  preparing: ChefHat,
+  ready: BellRing,
+  served: CheckCircle2,
 };
 
 const STATUS_ORDER: OrderStatus[] = ["pending", "preparing", "ready", "served"];
@@ -99,7 +107,7 @@ export default function OrderTracker({
     return (
       <main className="min-h-screen flex items-center justify-center p-6 bg-stone-50">
         <div className="text-center">
-          <div className="text-4xl mb-3">🔍</div>
+          <Search className="w-12 h-12 mx-auto mb-3 text-stone-400" aria-hidden />
           <p className="font-semibold text-stone-900">Commande introuvable</p>
         </div>
       </main>
@@ -127,13 +135,18 @@ export default function OrderTracker({
       <div className="max-w-2xl mx-auto px-5 py-6 space-y-4">
         <div className="bg-gradient-to-br from-stone-900 to-stone-800 rounded-3xl p-6 text-white shadow-xl shadow-stone-900/10 animate-fade-in-up">
           <div className="flex items-center gap-4 mb-6">
-            <div
-              className={`w-14 h-14 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center text-3xl ${
-                order.status !== "served" ? "animate-pulse-ring" : ""
-              }`}
-            >
-              {STATUS_ICON[order.status]}
-            </div>
+            {(() => {
+              const Icon = STATUS_ICON[order.status];
+              return (
+                <div
+                  className={`w-14 h-14 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center ${
+                    order.status !== "served" ? "animate-pulse-ring" : ""
+                  }`}
+                >
+                  <Icon className="w-7 h-7" aria-hidden />
+                </div>
+              );
+            })()}
             <div>
               <div className="text-xs text-stone-400 uppercase tracking-wider font-medium">
                 Statut

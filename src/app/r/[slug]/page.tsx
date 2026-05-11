@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Moon } from "lucide-react";
 import {
   getRestaurantBySlug,
   getCategories,
@@ -39,7 +40,7 @@ export default async function RestaurantMenuPage({
     return (
       <main className="min-h-screen flex items-center justify-center p-6 text-center bg-stone-50">
         <div>
-          <div className="text-5xl mb-3">🌙</div>
+          <Moon className="w-14 h-14 mx-auto mb-3 text-stone-500" aria-hidden />
           <h1 className="text-2xl font-bold mb-2">Restaurant fermé</h1>
           <p className="text-stone-600 mb-1">
             Nous serons heureux de vous accueillir bientôt.

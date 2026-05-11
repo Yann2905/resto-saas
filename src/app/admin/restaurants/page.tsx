@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Check, Plus, Search, Store, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Restaurant, RestaurantRow, mapRestaurant } from "@/types";
 import {
@@ -210,9 +211,9 @@ export default function AdminRestaurantsPage() {
               setShowCreate((v) => !v);
               setEditingId(null);
             }}
-            className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-all hover:scale-105 flex items-center gap-2 shadow-lg shadow-stone-900/10"
+            className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-all hover:scale-105 flex items-center gap-1.5 shadow-lg shadow-stone-900/10"
           >
-            <span className="text-lg leading-none">+</span> Nouveau restaurant
+            <Plus className="w-4 h-4" aria-hidden /> Nouveau restaurant
           </button>
         </div>
 
@@ -225,9 +226,7 @@ export default function AdminRestaurantsPage() {
 
         <div className="bg-white rounded-2xl border border-stone-200 p-3 mb-4 flex flex-col sm:flex-row gap-2 sm:items-center">
           <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">
-              🔍
-            </span>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" aria-hidden />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -266,8 +265,8 @@ export default function AdminRestaurantsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 animate-fade-in-up">
-            <div className="w-20 h-20 rounded-2xl bg-stone-100 flex items-center justify-center mx-auto mb-5 text-4xl">
-              🏪
+            <div className="w-20 h-20 rounded-2xl bg-stone-100 flex items-center justify-center mx-auto mb-5">
+              <Store className="w-10 h-10 text-stone-400" aria-hidden />
             </div>
             <h3 className="text-lg font-bold text-stone-900 mb-1">
               {restaurants.length === 0
@@ -328,7 +327,11 @@ export default function AdminRestaurantsPage() {
           }`}
         >
           <div className="flex items-start gap-2 text-sm">
-            <span>{toast.type === "success" ? "✓" : "⚠"}</span>
+            {toast.type === "success" ? (
+              <Check className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
+            ) : (
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
+            )}
             <span className="flex-1">{toast.msg}</span>
           </div>
         </div>
@@ -400,7 +403,7 @@ function RestaurantRowView({
               : "bg-stone-100 text-stone-500 hover:bg-stone-200"
           }`}
         >
-          {restaurant.active ? "✓ Actif" : "Off"}
+          {restaurant.active ? "Actif" : "Inactif"}
         </button>
         <button
           onClick={onEdit}
@@ -412,10 +415,10 @@ function RestaurantRowView({
         <button
           onClick={onDelete}
           disabled={busy}
-          className="rounded-lg px-3 py-2 text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
+          className="rounded-lg px-3 py-2 text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50 flex items-center justify-center"
           aria-label="Supprimer"
         >
-          ✕
+          <X className="w-3.5 h-3.5" aria-hidden />
         </button>
       </div>
     </div>
