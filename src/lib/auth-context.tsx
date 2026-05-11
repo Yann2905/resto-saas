@@ -136,6 +136,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
+    // Sur les pages de login on ne touche PAS à supabase.auth.getSession() —
+    // ça poserait un lock interne sur le client supabase qui ferait queue
+    // le signInWithPassword qui suit. La page de login ne lit pas non plus
+    // le contexte (elle est self-contained), donc on libère l'UI immédiatement.
+    if (typeof window !== "undefined") {
+      const path = window.location.pathname;
+      if (path === "/admin/login" || path === "/dashboard/login") {
+        setLoading(false);
+        return () => {
+          mounted = false;
+        };
+      }
+    }
+
     // Failsafe ultime : 3s max avant de débloquer l'UI
     const failsafe = setTimeout(() => {
       if (mounted) {
