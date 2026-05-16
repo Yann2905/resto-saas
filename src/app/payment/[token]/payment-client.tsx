@@ -148,13 +148,20 @@ export default function PaymentClient({
 
       setPaymentRef(data.reference);
 
-      // TODO: Ici, intégrer l'agrégateur de paiement réel.
-      // Pour l'instant on simule un succès après 2s.
-      // En production : ouvrir le widget de l'agrégateur,
-      // puis le callback webhook mettra à jour le statut.
-      setTimeout(() => {
-        setStep("success");
-      }, 2000);
+      // Confirmer le paiement côté serveur
+      // (met à jour l'abonnement + envoie le SMS de confirmation)
+      const confirmRes = await fetch("/api/payment/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference: data.reference }),
+      });
+      const confirmData = await confirmRes.json();
+
+      if (!confirmRes.ok || !confirmData.ok) {
+        throw new Error(confirmData.error || "Erreur lors de la confirmation");
+      }
+
+      setStep("success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue");
       setStep("error");
