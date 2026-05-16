@@ -42,7 +42,7 @@ type CategoryForm = {
 
 export default function MenuAdminPage() {
   const router = useRouter();
-  const { user, restaurant, loading } = useAuth();
+  const { user, restaurant, role, loading } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [filterCat, setFilterCat] = useState<string>("all");
@@ -55,7 +55,7 @@ export default function MenuAdminPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) router.push("/dashboard/login");
+    if (!loading && !user && !role) router.push("/dashboard/login");
   }, [loading, user, router]);
 
   useEffect(() => {

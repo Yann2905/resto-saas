@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Check, Plus, QrCode, UtensilsCrossed } from "lucide-react";
 import { Category, Product } from "@/types";
 import { formatFCFA } from "@/lib/format";
-import { addToCart, cartCount, getCart } from "@/lib/cart";
+import { addToCart, cartCount, cartTotal, getCart } from "@/lib/cart";
+import SwipeConfirm from "./_components/swipe-confirm";
 
 type Props = {
   restaurant: { id: string; name: string; slug: string };
@@ -20,14 +21,19 @@ export default function MenuClient({
   products,
   tableNumber,
 }: Props) {
+  const router = useRouter();
   const [count, setCount] = useState(0);
+  const [total, setTotal] = useState(0);
   const [activeParent, setActiveParent] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const tableKey = tableNumber ? String(tableNumber) : "na";
 
   useEffect(() => {
-    const refresh = () =>
-      setCount(cartCount(getCart(restaurant.id, tableKey)));
+    const refresh = () => {
+      const items = getCart(restaurant.id, tableKey);
+      setCount(cartCount(items));
+      setTotal(cartTotal(items));
+    };
     refresh();
     window.addEventListener("cart:updated", refresh);
     return () => window.removeEventListener("cart:updated", refresh);
@@ -172,20 +178,13 @@ export default function MenuClient({
 
       {count > 0 && (
         <div className="fixed bottom-4 inset-x-4 z-30 max-w-2xl mx-auto animate-fade-in-up">
-          <Link
-            href={`/r/${restaurant.slug}/cart?table=${tableNumber}`}
-            className="flex items-center justify-between gap-4 rounded-2xl bg-stone-900 text-white px-5 py-4 shadow-xl shadow-stone-900/20 hover:bg-stone-800 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center font-bold text-sm">
-                {count}
-              </div>
-              <span className="font-semibold">Voir mon panier</span>
-            </div>
-            <span className="text-sm text-stone-300 flex items-center gap-1">
-              Valider <span aria-hidden>→</span>
-            </span>
-          </Link>
+          <SwipeConfirm
+            onConfirm={() =>
+              router.push(`/r/${restaurant.slug}/cart?table=${tableNumber}`)
+            }
+            label={`Voir mon panier · ${formatFCFA(total)}`}
+            hint={`${count} article${count > 1 ? "s" : ""} — glissez pour voir le panier`}
+          />
         </div>
       )}
     </main>

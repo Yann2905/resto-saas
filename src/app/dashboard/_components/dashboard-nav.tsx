@@ -24,9 +24,9 @@ const TABS: Array<{ href: string; label: string; Icon: LucideIcon }> = [
 
 export default function DashboardNav() {
   const pathname = usePathname();
-  const { user, restaurant, signOut } = useAuth();
+  const { user, restaurant, role, signOut } = useAuth();
 
-  if (pathname === "/dashboard/login" || !user || !restaurant) return null;
+  if (pathname === "/dashboard/login" || (!user && !role) || !restaurant) return null;
 
   const handleLogout = async () => {
     const ok = await confirmAction({

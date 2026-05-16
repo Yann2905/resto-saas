@@ -20,13 +20,13 @@ const COLS_OPTIONS = [2, 3, 4] as const;
 
 export default function QrCodesPage() {
   const router = useRouter();
-  const { user, restaurant, loading } = useAuth();
+  const { user, restaurant, role, loading } = useAuth();
   const [tableCount, setTableCount] = useState(10);
   const [baseUrl, setBaseUrl] = useState("");
   const [codes, setCodes] = useState<Record<number, string>>({});
 
   useEffect(() => {
-    if (!loading && !user) router.push("/dashboard/login");
+    if (!loading && !user && !role) router.push("/dashboard/login");
   }, [loading, user, router]);
 
   useEffect(() => {

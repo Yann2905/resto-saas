@@ -123,7 +123,7 @@ function tryNotify(tableNumber: number, total: number) {
 
 export default function OrdersPage() {
   const router = useRouter();
-  const { user, restaurant, loading, profileLoading, signOut } = useAuth();
+  const { user, restaurant, role, loading, profileLoading, signOut } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
   const knownIds = useRef<Set<string>>(new Set());
@@ -150,8 +150,8 @@ export default function OrdersPage() {
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) router.push("/dashboard/login");
-  }, [user, loading, router]);
+    if (!loading && !user && !role) router.push("/dashboard/login");
+  }, [user, role, loading, router]);
 
   useEffect(() => {
     if (!restaurant) return;

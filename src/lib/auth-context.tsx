@@ -170,11 +170,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }, 3000);
 
-    // Cache synchrone pour rendre instantanément
+    // Cache synchrone pour rendre instantanément — plus d'attente de getSession()
     const cachedSync = readCache();
     if (cachedSync) {
       setRole(cachedSync.role);
       setRestaurant(cachedSync.restaurant);
+      // On fait confiance au cache pour débloquer l'UI immédiatement.
+      // getSession() rafraîchira en arrière-plan.
+      setLoading(false);
+      clearTimeout(failsafe);
     }
 
     (async () => {
@@ -189,15 +193,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!mounted) return;
         const sessionUser = sessionResult.data.session?.user ?? null;
 
-        if (sessionUser && cachedSync && cachedSync.userId === sessionUser.id) {
+        if (sessionUser) {
           setUser(sessionUser);
-          setLoading(false);
-          clearTimeout(failsafe);
+          // Refresh profile en arrière-plan (ne bloque pas l'UI)
           void refresh(sessionUser);
-          return;
+        } else if (cachedSync) {
+          // Session expirée mais cache présent — clear tout
+          setUser(null);
+          setRole(null);
+          setRestaurant(null);
+          clearCache();
         }
-
-        await refresh(sessionUser);
       } catch (e) {
         console.error("[auth] getSession failed:", e);
       } finally {

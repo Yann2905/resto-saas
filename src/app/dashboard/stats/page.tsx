@@ -84,7 +84,7 @@ function lastNMonths(n = 12): Array<{ key: string; label: string }> {
 
 export default function StatsPage() {
   const router = useRouter();
-  const { user, restaurant, loading } = useAuth();
+  const { user, restaurant, role, loading } = useAuth();
   // Mode "range" (7d/14d/30d/all) ou "month" (un mois précis)
   const [range, setRange] = useState<Range>("14d");
   const [month, setMonth] = useState<string>(""); // "" = mode range
@@ -97,7 +97,7 @@ export default function StatsPage() {
   const months = useMemo(() => lastNMonths(12), []);
 
   useEffect(() => {
-    if (!loading && !user) router.push("/dashboard/login");
+    if (!loading && !user && !role) router.push("/dashboard/login");
   }, [loading, user, router]);
 
   useEffect(() => {

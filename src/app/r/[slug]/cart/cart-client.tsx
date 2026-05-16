@@ -13,7 +13,7 @@ import {
 } from "@/lib/cart";
 import { formatFCFA } from "@/lib/format";
 import { createOrder } from "@/lib/orders";
-import SwipeConfirm from "./swipe-confirm";
+import SwipeConfirm from "../_components/swipe-confirm";
 
 type Props = {
   restaurant: { id: string; name: string; slug: string };

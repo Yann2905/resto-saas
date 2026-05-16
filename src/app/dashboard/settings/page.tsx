@@ -14,14 +14,14 @@ import type { DaySchedule, OpeningHours, WeekKey } from "@/types";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, restaurant, loading } = useAuth();
+  const { user, restaurant, role, loading } = useAuth();
   const [hours, setHours] = useState<OpeningHours>(defaultOpeningHours());
   const [alwaysOpen, setAlwaysOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) router.push("/dashboard/login");
+    if (!loading && !user && !role) router.push("/dashboard/login");
   }, [loading, user, router]);
 
   useEffect(() => {
