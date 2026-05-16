@@ -236,13 +236,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [refresh]);
 
+  // Quand un autre onglet se déconnecte (supprime le cache), on redirige
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === CACHE_KEY && e.newValue === null) {
+        // Le cache a été supprimé dans un autre onglet → déconnexion
+        setUser(null);
+        setRole(null);
+        setRestaurant(null);
+        const path = window.location.pathname;
+        if (path.startsWith("/admin")) {
+          window.location.href = "/admin/login";
+        } else if (path.startsWith("/dashboard")) {
+          window.location.href = "/dashboard/login";
+        }
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   const signOut = useCallback(async () => {
     clearCache();
     setUser(null);
     setRole(null);
     setRestaurant(null);
     try {
-      // scope:'local' = clear le storage local sans appel réseau (instantané)
       await supabase.auth.signOut({ scope: "local" });
     } catch (e) {
       console.warn("[auth] supabase signOut failed:", e);
