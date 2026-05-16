@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Check, Plus, Search, Store, X } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 import { Restaurant, RestaurantRow, mapRestaurant } from "@/types";
 import {
   createRestaurantWithOwner,
@@ -78,26 +77,24 @@ export default function AdminRestaurantsPage() {
   useEffect(() => {
     let cancelled = false;
     const fetchAll = async () => {
-      const { data } = await supabase
-        .from("restaurants")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (cancelled) return;
-      setRestaurants((data ?? []).map((r) => mapRestaurant(r as RestaurantRow)));
-      setLoading(false);
+      try {
+        const res = await fetch("/api/admin/restaurants/list");
+        const json = await res.json();
+        if (cancelled || !json.ok) return;
+        setRestaurants(
+          (json.restaurants as RestaurantRow[]).map(mapRestaurant)
+        );
+      } catch (e) {
+        console.error("[admin] fetch restaurants error:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
     fetchAll();
-    const channel = supabase
-      .channel("admin-restaurants-page")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "restaurants" },
-        fetchAll
-      )
-      .subscribe();
+    const interval = setInterval(fetchAll, 30_000);
     return () => {
       cancelled = true;
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, []);
 
