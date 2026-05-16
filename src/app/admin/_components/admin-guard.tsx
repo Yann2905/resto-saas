@@ -10,18 +10,14 @@ export default function AdminGuard({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, role, loading, profileLoading } = useAuth();
+  const { role, loading } = useAuth();
   const pathname = usePathname();
 
-  // On considère "encore en train de vérifier" si :
-  // - auth-context init pas fini
-  // - OU le profile est en cours de chargement
-  // - OU on a un user mais pas encore son role (race entre setUser et setRole)
-  const verifying = loading || profileLoading || (user && !role);
-
-  // Accepte l'accès si user OU role est connu (le cache peut fournir
-  // le role avant que getSession() ne retourne le user Supabase).
   const authorized = role === "superadmin";
+
+  // On bloque uniquement pendant le loading initial ET si on n'a pas
+  // encore de rôle. Dès que le cache fournit role=superadmin, on passe.
+  const verifying = loading && !authorized;
 
   useEffect(() => {
     if (verifying) return;
@@ -32,6 +28,8 @@ export default function AdminGuard({
   }, [verifying, authorized, pathname]);
 
   if (pathname === "/admin/login") return <>{children}</>;
+
+  if (authorized) return <>{children}</>;
 
   if (verifying) {
     return (
@@ -44,19 +42,15 @@ export default function AdminGuard({
     );
   }
 
-  if (!authorized) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-stone-950 text-stone-100 p-6 text-center">
-        <div>
-          <Lock className="w-12 h-12 mx-auto mb-3 text-amber-400" aria-hidden />
-          <p className="font-semibold">Accès réservé</p>
-          <p className="text-sm text-stone-400 mt-1">
-            Redirection vers la page de connexion…
-          </p>
-        </div>
-      </main>
-    );
-  }
-
-  return <>{children}</>;
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-stone-950 text-stone-100 p-6 text-center">
+      <div>
+        <Lock className="w-12 h-12 mx-auto mb-3 text-amber-400" aria-hidden />
+        <p className="font-semibold">Accès réservé</p>
+        <p className="text-sm text-stone-400 mt-1">
+          Redirection vers la page de connexion…
+        </p>
+      </div>
+    </main>
+  );
 }
