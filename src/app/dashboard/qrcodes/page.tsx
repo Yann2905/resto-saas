@@ -8,15 +8,16 @@ import { useAuth } from "@/lib/auth-context";
 
 /* ── Thèmes couleur pour l'export PDF ───────────────────────── */
 const COLOR_THEMES = {
-  bleu:   { bg: "#eff6ff", border: "#3b82f6", text: "#1e3a5f", qrDark: "#1e3a8a", qrLight: "#ffffff", label: "Bleu" },
-  vert:   { bg: "#ecfdf5", border: "#22c55e", text: "#14532d", qrDark: "#166534", qrLight: "#ffffff", label: "Vert" },
-  orange: { bg: "#fff7ed", border: "#f97316", text: "#7c2d12", qrDark: "#9a3412", qrLight: "#ffffff", label: "Orange" },
+  bleu:   { bg: "#2563eb", border: "#1d4ed8", text: "#ffffff", qrDark: "#1e3a8a", qrLight: "#ffffff", label: "Bleu" },
+  vert:   { bg: "#16a34a", border: "#15803d", text: "#ffffff", qrDark: "#14532d", qrLight: "#ffffff", label: "Vert" },
+  orange: { bg: "#ea580c", border: "#c2410c", text: "#ffffff", qrDark: "#7c2d12", qrLight: "#ffffff", label: "Orange" },
+  rouge:  { bg: "#dc2626", border: "#b91c1c", text: "#ffffff", qrDark: "#7f1d1d", qrLight: "#ffffff", label: "Rouge" },
+  violet: { bg: "#7c3aed", border: "#6d28d9", text: "#ffffff", qrDark: "#4c1d95", qrLight: "#ffffff", label: "Violet" },
   sombre: { bg: "#1c1917", border: "#44403c", text: "#fafaf9", qrDark: "#fafaf9", qrLight: "#1c1917", label: "Sombre" },
   blanc:  { bg: "#ffffff", border: "#d6d3d1", text: "#0c0a09", qrDark: "#0c0a09", qrLight: "#ffffff", label: "Blanc" },
 } as const;
 type ThemeKey = keyof typeof COLOR_THEMES;
 
-const COLS_OPTIONS = [2, 3, 4] as const;
 
 export default function QrCodesPage() {
   const { user, restaurant, role, loading } = useAuth();
@@ -79,23 +80,27 @@ export default function QrCodesPage() {
   /* ── État de la modale export PDF ──────────────────────────── */
   const [showExport, setShowExport] = useState(false);
   const [theme, setTheme] = useState<ThemeKey>("blanc");
-  const [cols, setCols] = useState<2 | 3 | 4>(3);
-  const [rangeFrom, setRangeFrom] = useState(1);
-  const [rangeTo, setRangeTo] = useState(tableCount);
+  const [selectedTables, setSelectedTables] = useState<Set<number>>(
+    () => new Set(Array.from({ length: tableCount }, (_, i) => i + 1))
+  );
 
-  // Synchro rangeTo quand tableCount change
-  useEffect(() => { setRangeTo(tableCount); }, [tableCount]);
+  // Synchro selectedTables quand tableCount change
+  useEffect(() => {
+    setSelectedTables(new Set(Array.from({ length: tableCount }, (_, i) => i + 1)));
+  }, [tableCount]);
 
-  const clampRange = (v: number, min: number, max: number) =>
-    Math.max(min, Math.min(max, v));
+  const toggleTable = (t: number) => {
+    setSelectedTables((prev) => {
+      const next = new Set(prev);
+      if (next.has(t)) next.delete(t);
+      else next.add(t);
+      return next;
+    });
+  };
 
   const previewTables = useMemo(
-    () =>
-      Array.from(
-        { length: clampRange(rangeTo, rangeFrom, tableCount) - clampRange(rangeFrom, 1, rangeTo) + 1 },
-        (_, i) => clampRange(rangeFrom, 1, rangeTo) + i,
-      ),
-    [rangeFrom, rangeTo, tableCount],
+    () => Array.from(selectedTables).sort((a, b) => a - b),
+    [selectedTables],
   );
 
   /* QR codes re-colorés pour le thème sélectionné */
@@ -128,16 +133,19 @@ export default function QrCodesPage() {
     if (!restaurant || previewTables.length === 0) return;
     const th = COLOR_THEMES[theme];
 
-    const cardsHtml = previewTables
+    // Un QR par page — format autocollant
+    const pagesHtml = previewTables
       .map((t) => {
         const src = themedCodes[t];
         if (!src) return "";
         return `
-      <div class="card" style="background:${th.bg};border:2px solid ${th.border}">
-        <div class="resto" style="color:${th.text}">${restaurant.name}</div>
-        <div class="table-num" style="color:${th.text}">Table ${t}</div>
-        <img src="${src}" alt="QR table ${t}" />
-        <div class="scan" style="color:${th.text}">Scannez pour commander</div>
+      <div class="page" style="background:${th.bg}">
+        <div class="card">
+          <div class="resto" style="color:${th.text}">${restaurant.name}</div>
+          <div class="table-num" style="color:${th.text}">Table ${t}</div>
+          <img src="${src}" alt="QR table ${t}" />
+          <div class="scan" style="color:${th.text}">Scannez pour commander</div>
+        </div>
       </div>`;
       })
       .join("\n");
@@ -153,26 +161,26 @@ export default function QrCodesPage() {
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-  background:#fff;padding:16px;-webkit-font-smoothing:antialiased}
-.grid{display:grid;grid-template-columns:repeat(${cols},1fr);gap:16px}
-.card{border-radius:16px;padding:16px;display:flex;flex-direction:column;
-  align-items:center;text-align:center;break-inside:avoid}
-.resto{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;
-  margin-bottom:4px;opacity:0.7}
-.table-num{font-size:22px;font-weight:700;letter-spacing:-0.025em;margin-bottom:8px}
-img{width:100%;aspect-ratio:1/1;border-radius:8px}
-.scan{font-size:9px;margin-top:6px;opacity:0.6}
+  background:#fff;-webkit-font-smoothing:antialiased}
+.page{width:100%;height:100vh;display:flex;align-items:center;justify-content:center;
+  page-break-after:always;break-after:page}
+.page:last-child{page-break-after:auto;break-after:auto}
+.card{width:80%;max-width:400px;border-radius:24px;padding:32px;display:flex;flex-direction:column;
+  align-items:center;text-align:center}
+.resto{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;
+  margin-bottom:8px;opacity:0.85}
+.table-num{font-size:48px;font-weight:700;letter-spacing:-0.025em;margin-bottom:20px}
+img{width:100%;max-width:320px;aspect-ratio:1/1;border-radius:16px}
+.scan{font-size:14px;margin-top:16px;opacity:0.7;font-weight:500}
 @media print{
   body{padding:0}
-  @page{margin:10mm}
-  .card{break-inside:avoid}
+  @page{margin:0;size:auto}
+  .page{height:100vh}
 }
 </style>
 </head>
 <body>
-<div class="grid">
-${cardsHtml}
-</div>
+${pagesHtml}
 <script>
 window.addEventListener('load',function(){setTimeout(function(){window.print()},300)});
 </script>
@@ -351,81 +359,83 @@ window.addEventListener('load',function(){setTimeout(function(){window.print()},
             {/* Corps */}
             <div className="p-5 space-y-6">
               {/* Contrôles */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                {/* Couleur */}
-                <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 mb-2 block">
-                    Couleur du thème
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {(Object.keys(COLOR_THEMES) as ThemeKey[]).map((key) => {
-                      const t = COLOR_THEMES[key];
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => setTheme(key)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all ${
-                            theme === key
-                              ? "ring-2 ring-offset-1 ring-stone-900 border-stone-900"
-                              : "border-stone-200 hover:border-stone-400"
-                          }`}
-                          style={{ backgroundColor: t.bg, color: t.text, borderColor: theme === key ? t.border : undefined }}
-                        >
-                          {t.label}
-                        </button>
-                      );
-                    })}
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Couleur */}
+                  <div>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 mb-2 block">
+                      Couleur du thème
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {(Object.keys(COLOR_THEMES) as ThemeKey[]).map((key) => {
+                        const t = COLOR_THEMES[key];
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => setTheme(key)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all ${
+                              theme === key
+                                ? "ring-2 ring-offset-1 ring-stone-900"
+                                : "hover:opacity-80"
+                            }`}
+                            style={{ backgroundColor: t.bg, color: t.text, borderColor: t.border }}
+                          >
+                            {t.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Info format */}
+                  <div>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 mb-2 block">
+                      Format d&apos;impression
+                    </span>
+                    <p className="text-sm text-stone-600">
+                      1 QR code par page — idéal pour autocollants
+                    </p>
                   </div>
                 </div>
 
-                {/* Cartes par rangée */}
+                {/* Sélection des tables */}
                 <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 mb-2 block">
-                    Cartes par rangée
-                  </span>
-                  <div className="flex gap-2">
-                    {COLS_OPTIONS.map((n) => (
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-500">
+                      Tables à imprimer
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-stone-500">
+                        {selectedTables.size} / {tableCount} sélectionnée{selectedTables.size > 1 ? "s" : ""}
+                      </span>
                       <button
-                        key={n}
-                        onClick={() => setCols(n)}
+                        onClick={() => setSelectedTables(new Set(tables))}
+                        className="text-xs font-semibold text-amber-600 hover:text-amber-700"
+                      >
+                        Tout
+                      </button>
+                      <button
+                        onClick={() => setSelectedTables(new Set())}
+                        className="text-xs font-semibold text-stone-500 hover:text-stone-700"
+                      >
+                        Aucune
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {tables.map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => toggleTable(t)}
                         className={`w-10 h-10 rounded-lg text-sm font-bold transition-all ${
-                          cols === n
+                          selectedTables.has(t)
                             ? "bg-stone-900 text-white"
-                            : "bg-stone-100 text-stone-700 hover:bg-stone-200"
+                            : "bg-stone-100 text-stone-400 hover:bg-stone-200 hover:text-stone-600"
                         }`}
                       >
-                        {n}
+                        {t}
                       </button>
                     ))}
-                  </div>
-                </div>
-
-                {/* Plage de tables */}
-                <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 mb-2 block">
-                    Plage de tables
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min={1}
-                      max={rangeTo}
-                      value={rangeFrom}
-                      onChange={(e) => setRangeFrom(clampRange(parseInt(e.target.value) || 1, 1, rangeTo))}
-                      className="w-16 text-center rounded-lg border border-stone-300 px-2 py-2 text-sm font-semibold focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
-                    />
-                    <span className="text-stone-400 text-sm">à</span>
-                    <input
-                      type="number"
-                      min={rangeFrom}
-                      max={tableCount}
-                      value={rangeTo}
-                      onChange={(e) => setRangeTo(clampRange(parseInt(e.target.value) || rangeFrom, rangeFrom, tableCount))}
-                      className="w-16 text-center rounded-lg border border-stone-300 px-2 py-2 text-sm font-semibold focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
-                    />
-                    <span className="text-[11px] text-stone-500">
-                      ({previewTables.length} table{previewTables.length > 1 ? "s" : ""})
-                    </span>
                   </div>
                 </div>
               </div>
@@ -440,8 +450,7 @@ window.addEventListener('load',function(){setTimeout(function(){window.print()},
                   style={{ backgroundColor: COLOR_THEMES[theme].bg }}
                 >
                   <div
-                    className="grid gap-4"
-                    style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+                    className="grid grid-cols-2 sm:grid-cols-3 gap-4"
                   >
                     {previewTables.map((t) => {
                       const th = COLOR_THEMES[theme];
