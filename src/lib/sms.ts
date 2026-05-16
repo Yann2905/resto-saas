@@ -1,18 +1,18 @@
 /**
- * Client SMS via Texto.
+ * Client SMS via LeTexto.
  *
  * Variables d'environnement requises :
- *   TEXTO_API_URL   – URL de l'API Texto (ex: https://api.texto.com/v1/sms)
- *   TEXTO_API_KEY   – Clé API Texto
- *   TEXTO_SENDER    – Nom expéditeur (ex: "RestoSaaS")
+ *   LETEXTO_API_URL  – URL de base (ex: https://api.letexto.com)
+ *   LETEXTO_API_KEY  – Clé API LeTexto
+ *   LETEXTO_SENDER   – Nom expéditeur (ex: "RestoSaaS")
  */
 
 import { createSupabaseAdminClient } from "./supabase-admin";
 import type { SmsType } from "@/types";
 
-const TEXTO_API_URL = process.env.TEXTO_API_URL || "";
-const TEXTO_API_KEY = process.env.TEXTO_API_KEY || "";
-const TEXTO_SENDER  = process.env.TEXTO_SENDER || "RestoSaaS";
+const LETEXTO_API_URL = process.env.LETEXTO_API_URL || process.env.TEXTO_API_URL || "";
+const LETEXTO_API_KEY = process.env.LETEXTO_API_KEY || process.env.TEXTO_API_KEY || "";
+const LETEXTO_SENDER  = process.env.LETEXTO_SENDER || process.env.TEXTO_SENDER || "RestoSaaS";
 
 export type SendSmsResult = { ok: true } | { ok: false; error: string };
 
@@ -28,33 +28,36 @@ export async function sendSms(params: {
 }): Promise<SendSmsResult> {
   const { phone, message, restaurantId, type } = params;
 
-  // ── Envoi via Texto ───────────────────────────────────────────
-  if (TEXTO_API_URL && TEXTO_API_KEY) {
+  // ── Envoi via LeTexto ─────────────────────────────────────────
+  if (LETEXTO_API_URL && LETEXTO_API_KEY) {
     try {
-      const res = await fetch(TEXTO_API_URL, {
+      const baseUrl = LETEXTO_API_URL.replace(/\/+$/, "");
+      const endpoint = `${baseUrl}/v1/messages/send`;
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${TEXTO_API_KEY}`,
+          Authorization: `Bearer ${LETEXTO_API_KEY}`,
         },
         body: JSON.stringify({
+          from: LETEXTO_SENDER,
           to: phone,
-          from: TEXTO_SENDER,
-          text: message,
+          content: message,
         }),
       });
 
       if (!res.ok) {
         const body = await res.text();
-        console.error("[SMS] Texto error:", res.status, body);
-        return { ok: false, error: `Texto ${res.status}: ${body}` };
+        console.error("[SMS] LeTexto error:", res.status, body);
+        return { ok: false, error: `LeTexto ${res.status}: ${body}` };
       }
     } catch (err) {
-      console.error("[SMS] Texto network error:", err);
+      console.error("[SMS] LeTexto network error:", err);
       return { ok: false, error: String(err) };
     }
   } else {
-    // Dev mode — pas d'API Texto configurée
+    // Dev mode — pas d'API LeTexto configurée
     console.log("[SMS DEV]", { to: phone, message });
   }
 
