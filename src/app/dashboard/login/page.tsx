@@ -89,6 +89,15 @@ export default function LoginPage() {
         /* ignore */
       }
 
+      // Nettoyer toute session Supabase résiduelle (ex: signOut pas fini
+      // avant la navigation) pour éviter un verrou interne qui bloquerait
+      // signInWithPassword.
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } catch {
+        /* ignore */
+      }
+
       const { data, error: authError } = await withTimeout(
         supabase.auth.signInWithPassword({ email, password }),
         SIGNIN_TIMEOUT_MS,
