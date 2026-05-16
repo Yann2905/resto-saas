@@ -162,34 +162,10 @@ export default function OrdersPage() {
 
     const fetchOrders = async () => {
       try {
-        // Active orders (pending, preparing, ready)
-        const { data: activeData, error: errActive } = await supabase
-          .from("orders")
-          .select("*")
-          .eq("restaurant_id", restaurantId)
-          .neq("status", "served")
-          .order("created_at", { ascending: false });
-
-        if (errActive) console.error("[orders] fetch active error:", errActive);
-
-        // Served orders from today only
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        const { data: servedData, error: errServed } = await supabase
-          .from("orders")
-          .select("*")
-          .eq("restaurant_id", restaurantId)
-          .eq("status", "served")
-          .gte("created_at", todayStart.toISOString())
-          .order("created_at", { ascending: false });
-
-        if (errServed) console.error("[orders] fetch served error:", errServed);
-
-        if (cancelled) return;
-        const list = [
-          ...(activeData ?? []).map((o) => mapOrder(o as OrderRow)),
-          ...(servedData ?? []).map((o) => mapOrder(o as OrderRow)),
-        ];
+        const res = await fetch(`/api/orders?restaurantId=${restaurantId}`);
+        const json = await res.json();
+        if (cancelled || !json.ok) return;
+        const list = (json.orders as OrderRow[]).map(mapOrder);
         knownIds.current = new Set(list.map((o) => o.id));
         firstLoadDone.current = true;
         setOrders(list);
@@ -266,18 +242,19 @@ export default function OrdersPage() {
     };
   }, [restaurantId]);
 
-  const advance = async (order: Order) => {
+  const advance = (order: Order) => {
     const next = NEXT_STATUS[order.status];
     if (!next) return;
-    try {
-      await fetch("/api/orders/advance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: order.id }),
-      });
-    } catch {
-      // Silencieux — le realtime corrigera l'UI si besoin
-    }
+    // Optimistic — UI change instantanément
+    setOrders((prev) =>
+      prev.map((o) => (o.id === order.id ? { ...o, status: next } : o))
+    );
+    // Fire-and-forget — l'API tourne en arrière-plan, pas d'await
+    fetch("/api/orders/advance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: order.id }),
+    }).catch(() => {});
   };
 
   const handleLogout = async () => {
