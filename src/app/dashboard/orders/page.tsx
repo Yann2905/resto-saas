@@ -269,7 +269,15 @@ export default function OrdersPage() {
   const advance = async (order: Order) => {
     const next = NEXT_STATUS[order.status];
     if (!next) return;
-    await supabase.from("orders").update({ status: next }).eq("id", order.id);
+    try {
+      await fetch("/api/orders/advance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+    } catch {
+      // Silencieux — le realtime corrigera l'UI si besoin
+    }
   };
 
   const handleLogout = async () => {
