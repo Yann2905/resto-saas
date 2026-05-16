@@ -64,22 +64,20 @@ export default function MenuAdminPage() {
     let cancelled = false;
 
     const fetchCategories = async () => {
-      const { data } = await supabase
-        .from("categories")
-        .select("*")
-        .eq("restaurant_id", restaurantId)
-        .order("order", { ascending: true });
-      if (cancelled) return;
-      setCategories((data ?? []).map((c) => mapCategory(c as CategoryRow)));
+      try {
+        const res = await fetch(`/api/menu/categories?restaurantId=${restaurantId}`);
+        const json = await res.json();
+        if (cancelled || !json.ok) return;
+        setCategories((json.categories as CategoryRow[]).map(mapCategory));
+      } catch { /* ignore */ }
     };
     const fetchProducts = async () => {
-      const { data } = await supabase
-        .from("products")
-        .select("*")
-        .eq("restaurant_id", restaurantId)
-        .order("order", { ascending: true });
-      if (cancelled) return;
-      setProducts((data ?? []).map((p) => mapProduct(p as ProductRow)));
+      try {
+        const res = await fetch(`/api/menu/products?restaurantId=${restaurantId}`);
+        const json = await res.json();
+        if (cancelled || !json.ok) return;
+        setProducts((json.products as ProductRow[]).map(mapProduct));
+      } catch { /* ignore */ }
     };
 
     fetchCategories();
@@ -145,25 +143,30 @@ export default function MenuAdminPage() {
     if (!restaurant) return;
     setSaving(true);
     try {
-      const payload = {
-        restaurant_id: restaurant.id,
-        name: form.name.trim(),
-        price: parseInt(form.price, 10) || 0,
-        category_id: form.categoryId,
-        stock_quantity: parseInt(form.stockQuantity, 10) || 0,
-        image_url: form.imageUrl.trim() || null,
-        available: form.available,
-        order: id
-          ? products.find((p) => p.id === id)?.order ?? products.length + 1
-          : products.length + 1,
-      };
-      if (id) {
-        await supabase.from("products").update(payload).eq("id", id);
-        setEditingProductId(null);
-      } else {
-        await supabase.from("products").insert(payload);
-        setShowAddProduct(false);
+      const res = await fetch("/api/menu/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          restaurantId: restaurant.id,
+          name: form.name.trim(),
+          price: parseInt(form.price, 10) || 0,
+          category_id: form.categoryId,
+          stock_quantity: parseInt(form.stockQuantity, 10) || 0,
+          image_url: form.imageUrl.trim() || null,
+          available: form.available,
+          order: id
+            ? products.find((p) => p.id === id)?.order ?? products.length + 1
+            : products.length + 1,
+        }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        await toastError(json.error || "Erreur lors de l'enregistrement");
+        return;
       }
+      if (id) setEditingProductId(null);
+      else setShowAddProduct(false);
     } finally {
       setSaving(false);
     }
@@ -183,10 +186,21 @@ export default function MenuAdminPage() {
     const previous = products;
     setProducts((prev) => prev.filter((p) => p.id !== id));
 
-    const { error } = await supabase.from("products").delete().eq("id", id);
-    if (error) {
-      setProducts(previous); // rollback
-      await toastError(error.message || "Suppression impossible");
+    try {
+      const res = await fetch("/api/menu/products", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        setProducts(previous); // rollback
+        await toastError(json.error || "Suppression impossible");
+        return;
+      }
+    } catch {
+      setProducts(previous);
+      await toastError("Erreur réseau");
       return;
     }
     await toastSuccess(`« ${product.name} » supprimé`);
@@ -198,13 +212,24 @@ export default function MenuAdminPage() {
     setProducts((prev) =>
       prev.map((x) => (x.id === p.id ? { ...x, available: !p.available } : x))
     );
-    const { error } = await supabase
-      .from("products")
-      .update({ available: !p.available })
-      .eq("id", p.id);
-    if (error) {
+    try {
+      const res = await fetch("/api/menu/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: p.id,
+          restaurantId: restaurant!.id,
+          available: !p.available,
+        }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        setProducts(previous);
+        await toastError(json.error || "Mise à jour impossible");
+      }
+    } catch {
       setProducts(previous);
-      await toastError(error.message || "Mise à jour impossible");
+      await toastError("Erreur réseau");
     }
   };
 
@@ -217,19 +242,24 @@ export default function MenuAdminPage() {
       const order = id
         ? categories.find((c) => c.id === id)?.order ?? siblings.length + 1
         : siblings.length + 1;
-      const payload = {
-        restaurant_id: restaurant.id,
-        name: form.name.trim(),
-        parent_id: parentId,
-        order,
-      };
-      if (id) {
-        await supabase.from("categories").update(payload).eq("id", id);
-        setEditingCategoryId(null);
-      } else {
-        await supabase.from("categories").insert(payload);
-        setShowAddCategory(false);
+      const res = await fetch("/api/menu/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          restaurantId: restaurant.id,
+          name: form.name.trim(),
+          parentId,
+          order,
+        }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        await toastError(json.error || "Erreur lors de l'enregistrement");
+        return;
       }
+      if (id) setEditingCategoryId(null);
+      else setShowAddCategory(false);
     } finally {
       setSaving(false);
     }
@@ -258,10 +288,21 @@ export default function MenuAdminPage() {
     const previous = categories;
     setCategories((prev) => prev.filter((c) => c.id !== id));
 
-    const { error } = await supabase.from("categories").delete().eq("id", id);
-    if (error) {
+    try {
+      const res = await fetch("/api/menu/categories", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        setCategories(previous);
+        await toastError(json.error || "Suppression impossible");
+        return;
+      }
+    } catch {
       setCategories(previous);
-      await toastError(error.message || "Suppression impossible");
+      await toastError("Erreur réseau");
       return;
     }
     await toastSuccess(`« ${cat.name} » supprimée`);

@@ -23,10 +23,10 @@ export default function SettingsPage() {
     if (!loading && !user && !role) window.location.href = "/dashboard/login";
   }, [loading, user]);
 
-  const hoursLoaded = useRef(false);
+  const lastRestaurantId = useRef<string | null>(null);
   useEffect(() => {
-    if (!restaurant || hoursLoaded.current) return;
-    hoursLoaded.current = true;
+    if (!restaurant || restaurant.id === lastRestaurantId.current) return;
+    lastRestaurantId.current = restaurant.id;
     if (restaurant.openingHours) {
       setHours(restaurant.openingHours);
       setAlwaysOpen(false);

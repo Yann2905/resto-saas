@@ -76,34 +76,22 @@ function clearCache() {
   }
 }
 
-async function loadProfile(userId: string): Promise<{
+async function loadProfile(_userId: string): Promise<{
   role: UserRole | null;
   restaurant: Restaurant | null;
 }> {
   try {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, restaurant_id")
-      .eq("id", userId)
-      .maybeSingle();
+    const res = await fetch("/api/profile");
+    if (!res.ok) return { role: null, restaurant: null };
+    const json = await res.json();
+    if (!json.ok) return { role: null, restaurant: null };
 
-    if (!profile) return { role: null, restaurant: null };
+    const role = json.role as UserRole | null;
+    const restaurant = json.restaurant
+      ? mapRestaurant(json.restaurant as RestaurantRow)
+      : null;
 
-    const role = profile.role as UserRole;
-    if (role === "superadmin" || !profile.restaurant_id) {
-      return { role, restaurant: null };
-    }
-
-    const { data: rest } = await supabase
-      .from("restaurants")
-      .select("*")
-      .eq("id", profile.restaurant_id)
-      .maybeSingle();
-
-    return {
-      role,
-      restaurant: rest ? mapRestaurant(rest as RestaurantRow) : null,
-    };
+    return { role, restaurant };
   } catch (e) {
     console.warn("[auth] loadProfile failed:", e);
     return { role: null, restaurant: null };

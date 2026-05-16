@@ -245,16 +245,36 @@ export default function OrdersPage() {
   const advance = (order: Order) => {
     const next = NEXT_STATUS[order.status];
     if (!next) return;
+    const previousStatus = order.status;
     // Optimistic — UI change instantanément
     setOrders((prev) =>
       prev.map((o) => (o.id === order.id ? { ...o, status: next } : o))
     );
-    // Fire-and-forget — l'API tourne en arrière-plan, pas d'await
+    // Fire-and-forget avec rollback si échec
     fetch("/api/orders/advance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ orderId: order.id }),
-    }).catch(() => {});
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        if (!json.ok) {
+          // Rollback
+          setOrders((prev) =>
+            prev.map((o) =>
+              o.id === order.id ? { ...o, status: previousStatus } : o
+            )
+          );
+        }
+      })
+      .catch(() => {
+        // Rollback on network error
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === order.id ? { ...o, status: previousStatus } : o
+          )
+        );
+      });
   };
 
   const handleLogout = async () => {

@@ -5,17 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Wallet, Receipt, Target, Calendar, ChevronDown } from "lucide-react";
 import { formatCompactFCFA, formatFCFA } from "@/lib/format";
-import {
-  DayRevenue,
-  PeakHour,
-  StatsSummary,
-  TopProduct,
-  getPeakHours,
-  getRevenueByDay,
-  getRevenueSeries,
-  getSummary,
-  getTopProducts,
-} from "@/lib/stats";
+import type { DayRevenue, PeakHour, StatsSummary, TopProduct } from "@/lib/stats";
 
 type Range = "7d" | "14d" | "30d" | "all";
 
@@ -99,31 +89,55 @@ export default function StatsPage() {
     if (!loading && !user && !role) window.location.href = "/dashboard/login";
   }, [loading, user]);
 
+  const restaurantId = restaurant?.id ?? null;
+
   useEffect(() => {
-    if (!restaurant) return;
+    if (!restaurantId) return;
     let cancelled = false;
 
-    const { from, to } = month
-      ? monthRange(month)
+    const { from, to, days } = month
+      ? { ...monthRange(month), days: 0 }
       : rangeDates(range);
 
     setFetching(true);
-    const dayQuery = month
-      ? getRevenueSeries(restaurant.id, from, to)
-      : getRevenueByDay(restaurant.id, rangeDates(range).days);
 
-    Promise.all([
-      getSummary(restaurant.id, from, to),
-      dayQuery,
-      getTopProducts(restaurant.id, from, to, 5),
-      getPeakHours(restaurant.id, from, to),
-    ])
-      .then(([s, d, t, p]) => {
-        if (cancelled) return;
-        setSummary(s);
-        setByDay(d);
-        setTop(t);
-        setPeak(p);
+    const params = new URLSearchParams({
+      restaurantId,
+      from: from.toISOString(),
+      to: to.toISOString(),
+      days: String(days),
+      mode: month ? "month" : "range",
+    });
+
+    fetch(`/api/stats?${params}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (cancelled || !json.ok) return;
+        const row = json.summary as {
+          total_revenue: number;
+          total_orders: number;
+          avg_ticket: number;
+        } | null;
+        setSummary({
+          totalRevenue: Number(row?.total_revenue ?? 0),
+          totalOrders: Number(row?.total_orders ?? 0),
+          avgTicket: Number(row?.avg_ticket ?? 0),
+        });
+        setByDay(
+          ((json.byDay ?? []) as Array<{ day: string; revenue: number; orders_count: number }>).map(
+            (r) => ({ day: r.day, revenue: Number(r.revenue), ordersCount: Number(r.orders_count) })
+          )
+        );
+        setTop(
+          ((json.top ?? []) as Array<{ product_id: string; product_name: string; qty_sold: number; revenue: number }>).map(
+            (r) => ({ productId: r.product_id, productName: r.product_name, qtySold: Number(r.qty_sold), revenue: Number(r.revenue) })
+          )
+        );
+        setPeak(
+          ((json.peak ?? []) as Array<{ hour: number; orders_count: number; revenue: number }>).map(
+            (r) => ({ hour: Number(r.hour), ordersCount: Number(r.orders_count), revenue: Number(r.revenue) })
+          )
+        );
         setFetching(false);
       })
       .catch(() => {
@@ -132,7 +146,7 @@ export default function StatsPage() {
     return () => {
       cancelled = true;
     };
-  }, [restaurant, range, month]);
+  }, [restaurantId, range, month]);
 
   const periodLabel = month
     ? months.find((m) => m.key === month)?.label ?? month
