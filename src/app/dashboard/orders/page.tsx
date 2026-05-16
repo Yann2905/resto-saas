@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { Bell, Lock, Printer, Volume2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
@@ -122,7 +122,6 @@ function tryNotify(tableNumber: number, total: number) {
 }
 
 export default function OrdersPage() {
-  const router = useRouter();
   const { user, restaurant, role, loading, profileLoading, signOut } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
@@ -150,22 +149,38 @@ export default function OrdersPage() {
   }, []);
 
   useEffect(() => {
-    if (!loading && !user && !role) router.push("/dashboard/login");
-  }, [user, role, loading, router]);
+    if (!loading && !user && !role) window.location.href = "/dashboard/login";
+  }, [user, role, loading]);
 
   useEffect(() => {
     if (!restaurant) return;
     let cancelled = false;
 
     const fetchOrders = async () => {
-      const { data } = await supabase
+      // Active orders (pending, preparing, ready)
+      const { data: activeData } = await supabase
         .from("orders")
         .select("*")
         .eq("restaurant_id", restaurant.id)
         .neq("status", "served")
         .order("created_at", { ascending: false });
+
+      // Served orders from today only
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const { data: servedData } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("restaurant_id", restaurant.id)
+        .eq("status", "served")
+        .gte("created_at", todayStart.toISOString())
+        .order("created_at", { ascending: false });
+
       if (cancelled) return;
-      const list = (data ?? []).map((o) => mapOrder(o as OrderRow));
+      const list = [
+        ...(activeData ?? []).map((o) => mapOrder(o as OrderRow)),
+        ...(servedData ?? []).map((o) => mapOrder(o as OrderRow)),
+      ];
       knownIds.current = new Set(list.map((o) => o.id));
       firstLoadDone.current = true;
       setOrders(list);
@@ -211,12 +226,9 @@ export default function OrdersPage() {
           setOrders((prev) => {
             const exists = prev.some((o) => o.id === updated.id);
             if (!exists) {
-              if (updated.status === "served") return prev;
               return [updated, ...prev];
             }
-            return prev
-              .map((o) => (o.id === updated.id ? updated : o))
-              .filter((o) => o.status !== "served");
+            return prev.map((o) => (o.id === updated.id ? updated : o));
           });
         }
       )
@@ -254,7 +266,7 @@ export default function OrdersPage() {
 
   const handleLogout = async () => {
     await signOut();
-    router.push("/dashboard/login");
+    window.location.href = "/dashboard/login";
   };
 
   const requestNotif = async () => {
@@ -275,7 +287,7 @@ export default function OrdersPage() {
   }, [orders]);
 
   const revenueEnCours = useMemo(
-    () => orders.reduce((sum, o) => sum + o.total, 0),
+    () => orders.filter((o) => o.status !== "served").reduce((sum, o) => sum + o.total, 0),
     [orders]
   );
 
@@ -355,7 +367,7 @@ export default function OrdersPage() {
             )}
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           <StatCard label="En attente" value={counts.pending} color="amber" />
           <StatCard
             label="En préparation"
@@ -363,6 +375,7 @@ export default function OrdersPage() {
             color="blue"
           />
           <StatCard label="Prêt" value={counts.ready} color="emerald" />
+          <StatCard label="Servi" value={counts.served} color="stone" />
           <StatCard
             label="Revenus en cours"
             value={formatFCFA(revenueEnCours)}
@@ -378,6 +391,7 @@ export default function OrdersPage() {
               { key: "pending", label: `En attente (${counts.pending})` },
               { key: "preparing", label: `Préparation (${counts.preparing})` },
               { key: "ready", label: `Prêt (${counts.ready})` },
+              { key: "served", label: `Servi (${counts.served})` },
             ] as const
           ).map((f) => {
             const active = filter === f.key;

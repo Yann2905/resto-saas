@@ -82,6 +82,13 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
 
+    // Garde-fou : si le submit n'est toujours pas terminé après 20s,
+    // on débloque le bouton pour que l'utilisateur puisse réessayer.
+    const safetyTimer = setTimeout(() => {
+      setSubmitting(false);
+      setError("La connexion prend trop de temps. Veuillez réessayer.");
+    }, 20_000);
+
     try {
       try {
         localStorage.removeItem("resto-saas:auth-v1");
@@ -89,11 +96,13 @@ export default function LoginPage() {
         /* ignore */
       }
 
-      // Nettoyer toute session Supabase résiduelle (ex: signOut pas fini
-      // avant la navigation) pour éviter un verrou interne qui bloquerait
-      // signInWithPassword.
+      // Nettoyer toute session Supabase résiduelle — avec timeout court
+      // pour ne pas bloquer si le client interne est verrouillé.
       try {
-        await supabase.auth.signOut({ scope: "local" });
+        await Promise.race([
+          supabase.auth.signOut({ scope: "local" }),
+          new Promise((r) => setTimeout(r, 1500)),
+        ]);
       } catch {
         /* ignore */
       }
@@ -133,6 +142,7 @@ export default function LoginPage() {
         } catch {
           /* ignore */
         }
+        clearTimeout(safetyTimer);
         window.location.replace(getNextUrl() || "/admin");
         return;
       }
@@ -183,6 +193,7 @@ export default function LoginPage() {
         } catch {
           /* ignore */
         }
+        clearTimeout(safetyTimer);
         window.location.replace(getNextUrl() || "/dashboard/orders");
         return;
       }
@@ -191,6 +202,7 @@ export default function LoginPage() {
       await supabase.auth.signOut({ scope: "local" }).catch(() => {});
       throw new Error("Aucun restaurant n'est associé à ce compte.");
     } catch (err) {
+      clearTimeout(safetyTimer);
       console.error("[dashboard-login]", err);
       setError(
         err instanceof Error && err.message

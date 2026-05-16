@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { Check, Lightbulb } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -13,7 +13,6 @@ import { updateRestaurantHours } from "@/lib/admin";
 import type { DaySchedule, OpeningHours, WeekKey } from "@/types";
 
 export default function SettingsPage() {
-  const router = useRouter();
   const { user, restaurant, role, loading } = useAuth();
   const [hours, setHours] = useState<OpeningHours>(defaultOpeningHours());
   const [alwaysOpen, setAlwaysOpen] = useState(true);
@@ -21,8 +20,8 @@ export default function SettingsPage() {
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && !user && !role) router.push("/dashboard/login");
-  }, [loading, user, router]);
+    if (!loading && !user && !role) window.location.href = "/dashboard/login";
+  }, [loading, user]);
 
   useEffect(() => {
     if (!restaurant) return;

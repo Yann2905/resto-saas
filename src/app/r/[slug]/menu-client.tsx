@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Plus, QrCode, UtensilsCrossed } from "lucide-react";
+import { Check, Plus, QrCode, Search, UtensilsCrossed, X } from "lucide-react";
 import { Category, Product } from "@/types";
 import { formatFCFA } from "@/lib/format";
 import { addToCart, cartCount, cartTotal, getCart } from "@/lib/cart";
@@ -26,6 +26,7 @@ export default function MenuClient({
   const [total, setTotal] = useState(0);
   const [activeParent, setActiveParent] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const tableKey = tableNumber ? String(tableNumber) : "na";
 
   useEffect(() => {
@@ -61,6 +62,16 @@ export default function MenuClient({
 
   const subCategories = (parentId: string) =>
     categories.filter((c) => c.parentId === parentId);
+
+  const searchTerm = search.trim().toLowerCase();
+  const searchResults = useMemo(() => {
+    if (!searchTerm) return null;
+    return products.filter(
+      (p) =>
+        p.available &&
+        p.name.toLowerCase().includes(searchTerm)
+    );
+  }, [products, searchTerm]);
 
   const handleAdd = (p: Product) => {
     addToCart(restaurant.id, tableKey, {
@@ -112,7 +123,27 @@ export default function MenuClient({
             </div>
           </div>
 
-          {parentCategories.length > 1 && (
+          <div className="mt-3 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" aria-hidden />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher un plat…"
+              className="w-full rounded-xl border border-stone-200 bg-stone-50 pl-9 pr-9 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:bg-white focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 transition-colors"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
+                aria-label="Effacer la recherche"
+              >
+                <X className="w-4 h-4" aria-hidden />
+              </button>
+            )}
+          </div>
+
+          {!searchTerm && parentCategories.length > 1 && (
             <div className="mt-4 -mx-5 px-5 overflow-x-auto">
               <div className="flex gap-2 pb-1">
                 {parentCategories.map((p) => {
@@ -138,42 +169,74 @@ export default function MenuClient({
       </header>
 
       <div className="max-w-2xl mx-auto px-5 py-6 space-y-10">
-        {visibleParents.map((parent) => {
-          const subs = subCategories(parent.id);
-          const displayCats = subs.length > 0 ? subs : [parent];
-          return (
-            <section key={parent.id} className="animate-fade-in-up">
-              <div className="space-y-8">
-                {displayCats.map((cat) => {
-                  const items = productsByCategory.get(cat.id) ?? [];
-                  if (items.length === 0) return null;
-                  return (
-                    <div key={cat.id}>
-                      <div className="flex items-baseline justify-between mb-3">
-                        <h3 className="text-[11px] font-bold text-stone-500 uppercase tracking-[0.12em]">
-                          {cat.name}
-                        </h3>
-                        <span className="text-[11px] text-stone-400">
-                          {items.length} plat{items.length > 1 ? "s" : ""}
-                        </span>
-                      </div>
-                      <div className="space-y-3">
-                        {items.map((p) => (
-                          <ProductCard
-                            key={p.id}
-                            product={p}
-                            onAdd={() => handleAdd(p)}
-                            justAdded={justAdded === p.id}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+        {searchResults !== null ? (
+          searchResults.length === 0 ? (
+            <div className="text-center py-16 animate-fade-in-up">
+              <Search className="w-10 h-10 text-stone-300 mx-auto mb-3" aria-hidden />
+              <p className="text-sm text-stone-500">
+                Aucun résultat pour &laquo;&nbsp;{search.trim()}&nbsp;&raquo;
+              </p>
+            </div>
+          ) : (
+            <section className="animate-fade-in-up">
+              <div className="flex items-baseline justify-between mb-3">
+                <h3 className="text-[11px] font-bold text-stone-500 uppercase tracking-[0.12em]">
+                  Résultats
+                </h3>
+                <span className="text-[11px] text-stone-400">
+                  {searchResults.length} plat{searchResults.length > 1 ? "s" : ""}
+                </span>
+              </div>
+              <div className="space-y-3">
+                {searchResults.map((p) => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    onAdd={() => handleAdd(p)}
+                    justAdded={justAdded === p.id}
+                  />
+                ))}
               </div>
             </section>
-          );
-        })}
+          )
+        ) : (
+          visibleParents.map((parent) => {
+            const subs = subCategories(parent.id);
+            const displayCats = subs.length > 0 ? subs : [parent];
+            return (
+              <section key={parent.id} className="animate-fade-in-up">
+                <div className="space-y-8">
+                  {displayCats.map((cat) => {
+                    const items = productsByCategory.get(cat.id) ?? [];
+                    if (items.length === 0) return null;
+                    return (
+                      <div key={cat.id}>
+                        <div className="flex items-baseline justify-between mb-3">
+                          <h3 className="text-[11px] font-bold text-stone-500 uppercase tracking-[0.12em]">
+                            {cat.name}
+                          </h3>
+                          <span className="text-[11px] text-stone-400">
+                            {items.length} plat{items.length > 1 ? "s" : ""}
+                          </span>
+                        </div>
+                        <div className="space-y-3">
+                          {items.map((p) => (
+                            <ProductCard
+                              key={p.id}
+                              product={p}
+                              onAdd={() => handleAdd(p)}
+                              justAdded={justAdded === p.id}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })
+        )}
       </div>
 
       {count > 0 && (

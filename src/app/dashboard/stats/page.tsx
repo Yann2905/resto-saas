@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { useAuth } from "@/lib/auth-context";
 import { Wallet, Receipt, Target, Calendar, ChevronDown } from "lucide-react";
 import { formatCompactFCFA, formatFCFA } from "@/lib/format";
@@ -83,7 +83,6 @@ function lastNMonths(n = 12): Array<{ key: string; label: string }> {
 }
 
 export default function StatsPage() {
-  const router = useRouter();
   const { user, restaurant, role, loading } = useAuth();
   // Mode "range" (7d/14d/30d/all) ou "month" (un mois précis)
   const [range, setRange] = useState<Range>("14d");
@@ -97,8 +96,8 @@ export default function StatsPage() {
   const months = useMemo(() => lastNMonths(12), []);
 
   useEffect(() => {
-    if (!loading && !user && !role) router.push("/dashboard/login");
-  }, [loading, user, router]);
+    if (!loading && !user && !role) window.location.href = "/dashboard/login";
+  }, [loading, user]);
 
   useEffect(() => {
     if (!restaurant) return;

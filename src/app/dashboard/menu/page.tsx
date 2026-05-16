@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { supabase } from "@/lib/supabase";
 import { uploadProductImage } from "@/lib/storage";
 import { useAuth } from "@/lib/auth-context";
@@ -41,7 +41,6 @@ type CategoryForm = {
 };
 
 export default function MenuAdminPage() {
-  const router = useRouter();
   const { user, restaurant, role, loading } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -55,8 +54,8 @@ export default function MenuAdminPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user && !role) router.push("/dashboard/login");
-  }, [loading, user, router]);
+    if (!loading && !user && !role) window.location.href = "/dashboard/login";
+  }, [loading, user]);
 
   useEffect(() => {
     if (!restaurant) return;

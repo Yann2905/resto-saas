@@ -72,10 +72,25 @@ export default function AdminLoginPage() {
     setError(null);
     setLoading(true);
 
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+      setError("La connexion prend trop de temps. Veuillez réessayer.");
+    }, 20_000);
+
     try {
       // Clear le cache local (pas la session Supabase — signInWithPassword la remplace)
       try {
         localStorage.removeItem("resto-saas:auth-v1");
+      } catch {
+        /* ignore */
+      }
+
+      // Nettoyer toute session résiduelle avec timeout court
+      try {
+        await Promise.race([
+          supabase.auth.signOut({ scope: "local" }),
+          new Promise((r) => setTimeout(r, 1500)),
+        ]);
       } catch {
         /* ignore */
       }
@@ -115,8 +130,10 @@ export default function AdminLoginPage() {
         /* ignore */
       }
 
+      clearTimeout(safetyTimer);
       window.location.replace("/admin");
     } catch (e) {
+      clearTimeout(safetyTimer);
       console.error("[admin-login]", e);
       setError(
         e instanceof Error && e.message
