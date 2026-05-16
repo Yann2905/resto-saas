@@ -266,64 +266,10 @@ export default function OrdersPage() {
     };
   }, [restaurantId]);
 
-  const [advancing, setAdvancing] = useState<Set<string>>(new Set());
-
   const advance = async (order: Order) => {
     const next = NEXT_STATUS[order.status];
     if (!next) return;
-    if (advancing.has(order.id)) return; // anti double-clic
-
-    // Optimistic update — mise à jour immédiate de l'UI
-    setAdvancing((s) => new Set(s).add(order.id));
-    setOrders((prev) =>
-      prev.map((o) => (o.id === order.id ? { ...o, status: next } : o))
-    );
-
-    let failed = false;
-    try {
-      // Timeout de 8s — ne jamais rester bloqué indéfiniment
-      const result = await Promise.race([
-        supabase
-          .from("orders")
-          .update({ status: next })
-          .eq("id", order.id)
-          .select("id")
-          .maybeSingle(),
-        new Promise<{ data: null; error: { message: string } }>((resolve) =>
-          setTimeout(
-            () => resolve({ data: null, error: { message: "Délai dépassé (8 s)" } }),
-            8000
-          )
-        ),
-      ]);
-
-      if (result.error) {
-        console.error("[advance] erreur:", result.error);
-        failed = true;
-      } else if (!result.data) {
-        // 0 rows affected — RLS a bloqué ou l'ordre n'existe plus
-        console.error("[advance] 0 rows affected — update bloqué (RLS ou ID introuvable)");
-        failed = true;
-      }
-    } catch (e) {
-      console.error("[advance] crash:", e);
-      failed = true;
-    }
-
-    setAdvancing((s) => {
-      const copy = new Set(s);
-      copy.delete(order.id);
-      return copy;
-    });
-
-    if (failed) {
-      // Revert optimistic update
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === order.id ? { ...o, status: order.status } : o
-        )
-      );
-    }
+    await supabase.from("orders").update({ status: next }).eq("id", order.id);
   };
 
   const handleLogout = async () => {
@@ -560,14 +506,9 @@ export default function OrdersPage() {
                       {NEXT_STATUS[order.status] && (
                         <button
                           onClick={() => advance(order)}
-                          disabled={advancing.has(order.id)}
-                          className="flex-1 bg-stone-900 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-stone-800 disabled:bg-stone-400 transition-colors flex items-center justify-center gap-1.5"
+                          className="flex-1 bg-stone-900 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors flex items-center justify-center gap-1.5"
                         >
-                          {advancing.has(order.id) ? (
-                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          ) : (
-                            STATUS_LABELS[NEXT_STATUS[order.status]!]
-                          )}
+                          {STATUS_LABELS[NEXT_STATUS[order.status]!]}
                         </button>
                       )}
                       <button
