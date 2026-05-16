@@ -57,15 +57,17 @@ export default function MenuAdminPage() {
     if (!loading && !user && !role) window.location.href = "/dashboard/login";
   }, [loading, user]);
 
+  const restaurantId = restaurant?.id ?? null;
+
   useEffect(() => {
-    if (!restaurant) return;
+    if (!restaurantId) return;
     let cancelled = false;
 
     const fetchCategories = async () => {
       const { data } = await supabase
         .from("categories")
         .select("*")
-        .eq("restaurant_id", restaurant.id)
+        .eq("restaurant_id", restaurantId)
         .order("order", { ascending: true });
       if (cancelled) return;
       setCategories((data ?? []).map((c) => mapCategory(c as CategoryRow)));
@@ -74,7 +76,7 @@ export default function MenuAdminPage() {
       const { data } = await supabase
         .from("products")
         .select("*")
-        .eq("restaurant_id", restaurant.id)
+        .eq("restaurant_id", restaurantId)
         .order("order", { ascending: true });
       if (cancelled) return;
       setProducts((data ?? []).map((p) => mapProduct(p as ProductRow)));
@@ -84,14 +86,14 @@ export default function MenuAdminPage() {
     fetchProducts();
 
     const channel = supabase
-      .channel(`menu-${restaurant.id}`)
+      .channel(`menu-${restaurantId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "categories",
-          filter: `restaurant_id=eq.${restaurant.id}`,
+          filter: `restaurant_id=eq.${restaurantId}`,
         },
         fetchCategories
       )
@@ -101,7 +103,7 @@ export default function MenuAdminPage() {
           event: "*",
           schema: "public",
           table: "products",
-          filter: `restaurant_id=eq.${restaurant.id}`,
+          filter: `restaurant_id=eq.${restaurantId}`,
         },
         fetchProducts
       )
@@ -111,7 +113,7 @@ export default function MenuAdminPage() {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [restaurant]);
+  }, [restaurantId]);
 
   const parentCategories = useMemo(
     () => categories.filter((c) => c.parentId === null),

@@ -152,56 +152,65 @@ export default function OrdersPage() {
     if (!loading && !user && !role) window.location.href = "/dashboard/login";
   }, [user, role, loading]);
 
+  // Stable ID pour éviter des re-runs inutiles quand l'objet restaurant
+  // change de référence (refresh auth context) mais pas d'id.
+  const restaurantId = restaurant?.id ?? null;
+
   useEffect(() => {
-    if (!restaurant) return;
+    if (!restaurantId) return;
     let cancelled = false;
 
     const fetchOrders = async () => {
-      // Active orders (pending, preparing, ready)
-      const { data: activeData } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("restaurant_id", restaurant.id)
-        .neq("status", "served")
-        .order("created_at", { ascending: false });
+      try {
+        // Active orders (pending, preparing, ready)
+        const { data: activeData, error: errActive } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("restaurant_id", restaurantId)
+          .neq("status", "served")
+          .order("created_at", { ascending: false });
 
-      // Served orders from today only
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const { data: servedData } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("restaurant_id", restaurant.id)
-        .eq("status", "served")
-        .gte("created_at", todayStart.toISOString())
-        .order("created_at", { ascending: false });
+        if (errActive) console.error("[orders] fetch active error:", errActive);
 
-      if (cancelled) return;
-      const list = [
-        ...(activeData ?? []).map((o) => mapOrder(o as OrderRow)),
-        ...(servedData ?? []).map((o) => mapOrder(o as OrderRow)),
-      ];
-      knownIds.current = new Set(list.map((o) => o.id));
-      firstLoadDone.current = true;
-      setOrders(list);
+        // Served orders from today only
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const { data: servedData, error: errServed } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("restaurant_id", restaurantId)
+          .eq("status", "served")
+          .gte("created_at", todayStart.toISOString())
+          .order("created_at", { ascending: false });
+
+        if (errServed) console.error("[orders] fetch served error:", errServed);
+
+        if (cancelled) return;
+        const list = [
+          ...(activeData ?? []).map((o) => mapOrder(o as OrderRow)),
+          ...(servedData ?? []).map((o) => mapOrder(o as OrderRow)),
+        ];
+        knownIds.current = new Set(list.map((o) => o.id));
+        firstLoadDone.current = true;
+        setOrders(list);
+      } catch (e) {
+        console.error("[orders] fetch crash:", e);
+      }
     };
 
     fetchOrders();
 
     const channel = supabase
-      .channel(`orders-${restaurant.id}`, {
-        config: { broadcast: { self: false } },
-      })
+      .channel(`orders-${restaurantId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "orders",
-          filter: `restaurant_id=eq.${restaurant.id}`,
+          filter: `restaurant_id=eq.${restaurantId}`,
         },
         (payload) => {
-          console.log("[realtime] INSERT", payload);
           const newOrder = mapOrder(payload.new as OrderRow);
           if (knownIds.current.has(newOrder.id)) return;
           knownIds.current.add(newOrder.id);
@@ -218,10 +227,9 @@ export default function OrdersPage() {
           event: "UPDATE",
           schema: "public",
           table: "orders",
-          filter: `restaurant_id=eq.${restaurant.id}`,
+          filter: `restaurant_id=eq.${restaurantId}`,
         },
         (payload) => {
-          console.log("[realtime] UPDATE", payload);
           const updated = mapOrder(payload.new as OrderRow);
           setOrders((prev) => {
             const exists = prev.some((o) => o.id === updated.id);
@@ -238,7 +246,7 @@ export default function OrdersPage() {
           event: "DELETE",
           schema: "public",
           table: "orders",
-          filter: `restaurant_id=eq.${restaurant.id}`,
+          filter: `restaurant_id=eq.${restaurantId}`,
         },
         (payload) => {
           const oldId = (payload.old as { id?: string })?.id;
@@ -256,7 +264,7 @@ export default function OrdersPage() {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [restaurant]);
+  }, [restaurantId]);
 
   const [advancing, setAdvancing] = useState<Set<string>>(new Set());
 
@@ -271,10 +279,36 @@ export default function OrdersPage() {
       prev.map((o) => (o.id === order.id ? { ...o, status: next } : o))
     );
 
-    const { error } = await supabase
-      .from("orders")
-      .update({ status: next })
-      .eq("id", order.id);
+    let failed = false;
+    try {
+      // Timeout de 8s — ne jamais rester bloqué indéfiniment
+      const result = await Promise.race([
+        supabase
+          .from("orders")
+          .update({ status: next })
+          .eq("id", order.id)
+          .select("id")
+          .maybeSingle(),
+        new Promise<{ data: null; error: { message: string } }>((resolve) =>
+          setTimeout(
+            () => resolve({ data: null, error: { message: "Délai dépassé (8 s)" } }),
+            8000
+          )
+        ),
+      ]);
+
+      if (result.error) {
+        console.error("[advance] erreur:", result.error);
+        failed = true;
+      } else if (!result.data) {
+        // 0 rows affected — RLS a bloqué ou l'ordre n'existe plus
+        console.error("[advance] 0 rows affected — update bloqué (RLS ou ID introuvable)");
+        failed = true;
+      }
+    } catch (e) {
+      console.error("[advance] crash:", e);
+      failed = true;
+    }
 
     setAdvancing((s) => {
       const copy = new Set(s);
@@ -282,8 +316,7 @@ export default function OrdersPage() {
       return copy;
     });
 
-    if (error) {
-      console.error("[advance] échec:", error);
+    if (failed) {
       // Revert optimistic update
       setOrders((prev) =>
         prev.map((o) =>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Check, Lightbulb } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -23,8 +23,10 @@ export default function SettingsPage() {
     if (!loading && !user && !role) window.location.href = "/dashboard/login";
   }, [loading, user]);
 
+  const hoursLoaded = useRef(false);
   useEffect(() => {
-    if (!restaurant) return;
+    if (!restaurant || hoursLoaded.current) return;
+    hoursLoaded.current = true;
     if (restaurant.openingHours) {
       setHours(restaurant.openingHours);
       setAlwaysOpen(false);
