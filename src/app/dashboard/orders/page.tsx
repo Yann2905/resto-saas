@@ -258,10 +258,39 @@ export default function OrdersPage() {
     };
   }, [restaurant]);
 
+  const [advancing, setAdvancing] = useState<Set<string>>(new Set());
+
   const advance = async (order: Order) => {
     const next = NEXT_STATUS[order.status];
     if (!next) return;
-    await supabase.from("orders").update({ status: next }).eq("id", order.id);
+    if (advancing.has(order.id)) return; // anti double-clic
+
+    // Optimistic update — mise à jour immédiate de l'UI
+    setAdvancing((s) => new Set(s).add(order.id));
+    setOrders((prev) =>
+      prev.map((o) => (o.id === order.id ? { ...o, status: next } : o))
+    );
+
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: next })
+      .eq("id", order.id);
+
+    setAdvancing((s) => {
+      const copy = new Set(s);
+      copy.delete(order.id);
+      return copy;
+    });
+
+    if (error) {
+      console.error("[advance] échec:", error);
+      // Revert optimistic update
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id ? { ...o, status: order.status } : o
+        )
+      );
+    }
   };
 
   const handleLogout = async () => {
@@ -498,9 +527,14 @@ export default function OrdersPage() {
                       {NEXT_STATUS[order.status] && (
                         <button
                           onClick={() => advance(order)}
-                          className="flex-1 bg-stone-900 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors flex items-center justify-center gap-1.5"
+                          disabled={advancing.has(order.id)}
+                          className="flex-1 bg-stone-900 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-stone-800 disabled:bg-stone-400 transition-colors flex items-center justify-center gap-1.5"
                         >
-                          {STATUS_LABELS[NEXT_STATUS[order.status]!]}
+                          {advancing.has(order.id) ? (
+                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          ) : (
+                            STATUS_LABELS[NEXT_STATUS[order.status]!]
+                          )}
                         </button>
                       )}
                       <button
