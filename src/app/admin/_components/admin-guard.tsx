@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Lock } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
@@ -11,7 +11,6 @@ export default function AdminGuard({
   children: React.ReactNode;
 }) {
   const { user, role, loading, profileLoading } = useAuth();
-  const router = useRouter();
   const pathname = usePathname();
 
   // On considère "encore en train de vérifier" si :
@@ -20,17 +19,17 @@ export default function AdminGuard({
   // - OU on a un user mais pas encore son role (race entre setUser et setRole)
   const verifying = loading || profileLoading || (user && !role);
 
+  // Accepte l'accès si user OU role est connu (le cache peut fournir
+  // le role avant que getSession() ne retourne le user Supabase).
+  const authorized = role === "superadmin";
+
   useEffect(() => {
     if (verifying) return;
     if (pathname === "/admin/login") return;
-    if (!user) {
-      router.replace("/admin/login");
-      return;
+    if (!authorized) {
+      window.location.href = "/admin/login";
     }
-    if (role !== "superadmin") {
-      router.replace("/admin/login");
-    }
-  }, [verifying, user, role, pathname, router]);
+  }, [verifying, authorized, pathname]);
 
   if (pathname === "/admin/login") return <>{children}</>;
 
@@ -45,7 +44,7 @@ export default function AdminGuard({
     );
   }
 
-  if (!user || role !== "superadmin") {
+  if (!authorized) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-stone-950 text-stone-100 p-6 text-center">
         <div>
