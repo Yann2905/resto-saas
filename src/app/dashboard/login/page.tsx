@@ -48,6 +48,13 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Récupère ?next= pour le redirect post-login
+  const getNextUrl = (): string | null => {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("next");
+  };
+
   // Auto-redirect si déjà connecté (synchrone, depuis le cache localStorage)
   useEffect(() => {
     try {
@@ -57,7 +64,10 @@ export default function LoginPage() {
         role?: string;
         restaurant?: unknown;
       };
-      if (cache.role === "superadmin") {
+      const next = getNextUrl();
+      if (next) {
+        window.location.replace(next);
+      } else if (cache.role === "superadmin") {
         window.location.replace("/admin");
       } else if (cache.role === "owner" && cache.restaurant) {
         window.location.replace("/dashboard/orders");
@@ -114,7 +124,7 @@ export default function LoginPage() {
         } catch {
           /* ignore */
         }
-        window.location.replace("/admin");
+        window.location.replace(getNextUrl() || "/admin");
         return;
       }
 
@@ -164,7 +174,7 @@ export default function LoginPage() {
         } catch {
           /* ignore */
         }
-        window.location.replace("/dashboard/orders");
+        window.location.replace(getNextUrl() || "/dashboard/orders");
         return;
       }
 

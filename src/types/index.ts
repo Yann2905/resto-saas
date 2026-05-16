@@ -70,6 +70,57 @@ export type CartItem = {
   imageUrl?: string | null;
 };
 
+// ── Payment system ──────────────────────────────────────────────
+
+export type PaymentStatus = "pending" | "success" | "failed";
+export type PaymentMethod =
+  | "mobile_money"
+  | "orange_money"
+  | "mtn_money"
+  | "wave"
+  | "carte_bancaire"
+  | "autre";
+export type SmsType =
+  | "reminder_7d"
+  | "reminder_5d"
+  | "reminder_0d"
+  | "payment_confirmation";
+
+export type PaymentToken = {
+  id: string;
+  restaurantId: string;
+  token: string;
+  expiresAt: string;
+  used: boolean;
+  createdAt: string;
+};
+
+export type Payment = {
+  id: string;
+  restaurantId: string;
+  tokenId: string | null;
+  planKey: string;
+  amount: number;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  reference: string;
+  providerRef: string | null;
+  paidAt: string | null;
+  previousExpiry: string | null;
+  newExpiry: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SmsLog = {
+  id: string;
+  restaurantId: string;
+  type: SmsType;
+  phone: string;
+  payload: string | null;
+  sentAt: string;
+};
+
 // Raw DB rows (snake_case from Postgres)
 export type RestaurantRow = {
   id: string;
@@ -118,6 +169,41 @@ export type OrderRow = {
   status: OrderStatus;
   created_at: string;
   updated_at: string;
+};
+
+export type PaymentTokenRow = {
+  id: string;
+  restaurant_id: string;
+  token: string;
+  expires_at: string;
+  used: boolean;
+  created_at: string;
+};
+
+export type PaymentRow = {
+  id: string;
+  restaurant_id: string;
+  token_id: string | null;
+  plan_key: string;
+  amount: number;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  reference: string;
+  provider_ref: string | null;
+  paid_at: string | null;
+  previous_expiry: string | null;
+  new_expiry: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SmsLogRow = {
+  id: string;
+  restaurant_id: string;
+  type: SmsType;
+  phone: string;
+  payload: string | null;
+  sent_at: string;
 };
 
 // Mappers snake_case -> camelCase
@@ -170,5 +256,35 @@ export function mapOrder(o: OrderRow): Order {
     status: o.status,
     createdAt: o.created_at,
     updatedAt: o.updated_at,
+  };
+}
+
+export function mapPaymentToken(r: PaymentTokenRow): PaymentToken {
+  return {
+    id: r.id,
+    restaurantId: r.restaurant_id,
+    token: r.token,
+    expiresAt: r.expires_at,
+    used: r.used,
+    createdAt: r.created_at,
+  };
+}
+
+export function mapPayment(r: PaymentRow): Payment {
+  return {
+    id: r.id,
+    restaurantId: r.restaurant_id,
+    tokenId: r.token_id,
+    planKey: r.plan_key,
+    amount: r.amount,
+    method: r.method,
+    status: r.status,
+    reference: r.reference,
+    providerRef: r.provider_ref,
+    paidAt: r.paid_at,
+    previousExpiry: r.previous_expiry,
+    newExpiry: r.new_expiry,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
   };
 }

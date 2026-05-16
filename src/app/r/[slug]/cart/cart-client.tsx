@@ -13,6 +13,7 @@ import {
 } from "@/lib/cart";
 import { formatFCFA } from "@/lib/format";
 import { createOrder } from "@/lib/orders";
+import SwipeConfirm from "./swipe-confirm";
 
 type Props = {
   restaurant: { id: string; name: string; slug: string };
@@ -155,23 +156,12 @@ export default function CartClient({ restaurant, tableNumber }: Props) {
                 {formatFCFA(total)}
               </span>
             </div>
-            <button
-              onClick={handleSubmit}
+            <SwipeConfirm
+              onConfirm={handleSubmit}
+              label={`Valider · ${formatFCFA(total)}`}
+              loading={submitting}
               disabled={submitting}
-              className="w-full bg-stone-900 text-white rounded-2xl py-4 font-semibold hover:bg-stone-800 disabled:bg-stone-400 transition-colors flex items-center justify-center gap-2"
-            >
-              {submitting ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Envoi en cours...
-                </>
-              ) : (
-                <>
-                  Valider la commande
-                  <span aria-hidden>→</span>
-                </>
-              )}
-            </button>
+            />
           </div>
         </div>
       )}

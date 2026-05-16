@@ -63,3 +63,17 @@ body {
 .animate-pulse-ring {
   animation: pulse-ring 2s infinite;
 }
+
+@keyframes swipe-shimmer {
+  0%, 100% { transform: translateX(-100%); opacity: 0; }
+  50% { transform: translateX(300%); opacity: 1; }
+}
+
+@keyframes bounce-right {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(5px); }
+}
+
+.animate-bounce-right {
+  animation: bounce-right 1.2s ease-in-out infinite;
+}
