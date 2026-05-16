@@ -197,13 +197,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(sessionUser);
           // Refresh profile en arrière-plan (ne bloque pas l'UI)
           void refresh(sessionUser);
-        } else if (cachedSync) {
-          // Session expirée mais cache présent — clear tout
-          setUser(null);
-          setRole(null);
-          setRestaurant(null);
-          clearCache();
         }
+        // Si sessionUser est null mais qu'on a un cache, on ne détruit RIEN.
+        // Le cache reste valide — c'est probablement un timeout de getSession(),
+        // pas une vraie déconnexion. Le listener onAuthStateChange gèrera
+        // les vraies déconnexions (event SIGNED_OUT).
       } catch (e) {
         console.error("[auth] getSession failed:", e);
       } finally {
