@@ -20,19 +20,40 @@ export type SendSmsResult = { ok: true } | { ok: false; error: string };
  * Envoie un SMS via Texto puis enregistre dans sms_logs.
  * Si TEXTO_API_URL n'est pas configuré, log en console (dev mode).
  */
+/**
+ * Normalise un numéro de téléphone au format international.
+ * Ex: "0585743342" → "225585743342" (Côte d'Ivoire par défaut)
+ *     "+225 05 85 74 33 42" → "2250585743342"
+ *     "2250585743342" → "2250585743342" (déjà bon)
+ */
+function normalizePhone(raw: string): string {
+  // Retirer espaces, tirets, points, parenthèses
+  let phone = raw.replace(/[\s\-.()+]/g, "");
+  // Si commence par 00 (format international alternatif)
+  if (phone.startsWith("00")) phone = phone.slice(2);
+  // Si commence par 0 (format local Côte d'Ivoire), ajouter indicatif 225
+  if (phone.startsWith("0") && phone.length <= 10) {
+    phone = "225" + phone;
+  }
+  return phone;
+}
+
 export async function sendSms(params: {
   phone: string;
   message: string;
   restaurantId: string;
   type: SmsType;
 }): Promise<SendSmsResult> {
-  const { phone, message, restaurantId, type } = params;
+  const { phone: rawPhone, message, restaurantId, type } = params;
+  const phone = normalizePhone(rawPhone);
 
   // ── Envoi via LeTexto ─────────────────────────────────────────
   if (LETEXTO_API_URL && LETEXTO_API_KEY) {
     try {
       const baseUrl = LETEXTO_API_URL.replace(/\/+$/, "");
       const endpoint = `${baseUrl}/v1/messages/send`;
+
+      console.log("[SMS] Sending to", phone, "via", endpoint);
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -47,11 +68,12 @@ export async function sendSms(params: {
         }),
       });
 
+      const body = await res.text();
       if (!res.ok) {
-        const body = await res.text();
         console.error("[SMS] LeTexto error:", res.status, body);
         return { ok: false, error: `LeTexto ${res.status}: ${body}` };
       }
+      console.log("[SMS] LeTexto success:", body);
     } catch (err) {
       console.error("[SMS] LeTexto network error:", err);
       return { ok: false, error: String(err) };
