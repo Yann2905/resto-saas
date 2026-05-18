@@ -32,9 +32,7 @@ export default async function PaymentPage({ params }: Props) {
     <PaymentClient
       token={token}
       restaurantName={restaurant.name}
-      restaurantSlug={restaurant.slug}
       currentExpiry={restaurant.subscription_expires_at}
-      isActive={restaurant.active}
     />
   );
 }

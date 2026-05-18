@@ -2,7 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { Check, Lightbulb } from "lucide-react";
+import {
+  Check,
+  Lightbulb,
+  CreditCard,
+  AlertTriangle,
+  ExternalLink,
+  Loader2,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
   WEEK_KEYS,
@@ -18,6 +25,7 @@ export default function SettingsPage() {
   const [alwaysOpen, setAlwaysOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [generatingToken, setGeneratingToken] = useState(false);
 
   useEffect(() => {
     if (!loading && !user && !role) window.location.href = "/dashboard/login";
@@ -160,6 +168,14 @@ export default function SettingsPage() {
           Astuce : les passages d'une journée à l'autre (ex : 18h → 02h) sont
           gérés automatiquement.
         </p>
+
+        {/* ── Section Abonnement ──────────────────────────────── */}
+        <SubscriptionSection
+          restaurant={restaurant}
+          generatingToken={generatingToken}
+          setGeneratingToken={setGeneratingToken}
+          setToast={setToast}
+        />
       </div>
 
       {toast && (
@@ -171,5 +187,127 @@ export default function SettingsPage() {
         </div>
       )}
     </main>
+  );
+}
+
+/* ── Composant Abonnement ───────────────────────────────────── */
+
+import type { Restaurant } from "@/types";
+
+function SubscriptionSection({
+  restaurant,
+  generatingToken,
+  setGeneratingToken,
+  setToast,
+}: {
+  restaurant: Restaurant;
+  generatingToken: boolean;
+  setGeneratingToken: (v: boolean) => void;
+  setToast: (v: string | null) => void;
+}) {
+  const isExpired =
+    restaurant.subscriptionExpiresAt &&
+    new Date(restaurant.subscriptionExpiresAt) < new Date();
+
+  const expiryLabel = restaurant.subscriptionExpiresAt
+    ? new Date(restaurant.subscriptionExpiresAt).toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+    : "Non définie";
+
+  const handlePayNow = async () => {
+    setGeneratingToken(true);
+    try {
+      const res = await fetch("/api/payment/token", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setToast(data.error || "Erreur lors de la création du lien");
+        setTimeout(() => setToast(null), 3000);
+        return;
+      }
+      // Ouvrir la page de paiement
+      window.location.href = `/payment/${data.token}`;
+    } catch {
+      setToast("Erreur réseau");
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setGeneratingToken(false);
+    }
+  };
+
+  return (
+    <section className="bg-white rounded-2xl border border-stone-200 p-5 mt-6">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h3 className="font-bold text-stone-900 flex items-center gap-2">
+            <CreditCard className="w-4 h-4" aria-hidden />
+            Abonnement
+          </h3>
+          <p className="text-xs text-stone-500 mt-0.5">
+            Gérez votre abonnement et effectuez un rechargement.
+          </p>
+        </div>
+      </div>
+
+      {/* Statut */}
+      <div
+        className={`rounded-xl border p-4 mb-4 ${
+          isExpired
+            ? "bg-red-50 border-red-200"
+            : "bg-emerald-50 border-emerald-200"
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          {isExpired ? (
+            <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+          ) : (
+            <Check className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
+          )}
+          <div>
+            <p
+              className={`text-sm font-semibold ${
+                isExpired ? "text-red-800" : "text-emerald-800"
+              }`}
+            >
+              {isExpired ? "Abonnement expiré" : "Abonnement actif"}
+            </p>
+            <p
+              className={`text-xs mt-0.5 ${
+                isExpired ? "text-red-600" : "text-emerald-600"
+              }`}
+            >
+              {isExpired
+                ? `Expiré depuis le ${expiryLabel}`
+                : `Expire le ${expiryLabel}`}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Bouton payer */}
+      <button
+        onClick={handlePayNow}
+        disabled={generatingToken}
+        className={`w-full rounded-full px-5 py-3 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
+          isExpired
+            ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-md"
+            : "bg-stone-900 text-white hover:bg-stone-800"
+        }`}
+      >
+        {generatingToken ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Chargement...
+          </>
+        ) : (
+          <>
+            <ExternalLink className="w-4 h-4" />
+            {isExpired ? "Recharger maintenant" : "Renouveler mon abonnement"}
+          </>
+        )}
+      </button>
+    </section>
   );
 }

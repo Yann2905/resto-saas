@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Store, LogOut, type LucideIcon } from "lucide-react";
+import { BarChart3, CreditCard, Store, LogOut, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { confirmAction } from "@/lib/swal";
 
@@ -10,6 +10,7 @@ type Tab = { href: string; label: string; Icon: LucideIcon; exact?: boolean };
 const TABS: Tab[] = [
   { href: "/admin", label: "Vue d'ensemble", Icon: BarChart3, exact: true },
   { href: "/admin/restaurants", label: "Restaurants", Icon: Store },
+  { href: "/admin/payments", label: "Paiements", Icon: CreditCard },
 ];
 
 export default function AdminNav() {
@@ -94,7 +95,7 @@ export default function AdminNav() {
       </header>
 
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-stone-950/95 backdrop-blur-md border-t border-stone-800 pb-[env(safe-area-inset-bottom)]">
-        <div className="grid grid-cols-2">
+        <div className="grid grid-cols-3">
           {TABS.map((tab) => {
             const active = isActive(tab);
             const Icon = tab.Icon;

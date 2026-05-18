@@ -190,6 +190,7 @@ export type PaymentRow = {
   status: PaymentStatus;
   reference: string;
   provider_ref: string | null;
+  needs_review: boolean;
   paid_at: string | null;
   previous_expiry: string | null;
   new_expiry: string | null;
