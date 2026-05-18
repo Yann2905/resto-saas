@@ -107,7 +107,6 @@ export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("to_review");
-  const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     type: "success" | "error";
     msg: string;
@@ -154,7 +153,6 @@ export default function AdminPaymentsPage() {
     paymentId: string,
     action: "confirm" | "reject",
   ) => {
-    setBusyId(paymentId);
     try {
       const res = await fetch("/api/admin/payments", {
         method: "PATCH",
@@ -176,7 +174,6 @@ export default function AdminPaymentsPage() {
     } catch (e) {
       showToast("error", e instanceof Error ? e.message : "Erreur r\u00e9seau");
     } finally {
-      setBusyId(null);
     }
   };
 
@@ -292,7 +289,6 @@ export default function AdminPaymentsPage() {
               const restaurantName =
                 p.restaurants?.name || "Restaurant inconnu";
               const payerPhone = extractPayerPhone(p.provider_ref);
-              const isBusy = busyId === p.id;
               const needsAction = isToReview(p);
 
               return (
@@ -365,25 +361,19 @@ export default function AdminPaymentsPage() {
                       <div className="mt-4 pt-3 border-t border-stone-100 flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end">
                         <button
                           onClick={() => handleAction(p.id, "reject")}
-                          disabled={isBusy}
-                          className="rounded-xl px-4 py-2.5 text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                          className="rounded-xl px-4 py-2.5 text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition-colors flex items-center gap-1.5"
                         >
                           <XCircle className="w-3.5 h-3.5" aria-hidden />
                           Rejeter
                         </button>
                         <button
                           onClick={() => handleAction(p.id, "confirm")}
-                          disabled={isBusy}
-                          className="rounded-xl px-4 py-2.5 text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                          className="rounded-xl px-4 py-2.5 text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center gap-1.5"
                         >
-                          {isBusy ? (
-                            <span className="w-3.5 h-3.5 border-2 border-emerald-300 border-t-emerald-600 rounded-full animate-spin" />
-                          ) : (
-                            <CheckCircle2
-                              className="w-3.5 h-3.5"
-                              aria-hidden
-                            />
-                          )}
+                          <CheckCircle2
+                            className="w-3.5 h-3.5"
+                            aria-hidden
+                          />
                           Confirmer
                         </button>
                       </div>

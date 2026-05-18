@@ -1,14 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 
 type Props = {
   onConfirm: () => void;
   label?: string;
   hint?: string;
-  loading?: boolean;
-  disabled?: boolean;
 };
 
 const THUMB_SIZE = 56;       // px
@@ -19,8 +17,6 @@ export default function SwipeConfirm({
   onConfirm,
   label = "Valider la commande",
   hint = "Glissez la flèche vers la droite pour valider",
-  loading = false,
-  disabled = false,
 }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -44,7 +40,6 @@ export default function SwipeConfirm({
   const progress = maxSlide > 0 ? Math.min(offsetX / maxSlide, 1) : 0;
 
   // ── Couleurs dynamiques ────────────────────────────────────
-  // stone-900 → emerald-500 au fur et à mesure du slide
   const bgR = Math.round(12 + (16 - 12) * progress);
   const bgG = Math.round(10 + (185 - 10) * progress);
   const bgB = Math.round(9 + (129 - 9) * progress);
@@ -55,11 +50,11 @@ export default function SwipeConfirm({
   // ── Touch / Pointer handlers ───────────────────────────────
   const handleStart = useCallback(
     (clientX: number) => {
-      if (disabled || loading || confirmed) return;
+      if (confirmed) return;
       startX.current = clientX;
       setDragging(true);
     },
-    [disabled, loading, confirmed],
+    [confirmed],
   );
 
   const handleMove = useCallback(
@@ -76,14 +71,11 @@ export default function SwipeConfirm({
     setDragging(false);
 
     if (progress >= THRESHOLD) {
-      // Snap to end
       setOffsetX(maxSlide);
       setConfirmed(true);
-      // Haptic feedback si supporté
       if (navigator.vibrate) navigator.vibrate(30);
       setTimeout(() => onConfirm(), 300);
     } else {
-      // Spring back
       setOffsetX(0);
     }
   }, [dragging, progress, maxSlide, onConfirm]);
@@ -120,7 +112,7 @@ export default function SwipeConfirm({
             transition: dragging ? "none" : `opacity ${SPRING_MS}ms ease`,
           }}
         >
-          {loading ? "Envoi en cours..." : label}
+          {label}
         </span>
 
         {/* Checkmark au centre quand confirmé */}
@@ -147,12 +139,7 @@ export default function SwipeConfirm({
           onTouchMove={(e) => handleMove(e.touches[0].clientX)}
           onTouchEnd={handleEnd}
         >
-          {loading ? (
-            <Loader2
-              className="w-6 h-6 text-stone-900 animate-spin"
-              strokeWidth={2.5}
-            />
-          ) : confirmed ? (
+          {confirmed ? (
             <Check
               className="w-6 h-6 text-emerald-600"
               strokeWidth={2.5}
@@ -169,8 +156,8 @@ export default function SwipeConfirm({
           )}
         </div>
 
-        {/* Shimmer (indication visuelle de slide) */}
-        {!dragging && !confirmed && !loading && (
+        {/* Shimmer */}
+        {!dragging && !confirmed && (
           <div
             className="absolute top-0 left-0 h-full w-24 pointer-events-none"
             style={{
@@ -183,13 +170,7 @@ export default function SwipeConfirm({
 
       {/* Hint */}
       {!confirmed && (
-        <p
-          className="text-center text-xs text-stone-400 flex items-center justify-center gap-1.5"
-          style={{
-            opacity: loading ? 0 : 1,
-            transition: `opacity ${SPRING_MS}ms ease`,
-          }}
-        >
+        <p className="text-center text-xs text-stone-400 flex items-center justify-center gap-1.5">
           <span className="inline-block animate-bounce-right">→</span>
           {hint}
         </p>

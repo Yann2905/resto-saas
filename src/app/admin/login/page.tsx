@@ -239,20 +239,10 @@ export default function AdminLoginPage() {
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-gradient-to-b from-amber-400 to-amber-600 text-stone-950 font-semibold py-3.5 shadow-lg shadow-amber-900/30 hover:from-amber-300 hover:to-amber-500 disabled:from-stone-600 disabled:to-stone-700 disabled:text-stone-400 disabled:shadow-none transition-all flex items-center justify-center gap-2"
+            className="w-full rounded-xl bg-gradient-to-b from-amber-400 to-amber-600 text-stone-950 font-semibold py-3.5 shadow-lg shadow-amber-900/30 hover:from-amber-300 hover:to-amber-500 transition-all flex items-center justify-center gap-2"
           >
-            {loading ? (
-              <>
-                <span className="w-4 h-4 border-2 border-stone-950/30 border-t-stone-950 rounded-full animate-spin" />
-                Connexion…
-              </>
-            ) : (
-              <>
-                Accéder à la console{" "}
-                <ArrowRight className="w-4 h-4" aria-hidden />
-              </>
-            )}
+            Accéder à la console{" "}
+            <ArrowRight className="w-4 h-4" aria-hidden />
           </button>
         </form>
 

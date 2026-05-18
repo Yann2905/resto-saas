@@ -7,7 +7,6 @@ import {
   Check,
   AlertTriangle,
   ArrowLeft,
-  Loader2,
   Sparkles,
   Phone,
   CheckCircle,
@@ -89,7 +88,6 @@ export default function PaymentClient({
   const [payerPhone, setPayerPhone] = useState("");
   const [error, setError] = useState("");
   const [paymentRef, setPaymentRef] = useState("");
-  const [declaring, setDeclaring] = useState(false);
 
   // Redirection vers login si pas connecté
   useEffect(() => {
@@ -168,7 +166,6 @@ export default function PaymentClient({
   /* ── J'ai payé → déclarer et activer immédiatement ──────── */
   const handleDeclare = async () => {
     if (!paymentRef) return;
-    setDeclaring(true);
     setError("");
 
     try {
@@ -191,8 +188,6 @@ export default function PaymentClient({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue");
       setStep("error");
-    } finally {
-      setDeclaring(false);
     }
   };
 
@@ -432,7 +427,7 @@ export default function PaymentClient({
         {/* ── STEP 4: Processing (initiation en cours) ──────────── */}
         {step === "processing" && (
           <section className="animate-fade-in-up text-center py-16">
-            <Loader2 className="w-12 h-12 text-amber-500 animate-spin mx-auto mb-4" />
+            <span className="w-12 h-12 border-4 border-amber-200 border-t-amber-500 rounded-full animate-spin mx-auto mb-4 block" />
             <h2 className="text-lg font-bold text-stone-900 mb-1">
               Préparation du paiement...
             </h2>
@@ -508,20 +503,10 @@ export default function PaymentClient({
               {/* Bouton J'ai payé */}
               <button
                 onClick={handleDeclare}
-                disabled={declaring}
-                className="w-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-4 text-base font-bold hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 transition-all shadow-lg shadow-emerald-200 flex items-center justify-center gap-2"
+                className="w-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-4 text-base font-bold hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg shadow-emerald-200 flex items-center justify-center gap-2"
               >
-                {declaring ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Activation en cours...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-5 h-5" />
-                    J&apos;ai payé
-                  </>
-                )}
+                <CheckCircle className="w-5 h-5" />
+                J&apos;ai payé
               </button>
 
               <p className="text-[10px] text-stone-400 text-center mt-3">

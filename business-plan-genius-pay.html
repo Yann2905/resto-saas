@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<title>Business Plan - Resto SaaS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;color:#1c1917;line-height:1.6;background:#fff}
+.page{width:210mm;min-height:297mm;margin:0 auto;padding:25mm 20mm;page-break-after:always}
+.page:last-child{page-break-after:auto}
+
+/* Cover page */
+.cover{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;min-height:297mm;background:linear-gradient(135deg,#1c1917 0%,#292524 100%);color:#fff;padding:40mm 30mm}
+.cover h1{font-size:48px;font-weight:800;letter-spacing:-0.03em;margin-bottom:8px}
+.cover .subtitle{font-size:20px;color:#a8a29e;font-weight:500;margin-bottom:40px}
+.cover .tagline{font-size:16px;color:#d6d3d1;border:1px solid #44403c;border-radius:12px;padding:12px 24px;margin-bottom:60px}
+.cover .info{font-size:13px;color:#78716c;line-height:2}
+
+/* Headers */
+h2{font-size:28px;font-weight:800;color:#1c1917;letter-spacing:-0.02em;margin-bottom:6px;border-bottom:3px solid #f59e0b;padding-bottom:8px;display:inline-block}
+h3{font-size:18px;font-weight:700;color:#292524;margin:20px 0 10px}
+h4{font-size:15px;font-weight:600;color:#44403c;margin:14px 0 6px}
+.section-intro{color:#57534e;font-size:14px;margin-bottom:20px}
+
+/* Cards */
+.card{background:#fafaf9;border:1px solid #e7e5e4;border-radius:12px;padding:20px;margin:12px 0}
+.card-amber{border-left:4px solid #f59e0b}
+.card-blue{border-left:4px solid #3b82f6}
+.card-green{border-left:4px solid #22c55e}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+th{background:#1c1917;color:#fff;padding:10px 14px;text-align:left;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em}
+td{padding:10px 14px;border-bottom:1px solid #e7e5e4}
+tr:nth-child(even){background:#fafaf9}
+.highlight-row{background:#fffbeb !important;font-weight:600}
+
+/* Lists */
+ul{padding-left:20px;margin:8px 0}
+li{margin:4px 0;font-size:14px;color:#44403c}
+
+/* Stats grid */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:16px 0}
+.stat{text-align:center;padding:20px;background:#fafaf9;border-radius:12px;border:1px solid #e7e5e4}
+.stat .number{font-size:32px;font-weight:800;color:#f59e0b}
+.stat .label{font-size:12px;color:#78716c;text-transform:uppercase;letter-spacing:0.05em;margin-top:4px}
+
+/* Features grid */
+.features{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:16px 0}
+.feature{padding:16px;background:#fafaf9;border-radius:10px;border:1px solid #e7e5e4}
+.feature .icon{font-size:24px;margin-bottom:6px}
+.feature .title{font-weight:700;font-size:14px;color:#1c1917;margin-bottom:4px}
+.feature .desc{font-size:12px;color:#57534e}
+
+/* Footer */
+.footer{text-align:center;font-size:11px;color:#a8a29e;margin-top:30px;padding-top:16px;border-top:1px solid #e7e5e4}
+
+p{font-size:14px;color:#44403c;margin:8px 0}
+
+@media print{
+  body{background:#fff}
+  .page{width:auto;padding:15mm;margin:0}
+}
+</style>
+</head>
+<body>
+
+<!-- PAGE 1 : COUVERTURE -->
+<div class="cover page">
+  <div style="font-size:14px;color:#f59e0b;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:20px">Business Plan</div>
+  <h1>Resto SaaS</h1>
+  <div class="subtitle">Plateforme de commande digitale pour restaurants</div>
+  <div class="tagline">Vos clients commandent. Vous servez plus vite.</div>
+  <div style="margin-top:auto">
+    <div class="info">
+      <strong>Site web :</strong> resto-saas.com<br>
+      <strong>Contact :</strong> contact@resto-saas.com<br>
+      <strong>Date :</strong> Mai 2026<br>
+      <strong>Version :</strong> 1.0
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2 : SOMMAIRE + PRESENTATION -->
+<div class="page">
+  <h2>1. Sommaire Executif</h2>
+  <p class="section-intro">Resto SaaS est une plateforme SaaS (Software as a Service) qui permet aux restaurants de digitaliser leur processus de commande via des QR codes sur les tables.</p>
+
+  <div class="card card-amber">
+    <h4>Le Probleme</h4>
+    <p>Les restaurants en Afrique de l'Ouest font face a des defis majeurs : files d'attente, erreurs de commande, manque de visibilite sur les stocks, et perte de revenus due a une gestion inefficace. La plupart n'ont pas acces a des outils digitaux adaptes a leur budget.</p>
+  </div>
+
+  <div class="card card-green">
+    <h4>Notre Solution</h4>
+    <p>Un systeme de commande digital complet, accessible via un simple QR code. Le client scanne le code sur sa table, consulte le menu en temps reel, passe sa commande depuis son telephone. La cuisine recoit instantanement la commande avec une alerte sonore. Zero installation, zero materiel supplementaire.</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="number">5 000</div>
+      <div class="label">FCFA / mois</div>
+    </div>
+    <div class="stat">
+      <div class="number">0</div>
+      <div class="label">Installation requise</div>
+    </div>
+    <div class="stat">
+      <div class="number">100%</div>
+      <div class="label">Cloud / Mobile</div>
+    </div>
+  </div>
+
+  <h2>2. Presentation de l'Entreprise</h2>
+  <p class="section-intro">Resto SaaS est une startup technologique specialisee dans la digitalisation de la restauration en Afrique francophone.</p>
+
+  <table>
+    <tr><td><strong>Raison sociale</strong></td><td>Resto SaaS</td></tr>
+    <tr><td><strong>Secteur d'activite</strong></td><td>SaaS / Technologie / Restauration</td></tr>
+    <tr><td><strong>Marche cible</strong></td><td>Restaurants en Afrique de l'Ouest (Cameroun, Cote d'Ivoire, Senegal...)</td></tr>
+    <tr><td><strong>Modele economique</strong></td><td>Abonnement mensuel (B2B SaaS)</td></tr>
+    <tr><td><strong>Site web</strong></td><td>resto-saas.com</td></tr>
+    <tr><td><strong>Statut</strong></td><td>Produit lance, premiers clients actifs</td></tr>
+  </table>
+
+  <div class="footer">Resto SaaS - Business Plan Confidentiel - Mai 2026</div>
+</div>
+
+<!-- PAGE 3 : PRODUIT -->
+<div class="page">
+  <h2>3. Description du Produit</h2>
+  <p class="section-intro">Resto SaaS offre une suite complete d'outils pour digitaliser l'experience de commande en restaurant.</p>
+
+  <div class="features">
+    <div class="feature">
+      <div class="icon">📱</div>
+      <div class="title">Commande par QR Code</div>
+      <div class="desc">Un QR code par table. Le client scanne, consulte le menu et commande depuis son telephone. Aucune application a telecharger.</div>
+    </div>
+    <div class="feature">
+      <div class="icon">🍽️</div>
+      <div class="title">Menu Digital</div>
+      <div class="desc">Menu toujours a jour avec categories, sous-categories, photos et gestion de disponibilite en temps reel.</div>
+    </div>
+    <div class="feature">
+      <div class="icon">🔔</div>
+      <div class="title">Alertes Cuisine</div>
+      <div class="desc">Les commandes arrivent instantanement en cuisine avec alerte sonore et notification. Suivi du statut en temps reel.</div>
+    </div>
+    <div class="feature">
+      <div class="icon">📊</div>
+      <div class="title">Statistiques</div>
+      <div class="desc">Tableau de bord avec chiffre d'affaires, top produits, heures de pointe et suivi par periode.</div>
+    </div>
+    <div class="feature">
+      <div class="icon">📦</div>
+      <div class="title">Gestion des Stocks</div>
+      <div class="desc">Decrementation automatique des stocks. Les produits indisponibles sont masques du menu client.</div>
+    </div>
+    <div class="feature">
+      <div class="icon">🖨️</div>
+      <div class="title">Impression QR Codes</div>
+      <div class="desc">Generation et impression de QR codes personnalises aux couleurs du restaurant pour chaque table.</div>
+    </div>
+  </div>
+
+  <h3>Parcours Client</h3>
+  <div class="card">
+    <p><strong>1.</strong> Le client s'assoit a sa table et scanne le QR code avec son telephone</p>
+    <p><strong>2.</strong> Le menu digital s'affiche avec les plats disponibles, prix et photos</p>
+    <p><strong>3.</strong> Le client compose sa commande et valide</p>
+    <p><strong>4.</strong> La cuisine recoit instantanement la commande avec une alerte sonore</p>
+    <p><strong>5.</strong> Le client suit l'avancement : En preparation → Pret → Servi</p>
+    <p><strong>6.</strong> Le restaurant gere tout depuis un tableau de bord simple et intuitif</p>
+  </div>
+
+  <h3>Stack Technique</h3>
+  <table>
+    <tr><th>Composant</th><th>Technologie</th></tr>
+    <tr><td>Frontend</td><td>Next.js, React, TypeScript, Tailwind CSS</td></tr>
+    <tr><td>Backend</td><td>Next.js API Routes (serverless)</td></tr>
+    <tr><td>Base de donnees</td><td>Supabase (PostgreSQL)</td></tr>
+    <tr><td>Temps reel</td><td>Supabase Realtime (WebSocket)</td></tr>
+    <tr><td>Hebergement</td><td>Vercel (CDN mondial, auto-scaling)</td></tr>
+    <tr><td>SMS</td><td>LeTexto API</td></tr>
+  </table>
+
+  <div class="footer">Resto SaaS - Business Plan Confidentiel - Mai 2026</div>
+</div>
+
+<!-- PAGE 4 : MARCHE ET MODELE ECONOMIQUE -->
+<div class="page">
+  <h2>4. Analyse du Marche</h2>
+  <p class="section-intro">Le marche de la restauration en Afrique de l'Ouest est en pleine croissance avec une digitalisation encore tres faible.</p>
+
+  <div class="card card-blue">
+    <h4>Opportunite de Marche</h4>
+    <ul>
+      <li><strong>Penetration mobile elevee :</strong> Plus de 80% de la population possede un smartphone en zone urbaine</li>
+      <li><strong>Faible digitalisation :</strong> Moins de 5% des restaurants utilisent un systeme de commande digital</li>
+      <li><strong>Croissance du secteur :</strong> Le marche de la restauration croit de 8-12% par an en Afrique de l'Ouest</li>
+      <li><strong>Demande croissante :</strong> Les consommateurs attendent une experience plus rapide et moderne</li>
+    </ul>
+  </div>
+
+  <h3>Marche Cible</h3>
+  <table>
+    <tr><th>Segment</th><th>Description</th><th>Taille estimee</th></tr>
+    <tr><td>Restaurants independants</td><td>Restaurants locaux avec 5-50 tables</td><td>~50 000 en zone CEMAC/UEMOA</td></tr>
+    <tr><td>Chaines locales</td><td>Petites chaines de 2-10 etablissements</td><td>~2 000</td></tr>
+    <tr><td>Hotels & Resorts</td><td>Restaurants d'hotels</td><td>~5 000</td></tr>
+  </table>
+
+  <h2>5. Modele Economique</h2>
+  <p class="section-intro">Modele d'abonnement mensuel simple et accessible, sans commission sur les ventes.</p>
+
+  <h3>Grille Tarifaire</h3>
+  <table>
+    <tr><th>Forfait</th><th>Duree</th><th>Prix Total</th><th>Prix / Mois</th><th>Economie</th></tr>
+    <tr><td>Starter</td><td>1 mois</td><td>5 000 FCFA</td><td>5 000 FCFA</td><td>-</td></tr>
+    <tr><td>Basique</td><td>2 mois</td><td>10 000 FCFA</td><td>5 000 FCFA</td><td>-</td></tr>
+    <tr class="highlight-row"><td>Populaire</td><td>3 mois</td><td>12 000 FCFA</td><td>4 000 FCFA</td><td>3 000 FCFA</td></tr>
+    <tr><td>Pro</td><td>4 mois</td><td>17 000 FCFA</td><td>4 250 FCFA</td><td>3 000 FCFA</td></tr>
+    <tr><td>Premium</td><td>5 mois</td><td>20 000 FCFA</td><td>4 000 FCFA</td><td>5 000 FCFA</td></tr>
+  </table>
+
+  <h3>Projections de Revenus</h3>
+  <table>
+    <tr><th>Periode</th><th>Restaurants Actifs</th><th>Revenu Mensuel</th><th>Revenu Annuel</th></tr>
+    <tr><td>Mois 1-6</td><td>20</td><td>100 000 FCFA</td><td>600 000 FCFA</td></tr>
+    <tr><td>Mois 7-12</td><td>80</td><td>400 000 FCFA</td><td>2 400 000 FCFA</td></tr>
+    <tr><td>Annee 2</td><td>300</td><td>1 500 000 FCFA</td><td>18 000 000 FCFA</td></tr>
+    <tr><td>Annee 3</td><td>1 000</td><td>5 000 000 FCFA</td><td>60 000 000 FCFA</td></tr>
+  </table>
+
+  <div class="footer">Resto SaaS - Business Plan Confidentiel - Mai 2026</div>
+</div>
+
+<!-- PAGE 5 : FLUX DE PAIEMENT + STRATEGIE -->
+<div class="page">
+  <h2>6. Flux de Paiement</h2>
+  <p class="section-intro">Integration d'un systeme de paiement mobile adapte au marche africain via Genius Pay.</p>
+
+  <div class="card card-amber">
+    <h4>Pourquoi Genius Pay ?</h4>
+    <ul>
+      <li>Support des principaux moyens de paiement en Afrique : Mobile Money, Orange Money, MTN Money, Wave</li>
+      <li>Couverture multi-pays (Cameroun, Cote d'Ivoire, Senegal, etc.)</li>
+      <li>API robuste et bien documentee</li>
+      <li>Transactions securisees avec webhook de confirmation</li>
+    </ul>
+  </div>
+
+  <h3>Processus de Paiement d'Abonnement</h3>
+  <div class="card">
+    <p><strong>1.</strong> Le restaurateur recoit un lien de paiement securise (token unique, expire sous 72h)</p>
+    <p><strong>2.</strong> Il choisit son moyen de paiement (Mobile Money, Orange Money, MTN, Wave, Carte bancaire)</p>
+    <p><strong>3.</strong> Il selectionne son forfait (1 a 5 mois)</p>
+    <p><strong>4.</strong> Le paiement est initie via Genius Pay</p>
+    <p><strong>5.</strong> Genius Pay envoie un webhook de confirmation a notre serveur</p>
+    <p><strong>6.</strong> L'abonnement est automatiquement prolonge et un SMS de confirmation est envoye</p>
+  </div>
+
+  <h3>Securite des Transactions</h3>
+  <ul>
+    <li><strong>Tokens uniques :</strong> Chaque lien de paiement est un token cryptographique a usage unique</li>
+    <li><strong>Webhook securise :</strong> Verification par secret partage (PAYMENT_WEBHOOK_SECRET)</li>
+    <li><strong>Anti-doublon :</strong> Detection automatique des paiements en double</li>
+    <li><strong>Audit trail :</strong> Chaque transaction est enregistree avec reference, montant, date et statut</li>
+  </ul>
+
+  <h2>7. Strategie Commerciale</h2>
+
+  <h3>Phase 1 : Lancement (Mois 1-6)</h3>
+  <ul>
+    <li>Demarchage direct des restaurants dans les villes principales</li>
+    <li>Offre d'essai gratuit de 14 jours</li>
+    <li>Accompagnement personnalise pour les premiers clients</li>
+    <li>Partenariats avec des associations de restaurateurs</li>
+  </ul>
+
+  <h3>Phase 2 : Croissance (Mois 7-18)</h3>
+  <ul>
+    <li>Programme de parrainage : 1 mois offert par filleul</li>
+    <li>Marketing digital cible (Facebook, Instagram, WhatsApp Business)</li>
+    <li>Expansion dans les pays voisins (Cote d'Ivoire, Senegal, Gabon)</li>
+    <li>Ajout de fonctionnalites premium (paiement en ligne, livraison)</li>
+  </ul>
+
+  <h3>Phase 3 : Scaling (Annee 2-3)</h3>
+  <ul>
+    <li>Equipe commerciale dediee par pays</li>
+    <li>API ouverte pour integrations tierces</li>
+    <li>Version white-label pour les chaines de restaurants</li>
+  </ul>
+
+  <div class="footer">Resto SaaS - Business Plan Confidentiel - Mai 2026</div>
+</div>
+
+<!-- PAGE 6 : AVANTAGES + CONTACT -->
+<div class="page">
+  <h2>8. Avantages Concurrentiels</h2>
+
+  <div class="features">
+    <div class="feature">
+      <div class="icon">💰</div>
+      <div class="title">Prix Accessible</div>
+      <div class="desc">A partir de 4 000 FCFA/mois, le prix le plus bas du marche pour une solution complete de commande digitale.</div>
+    </div>
+    <div class="feature">
+      <div class="icon">⚡</div>
+      <div class="title">Zero Installation</div>
+      <div class="desc">Aucun materiel a acheter, aucun logiciel a installer. Tout fonctionne dans le navigateur web.</div>
+    </div>
+    <div class="feature">
+      <div class="icon">🌍</div>
+      <div class="title">Adapte au Marche Local</div>
+      <div class="desc">Interface en francais, prix en FCFA, paiement Mobile Money, support local.</div>
+    </div>
+    <div class="feature">
+      <div class="icon">🚀</div>
+      <div class="title">Mise en Route Rapide</div>
+      <div class="desc">Un restaurant peut etre operationnel en moins de 30 minutes : creation du compte, ajout du menu, impression des QR codes.</div>
+    </div>
+  </div>
+
+  <h2>9. Utilisation des Fonds</h2>
+  <p class="section-intro">Les revenus generes seront reinvestis pour accelerer la croissance de la plateforme.</p>
+
+  <table>
+    <tr><th>Poste</th><th>Allocation</th><th>Description</th></tr>
+    <tr><td>Developpement Produit</td><td>40%</td><td>Nouvelles fonctionnalites, paiement en ligne, application mobile</td></tr>
+    <tr><td>Marketing & Commercial</td><td>30%</td><td>Acquisition clients, publicite, partenariats</td></tr>
+    <tr><td>Infrastructure</td><td>15%</td><td>Hebergement, API, SMS, securite</td></tr>
+    <tr><td>Operations</td><td>15%</td><td>Support client, formation, administration</td></tr>
+  </table>
+
+  <h2>10. Contact</h2>
+  <div class="card card-amber" style="text-align:center;padding:30px">
+    <h3 style="font-size:24px;margin-bottom:16px">Resto SaaS</h3>
+    <p style="font-size:16px;color:#1c1917"><strong>Site web :</strong> resto-saas.com</p>
+    <p style="font-size:16px;color:#1c1917"><strong>Email :</strong> contact@resto-saas.com</p>
+    <p style="font-size:16px;color:#1c1917"><strong>Telephone :</strong> +225 05 75 34 38 46</p>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e7e5e4">
+      <p style="font-size:13px;color:#78716c">Document confidentiel - Mai 2026</p>
+    </div>
+  </div>
+
+  <div class="footer">Resto SaaS - Business Plan Confidentiel - Mai 2026</div>
+</div>
+
+</body>
+</html>

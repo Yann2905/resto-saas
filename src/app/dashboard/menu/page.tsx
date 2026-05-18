@@ -801,10 +801,9 @@ function ProductFormInline({
         </button>
         <button
           type="submit"
-          disabled={saving || uploading}
-          className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 disabled:bg-stone-400 transition-colors"
+          className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors"
         >
-          {saving ? "Enregistrement…" : "Enregistrer"}
+          Enregistrer
         </button>
       </div>
     </form>
@@ -946,10 +945,9 @@ function CategoryFormInline({
         </button>
         <button
           type="submit"
-          disabled={saving}
-          className="rounded-full bg-stone-900 text-white px-5 py-2 text-sm font-semibold hover:bg-stone-800 disabled:bg-stone-400 transition-colors"
+          className="rounded-full bg-stone-900 text-white px-5 py-2 text-sm font-semibold hover:bg-stone-800 transition-colors"
         >
-          {saving ? "Enregistrement…" : "Enregistrer"}
+          Enregistrer
         </button>
       </div>
     </form>

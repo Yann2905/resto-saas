@@ -307,19 +307,9 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-stone-900 text-white font-semibold py-3.5 shadow-lg shadow-stone-900/10 hover:bg-stone-800 disabled:bg-stone-400 disabled:shadow-none transition-all flex items-center justify-center gap-2"
+            className="w-full rounded-xl bg-stone-900 text-white font-semibold py-3.5 shadow-lg shadow-stone-900/10 hover:bg-stone-800 transition-all flex items-center justify-center gap-2"
           >
-            {submitting ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Connexion…
-              </>
-            ) : (
-              <>
-                Se connecter <ArrowRight className="w-4 h-4" aria-hidden />
-              </>
-            )}
+            Se connecter <ArrowRight className="w-4 h-4" aria-hidden />
           </button>
         </form>
 

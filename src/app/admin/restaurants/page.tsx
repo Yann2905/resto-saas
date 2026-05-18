@@ -68,7 +68,6 @@ export default function AdminRestaurantsPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     type: "success" | "error";
     msg: string;
@@ -132,7 +131,7 @@ export default function AdminRestaurantsPage() {
   };
 
   const handleToggleActive = async (r: Restaurant) => {
-    setBusyId(r.id);
+
     try {
       await setRestaurantActive(r.id, !r.active);
       showToast(
@@ -141,8 +140,6 @@ export default function AdminRestaurantsPage() {
       );
     } catch (e) {
       showToast("error", e instanceof Error ? e.message : "Erreur");
-    } finally {
-      setBusyId(null);
     }
   };
 
@@ -150,7 +147,7 @@ export default function AdminRestaurantsPage() {
     r: Restaurant,
     payload: { name: string; address: string; phone: string; expiry: string }
   ) => {
-    setBusyId(r.id);
+
     try {
       await updateRestaurantInfo(r.id, {
         name: payload.name,
@@ -165,8 +162,6 @@ export default function AdminRestaurantsPage() {
       setEditingId(null);
     } catch (e) {
       showToast("error", e instanceof Error ? e.message : "Erreur");
-    } finally {
-      setBusyId(null);
     }
   };
 
@@ -178,14 +173,12 @@ export default function AdminRestaurantsPage() {
       if (confirmText !== null) showToast("error", "Confirmation invalide");
       return;
     }
-    setBusyId(r.id);
+
     try {
       await deleteRestaurant(r.id);
       showToast("success", `« ${r.name} » supprimé`);
     } catch (e) {
       showToast("error", e instanceof Error ? e.message : "Erreur");
-    } finally {
-      setBusyId(null);
     }
   };
 
@@ -291,16 +284,14 @@ export default function AdminRestaurantsPage() {
                   {isEditing ? (
                     <EditForm
                       restaurant={r}
-                      busy={busyId === r.id}
-                      onCancel={() => setEditingId(null)}
+                                            onCancel={() => setEditingId(null)}
                       onSave={(payload) => handleSaveEdit(r, payload)}
                     />
                   ) : (
                     <RestaurantRowView
                       restaurant={r}
                       statusStyle={st}
-                      busy={busyId === r.id}
-                      onEdit={() => {
+                                            onEdit={() => {
                         setEditingId(r.id);
                         setShowCreate(false);
                       }}
@@ -340,14 +331,12 @@ export default function AdminRestaurantsPage() {
 function RestaurantRowView({
   restaurant,
   statusStyle,
-  busy,
   onEdit,
   onToggleActive,
   onDelete,
 }: {
   restaurant: Restaurant;
   statusStyle: (typeof STATUS_STYLES)[keyof typeof STATUS_STYLES];
-  busy: boolean;
   onEdit: () => void;
   onToggleActive: () => void;
   onDelete: () => void;
@@ -393,8 +382,7 @@ function RestaurantRowView({
       <div className="flex items-center gap-1 flex-wrap sm:flex-nowrap justify-end">
         <button
           onClick={onToggleActive}
-          disabled={busy}
-          className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-50 ${
+          className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
             restaurant.active
               ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
               : "bg-stone-100 text-stone-500 hover:bg-stone-200"
@@ -404,15 +392,13 @@ function RestaurantRowView({
         </button>
         <button
           onClick={onEdit}
-          disabled={busy}
-          className="rounded-lg px-3 py-2 text-xs font-semibold bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors disabled:opacity-50"
+          className="rounded-lg px-3 py-2 text-xs font-semibold bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors"
         >
           Éditer
         </button>
         <button
           onClick={onDelete}
-          disabled={busy}
-          className="rounded-lg px-3 py-2 text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50 flex items-center justify-center"
+          className="rounded-lg px-3 py-2 text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition-colors flex items-center justify-center"
           aria-label="Supprimer"
         >
           <X className="w-3.5 h-3.5" aria-hidden />
@@ -424,12 +410,10 @@ function RestaurantRowView({
 
 function EditForm({
   restaurant,
-  busy,
   onCancel,
   onSave,
 }: {
   restaurant: Restaurant;
-  busy: boolean;
   onCancel: () => void;
   onSave: (p: {
     name: string;
@@ -497,10 +481,9 @@ function EditForm({
         </button>
         <button
           type="submit"
-          disabled={busy}
-          className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 disabled:bg-stone-400 transition-colors"
+          className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors"
         >
-          {busy ? "Enregistrement…" : "Enregistrer"}
+          Enregistrer
         </button>
       </div>
       <style jsx>{`
@@ -538,12 +521,8 @@ function CreateForm({
     ownerPassword: "",
     expiry: "",
   });
-  const [busy, setBusy] = useState(false);
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (busy) return;
-    setBusy(true);
     const ok = await onSubmit({
       name: form.name,
       slug: form.slug || form.name,
@@ -553,7 +532,6 @@ function CreateForm({
       ownerPassword: form.ownerPassword,
       subscriptionExpiresAt: form.expiry ? new Date(form.expiry) : null,
     });
-    setBusy(false);
     if (ok) {
       setForm({
         name: "",
@@ -657,24 +635,15 @@ function CreateForm({
         <button
           type="button"
           onClick={onCancel}
-          disabled={busy}
-          className="rounded-full px-4 py-2.5 text-sm font-medium text-stone-600 hover:bg-stone-100 transition-colors disabled:opacity-50"
+          className="rounded-full px-4 py-2.5 text-sm font-medium text-stone-600 hover:bg-stone-100 transition-colors"
         >
           Annuler
         </button>
         <button
           type="submit"
-          disabled={busy}
-          className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 disabled:bg-stone-400 transition-colors flex items-center justify-center gap-2"
+          className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors flex items-center justify-center gap-2"
         >
-          {busy ? (
-            <>
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Création…
-            </>
-          ) : (
-            <>Créer le restaurant</>
-          )}
+          Créer le restaurant
         </button>
       </div>
       <style jsx>{`

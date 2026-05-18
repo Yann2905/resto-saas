@@ -8,7 +8,6 @@ import {
   CreditCard,
   AlertTriangle,
   ExternalLink,
-  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -23,9 +22,7 @@ export default function SettingsPage() {
   const { user, restaurant, role, loading } = useAuth();
   const [hours, setHours] = useState<OpeningHours>(defaultOpeningHours());
   const [alwaysOpen, setAlwaysOpen] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [generatingToken, setGeneratingToken] = useState(false);
 
   useEffect(() => {
     if (!loading && !user && !role) window.location.href = "/dashboard/login";
@@ -50,7 +47,6 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     if (!restaurant) return;
-    setSaving(true);
     try {
       await updateRestaurantHours(restaurant.id, alwaysOpen ? null : hours);
       setToast("Horaires enregistrés");
@@ -58,8 +54,6 @@ export default function SettingsPage() {
     } catch (e) {
       setToast(e instanceof Error ? e.message : "Erreur");
       setTimeout(() => setToast(null), 3000);
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -155,10 +149,9 @@ export default function SettingsPage() {
           <div className="mt-5 flex justify-end">
             <button
               onClick={handleSave}
-              disabled={saving}
-              className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 disabled:bg-stone-400 transition-colors"
+              className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors"
             >
-              {saving ? "Enregistrement…" : "Enregistrer"}
+              Enregistrer
             </button>
           </div>
         </section>
@@ -172,8 +165,6 @@ export default function SettingsPage() {
         {/* ── Section Abonnement ──────────────────────────────── */}
         <SubscriptionSection
           restaurant={restaurant}
-          generatingToken={generatingToken}
-          setGeneratingToken={setGeneratingToken}
           setToast={setToast}
         />
       </div>
@@ -196,13 +187,9 @@ import type { Restaurant } from "@/types";
 
 function SubscriptionSection({
   restaurant,
-  generatingToken,
-  setGeneratingToken,
   setToast,
 }: {
   restaurant: Restaurant;
-  generatingToken: boolean;
-  setGeneratingToken: (v: boolean) => void;
   setToast: (v: string | null) => void;
 }) {
   const isExpired =
@@ -218,7 +205,6 @@ function SubscriptionSection({
     : "Non définie";
 
   const handlePayNow = async () => {
-    setGeneratingToken(true);
     try {
       const res = await fetch("/api/payment/token", { method: "POST" });
       const data = await res.json();
@@ -227,13 +213,10 @@ function SubscriptionSection({
         setTimeout(() => setToast(null), 3000);
         return;
       }
-      // Ouvrir la page de paiement
       window.location.href = `/payment/${data.token}`;
     } catch {
       setToast("Erreur réseau");
       setTimeout(() => setToast(null), 3000);
-    } finally {
-      setGeneratingToken(false);
     }
   };
 
@@ -289,24 +272,14 @@ function SubscriptionSection({
       {/* Bouton payer */}
       <button
         onClick={handlePayNow}
-        disabled={generatingToken}
         className={`w-full rounded-full px-5 py-3 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
           isExpired
             ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-md"
             : "bg-stone-900 text-white hover:bg-stone-800"
         }`}
       >
-        {generatingToken ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Chargement...
-          </>
-        ) : (
-          <>
-            <ExternalLink className="w-4 h-4" />
-            {isExpired ? "Recharger maintenant" : "Renouveler mon abonnement"}
-          </>
-        )}
+        <ExternalLink className="w-4 h-4" />
+        {isExpired ? "Recharger maintenant" : "Renouveler mon abonnement"}
       </button>
     </section>
   );

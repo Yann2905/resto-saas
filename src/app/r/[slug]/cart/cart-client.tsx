@@ -159,8 +159,6 @@ export default function CartClient({ restaurant, tableNumber }: Props) {
             <SwipeConfirm
               onConfirm={handleSubmit}
               label={`Valider · ${formatFCFA(total)}`}
-              loading={submitting}
-              disabled={submitting}
             />
           </div>
         </div>
