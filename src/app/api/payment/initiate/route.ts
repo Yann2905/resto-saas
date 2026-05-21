@@ -6,26 +6,7 @@ import {
   generatePaymentReference,
   computeNewExpiry,
 } from "@/lib/payment-plans";
-import { createPayment, type GeniusPaymentMethod } from "@/lib/genius-pay";
-import type { PaymentMethod } from "@/types";
-
-const VALID_METHODS: PaymentMethod[] = [
-  "mobile_money",
-  "orange_money",
-  "mtn_money",
-  "wave",
-  "carte_bancaire",
-  "autre",
-];
-
-// Map our PaymentMethod to GeniusPay method codes
-const METHOD_MAP: Partial<Record<PaymentMethod, GeniusPaymentMethod>> = {
-  wave: "wave",
-  orange_money: "orange_money",
-  mtn_money: "mtn_money",
-  mobile_money: "moov_money",
-  carte_bancaire: "card",
-};
+import { createPayment } from "@/lib/genius-pay";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://resto-saas.vercel.app";
 
@@ -50,11 +31,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const { token, planKey, method, phone } = body as {
+  const { token, planKey } = body as {
     token?: string;
     planKey?: string;
-    method?: string;
-    phone?: string;
   };
 
   if (!token || typeof token !== "string") {
@@ -71,12 +50,6 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!method || !VALID_METHODS.includes(method as PaymentMethod)) {
-    return NextResponse.json(
-      { ok: false, error: "Méthode de paiement invalide" },
-      { status: 400 },
-    );
-  }
 
   // ── Résoudre le token ─────────────────────────────────────────
   const resolved = await resolvePaymentToken(token);
@@ -140,7 +113,6 @@ export async function POST(request: Request) {
       token_id: resolved.id,
       plan_key: plan.key,
       amount: plan.price,
-      method: method as PaymentMethod,
       status: "pending",
       reference,
       previous_expiry: restaurant.subscription_expires_at,
@@ -158,16 +130,13 @@ export async function POST(request: Request) {
   }
 
   // ── Appeler Genius Pay ────────────────────────────────────────
-  const geniusMethod = METHOD_MAP[method as PaymentMethod];
-
   const geniusResult = await createPayment({
     amount: plan.price,
     currency: "XOF",
-    payment_method: geniusMethod,
     description: `Abonnement ${plan.label} — ${restaurant.name}`,
     customer: {
       name: restaurant.name,
-      phone: phone || restaurant.phone || undefined,
+      phone: restaurant.phone || undefined,
       country: "CI",
     },
     success_url: `${APP_URL}/payment/${token}?status=success`,
