@@ -113,6 +113,7 @@ export async function POST(request: Request) {
       token_id: resolved.id,
       plan_key: plan.key,
       amount: plan.price,
+      method: "autre",
       status: "pending",
       reference,
       previous_expiry: restaurant.subscription_expires_at,

@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
 import { PLANS, computeNewExpiry, type Plan } from "@/lib/payment-plans";
-import { useAuth } from "@/lib/auth-context";
 
 type Step = "plan" | "processing" | "success" | "error";
 
@@ -23,7 +22,6 @@ export default function PaymentClient({
   restaurantName,
   currentExpiry,
 }: Props) {
-  const { user, loading } = useAuth();
   const [step, setStep] = useState<Step>("plan");
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [error, setError] = useState("");
@@ -39,26 +37,6 @@ export default function PaymentClient({
       setStep("error");
     }
   }, []);
-
-  useEffect(() => {
-    if (!loading && !user) {
-      const currentPath = `/payment/${token}`;
-      window.location.replace(
-        `/dashboard/login?next=${encodeURIComponent(currentPath)}`,
-      );
-    }
-  }, [loading, user, token]);
-
-  if (loading || !user) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-stone-50">
-        <div className="flex items-center gap-3 text-stone-500">
-          <span className="w-5 h-5 border-2 border-stone-300 border-t-stone-900 rounded-full animate-spin" />
-          Vérification...
-        </div>
-      </main>
-    );
-  }
 
   const isExpired = currentExpiry && new Date(currentExpiry) < new Date();
   const expiryLabel = currentExpiry
