@@ -292,6 +292,8 @@ function SubscriptionSection({
 
 /* ── Composant Code PIN ────────────────────────────────────── */
 
+type PinMode = "idle" | "verify_to_change" | "verify_to_delete" | "set_new";
+
 function PinSection({
   restaurant,
   setToast,
@@ -301,7 +303,10 @@ function PinSection({
 }) {
   const [pin, setPin] = useState(["", "", "", ""]);
   const [currentPin, setCurrentPin] = useState<string | null>(null);
+  const [hasPin, setHasPin] = useState(false);
   const [loadingPin, setLoadingPin] = useState(true);
+  const [mode, setMode] = useState<PinMode>("idle");
+  const [error, setError] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -311,6 +316,7 @@ function PinSection({
         const data = await res.json();
         if (data.ok && data.pin) {
           setCurrentPin(data.pin);
+          setHasPin(true);
         }
       } catch {
         /* ignore */
@@ -320,14 +326,48 @@ function PinSection({
     fetchPin();
   }, [restaurant.id]);
 
+  const resetInputs = () => {
+    setPin(["", "", "", ""]);
+    setError(false);
+    setTimeout(() => inputRefs.current[0]?.focus(), 100);
+  };
+
   const handleDigit = (index: number, value: string) => {
     if (!/^\d?$/.test(value)) return;
     const newPin = [...pin];
     newPin[index] = value;
     setPin(newPin);
+    setError(false);
 
     if (value && index < 3) {
       inputRefs.current[index + 1]?.focus();
+    }
+
+    if (index === 3 && value) {
+      const entered = newPin.join("");
+
+      if (mode === "verify_to_delete") {
+        if (entered === currentPin) {
+          doRemovePin();
+        } else {
+          setError(true);
+          setPin(["", "", "", ""]);
+          setTimeout(() => inputRefs.current[0]?.focus(), 150);
+        }
+      } else if (mode === "verify_to_change") {
+        if (entered === currentPin) {
+          setMode("set_new");
+          setPin(["", "", "", ""]);
+          setError(false);
+          setTimeout(() => inputRefs.current[0]?.focus(), 150);
+        } else {
+          setError(true);
+          setPin(["", "", "", ""]);
+          setTimeout(() => inputRefs.current[0]?.focus(), 150);
+        }
+      } else if (mode === "set_new") {
+        doSavePin(entered);
+      }
     }
   };
 
@@ -335,24 +375,27 @@ function PinSection({
     if (e.key === "Backspace" && !pin[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
+    if (e.key === "Escape") {
+      setMode("idle");
+      resetInputs();
+    }
   };
 
-  const handleSavePin = async () => {
-    const entered = pin.join("");
-    if (entered.length !== 4) return;
-
+  const doSavePin = async (newPin: string) => {
     try {
       const res = await fetch("/api/restaurant/pin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ restaurantId: restaurant.id, pin: entered }),
+        body: JSON.stringify({ restaurantId: restaurant.id, pin: newPin }),
       });
       const data = await res.json();
       if (data.ok) {
-        setCurrentPin(entered);
-        setPin(["", "", "", ""]);
+        setCurrentPin(newPin);
+        setHasPin(true);
+        setMode("idle");
+        resetInputs();
         sessionStorage.removeItem("resto-saas:pin-ok");
-        setToast("Code PIN enregistré");
+        setToast(hasPin ? "Code PIN modifié" : "Code PIN activé");
         setTimeout(() => setToast(null), 2500);
       } else {
         setToast(data.error || "Erreur");
@@ -364,7 +407,7 @@ function PinSection({
     }
   };
 
-  const handleRemovePin = async () => {
+  const doRemovePin = async () => {
     try {
       const res = await fetch("/api/restaurant/pin", {
         method: "POST",
@@ -374,6 +417,9 @@ function PinSection({
       const data = await res.json();
       if (data.ok) {
         setCurrentPin(null);
+        setHasPin(false);
+        setMode("idle");
+        resetInputs();
         sessionStorage.removeItem("resto-saas:pin-ok");
         setToast("Code PIN supprimé");
         setTimeout(() => setToast(null), 2500);
@@ -385,6 +431,28 @@ function PinSection({
   };
 
   if (loadingPin) return null;
+
+  const pinInputClasses = `w-11 h-12 text-center text-xl font-bold rounded-xl border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-900/10 ${
+    error
+      ? "border-red-400 bg-red-50 text-red-700"
+      : "border-stone-300 bg-stone-50 text-stone-900 focus:border-stone-900"
+  }`;
+
+  const modeLabels: Record<PinMode, { title: string; desc: string }> = {
+    idle: { title: "", desc: "" },
+    verify_to_change: {
+      title: "Entrez le PIN actuel",
+      desc: "Confirmez votre identité pour modifier le code.",
+    },
+    verify_to_delete: {
+      title: "Entrez le PIN actuel",
+      desc: "Confirmez votre identité pour supprimer la protection.",
+    },
+    set_new: {
+      title: "Nouveau code PIN",
+      desc: "Entrez le nouveau code à 4 chiffres.",
+    },
+  };
 
   return (
     <section className="bg-white rounded-2xl border border-stone-200 p-5 mt-6">
@@ -400,58 +468,91 @@ function PinSection({
         </div>
       </div>
 
-      {currentPin ? (
+      {/* PIN actif — affichage statut + boutons modifier/supprimer */}
+      {hasPin && mode === "idle" && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Check className="w-5 h-5 text-emerald-600" />
-              <div>
-                <p className="text-sm font-semibold text-emerald-800">
-                  PIN actif : {currentPin.split("").map(() => "•").join(" ")}
-                </p>
-                <p className="text-xs text-emerald-600 mt-0.5">
-                  Menu et Stats protégés
-                </p>
-              </div>
+          <div className="flex items-center gap-3 mb-3">
+            <Check className="w-5 h-5 text-emerald-600 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-emerald-800">
+                PIN actif
+              </p>
+              <p className="text-xs text-emerald-600 mt-0.5">
+                Menu et Stats protégés
+              </p>
             </div>
+          </div>
+          <div className="flex gap-2">
             <button
-              onClick={handleRemovePin}
-              className="rounded-full bg-red-100 text-red-700 hover:bg-red-200 p-2 transition-colors"
-              title="Supprimer le PIN"
+              onClick={() => { setMode("verify_to_change"); resetInputs(); }}
+              className="flex-1 rounded-full bg-stone-900 text-white px-4 py-2 text-sm font-semibold hover:bg-stone-800 transition-colors"
             >
-              <Trash2 className="w-4 h-4" />
+              Modifier le PIN
+            </button>
+            <button
+              onClick={() => { setMode("verify_to_delete"); resetInputs(); }}
+              className="rounded-full bg-red-100 text-red-700 hover:bg-red-200 px-4 py-2 text-sm font-semibold transition-colors flex items-center gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Supprimer
             </button>
           </div>
         </div>
-      ) : (
+      )}
+
+      {/* Pas de PIN — création */}
+      {!hasPin && mode === "idle" && (
         <div>
           <p className="text-sm text-stone-600 mb-3">
-            Définissez un code à 4 chiffres. Le serveur pourra utiliser les commandes mais pas accéder au menu ni aux stats.
+            Définissez un code à 4 chiffres. Le serveur pourra gérer les commandes mais pas modifier le menu ni voir les stats.
           </p>
+          <button
+            onClick={() => { setMode("set_new"); resetInputs(); }}
+            className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors"
+          >
+            Définir un code PIN
+          </button>
+        </div>
+      )}
+
+      {/* Saisie PIN (vérification ou nouveau) */}
+      {mode !== "idle" && (
+        <div className="mt-3 rounded-xl border border-stone-200 bg-stone-50 p-4 animate-fade-in-up">
+          <p className="text-sm font-semibold text-stone-900 mb-0.5">
+            {modeLabels[mode].title}
+          </p>
+          <p className="text-xs text-stone-500 mb-4">
+            {modeLabels[mode].desc}
+          </p>
+
           <div className="flex items-center gap-3">
             <div className="flex gap-2">
               {pin.map((digit, i) => (
                 <input
                   key={i}
                   ref={(el) => { inputRefs.current[i] = el; }}
-                  type="text"
+                  type="password"
                   inputMode="numeric"
                   maxLength={1}
                   value={digit}
                   onChange={(e) => handleDigit(i, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(i, e)}
-                  className="w-11 h-12 text-center text-xl font-bold rounded-xl border-2 border-stone-300 bg-stone-50 text-stone-900 focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 transition-colors"
+                  className={pinInputClasses}
                 />
               ))}
             </div>
             <button
-              onClick={handleSavePin}
-              disabled={pin.join("").length !== 4}
-              className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 disabled:bg-stone-300 disabled:text-stone-500 transition-colors"
+              onClick={() => { setMode("idle"); resetInputs(); }}
+              className="text-sm text-stone-500 hover:text-stone-800 transition-colors"
             >
-              Activer
+              Annuler
             </button>
           </div>
+
+          {error && (
+            <p className="text-sm text-red-600 mt-2 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5" /> Code incorrect
+            </p>
+          )}
         </div>
       )}
     </section>
