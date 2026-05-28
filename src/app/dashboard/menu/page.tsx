@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import PinGuard from "../_components/pin-guard";
 import { supabase } from "@/lib/supabase";
 import { uploadProductImage } from "@/lib/storage";
 import { useAuth } from "@/lib/auth-context";
@@ -320,6 +321,7 @@ export default function MenuAdminPage() {
   }
 
   return (
+    <PinGuard>
     <main className="min-h-screen bg-stone-50 pb-20 md:pb-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
         <div className="mb-6 flex items-baseline justify-between">
@@ -531,6 +533,7 @@ export default function MenuAdminPage() {
         </section>
       </div>
     </main>
+    </PinGuard>
   );
 }
 

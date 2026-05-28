@@ -8,6 +8,8 @@ import {
   CreditCard,
   AlertTriangle,
   ExternalLink,
+  Lock,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -162,6 +164,9 @@ export default function SettingsPage() {
           gérés automatiquement.
         </p>
 
+        {/* ── Section Code PIN ─────────────────────────────────── */}
+        <PinSection restaurant={restaurant} setToast={setToast} />
+
         {/* ── Section Abonnement ──────────────────────────────── */}
         <SubscriptionSection
           restaurant={restaurant}
@@ -281,6 +286,174 @@ function SubscriptionSection({
         <ExternalLink className="w-4 h-4" />
         {isExpired ? "Recharger maintenant" : "Renouveler mon abonnement"}
       </button>
+    </section>
+  );
+}
+
+/* ── Composant Code PIN ────────────────────────────────────── */
+
+function PinSection({
+  restaurant,
+  setToast,
+}: {
+  restaurant: Restaurant;
+  setToast: (v: string | null) => void;
+}) {
+  const [pin, setPin] = useState(["", "", "", ""]);
+  const [currentPin, setCurrentPin] = useState<string | null>(null);
+  const [loadingPin, setLoadingPin] = useState(true);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    const fetchPin = async () => {
+      try {
+        const res = await fetch(`/api/restaurant/pin?restaurantId=${restaurant.id}`);
+        const data = await res.json();
+        if (data.ok && data.pin) {
+          setCurrentPin(data.pin);
+        }
+      } catch {
+        /* ignore */
+      }
+      setLoadingPin(false);
+    };
+    fetchPin();
+  }, [restaurant.id]);
+
+  const handleDigit = (index: number, value: string) => {
+    if (!/^\d?$/.test(value)) return;
+    const newPin = [...pin];
+    newPin[index] = value;
+    setPin(newPin);
+
+    if (value && index < 3) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !pin[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleSavePin = async () => {
+    const entered = pin.join("");
+    if (entered.length !== 4) return;
+
+    try {
+      const res = await fetch("/api/restaurant/pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurantId: restaurant.id, pin: entered }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setCurrentPin(entered);
+        setPin(["", "", "", ""]);
+        sessionStorage.removeItem("resto-saas:pin-ok");
+        setToast("Code PIN enregistré");
+        setTimeout(() => setToast(null), 2500);
+      } else {
+        setToast(data.error || "Erreur");
+        setTimeout(() => setToast(null), 3000);
+      }
+    } catch {
+      setToast("Erreur réseau");
+      setTimeout(() => setToast(null), 3000);
+    }
+  };
+
+  const handleRemovePin = async () => {
+    try {
+      const res = await fetch("/api/restaurant/pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurantId: restaurant.id, pin: null }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setCurrentPin(null);
+        sessionStorage.removeItem("resto-saas:pin-ok");
+        setToast("Code PIN supprimé");
+        setTimeout(() => setToast(null), 2500);
+      }
+    } catch {
+      setToast("Erreur réseau");
+      setTimeout(() => setToast(null), 3000);
+    }
+  };
+
+  if (loadingPin) return null;
+
+  return (
+    <section className="bg-white rounded-2xl border border-stone-200 p-5 mt-6">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h3 className="font-bold text-stone-900 flex items-center gap-2">
+            <Lock className="w-4 h-4" aria-hidden />
+            Code PIN
+          </h3>
+          <p className="text-xs text-stone-500 mt-0.5">
+            Protégez l&apos;accès aux onglets Menu et Statistiques.
+          </p>
+        </div>
+      </div>
+
+      {currentPin ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Check className="w-5 h-5 text-emerald-600" />
+              <div>
+                <p className="text-sm font-semibold text-emerald-800">
+                  PIN actif : {currentPin.split("").map(() => "•").join(" ")}
+                </p>
+                <p className="text-xs text-emerald-600 mt-0.5">
+                  Menu et Stats protégés
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleRemovePin}
+              className="rounded-full bg-red-100 text-red-700 hover:bg-red-200 p-2 transition-colors"
+              title="Supprimer le PIN"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <p className="text-sm text-stone-600 mb-3">
+            Définissez un code à 4 chiffres. Le serveur pourra utiliser les commandes mais pas accéder au menu ni aux stats.
+          </p>
+          <div className="flex items-center gap-3">
+            <div className="flex gap-2">
+              {pin.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={(el) => { inputRefs.current[i] = el; }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleDigit(i, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(i, e)}
+                  className="w-11 h-12 text-center text-xl font-bold rounded-xl border-2 border-stone-300 bg-stone-50 text-stone-900 focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 transition-colors"
+                />
+              ))}
+            </div>
+            <button
+              onClick={handleSavePin}
+              disabled={pin.join("").length !== 4}
+              className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 disabled:bg-stone-300 disabled:text-stone-500 transition-colors"
+            >
+              Activer
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

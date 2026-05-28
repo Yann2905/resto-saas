@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { Order, OrderRow, OrderStatus, mapOrder } from "@/types";
 import { formatFCFA } from "@/lib/format";
+import { playChime } from "../_components/order-sound-alert";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "En attente",
@@ -52,74 +53,6 @@ const STATUS_STYLES: Record<
   },
 };
 
-// AudioContext unique au module — sera "déverrouillé" au premier click utilisateur.
-let audioCtx: AudioContext | null = null;
-let audioUnlocked = false;
-
-function unlockAudio() {
-  if (audioUnlocked) return;
-  try {
-    const AC =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext;
-    audioCtx = new AC();
-    if (audioCtx.state === "suspended") void audioCtx.resume();
-    // Joue un son inaudible pour vraiment déverrouiller (geste utilisateur en cours)
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    gain.gain.value = 0;
-    osc.connect(gain).connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.01);
-    audioUnlocked = true;
-  } catch {
-    /* ignore */
-  }
-}
-
-function playChime() {
-  try {
-    if (!audioCtx) {
-      const AC =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext;
-      audioCtx = new AC();
-    }
-    if (audioCtx.state === "suspended") void audioCtx.resume();
-    // Double bip pour attirer l'attention
-    [880, 1100].forEach((freq, i) => {
-      const osc = audioCtx!.createOscillator();
-      const gain = audioCtx!.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx!.destination);
-      osc.frequency.value = freq;
-      const t = audioCtx!.currentTime + i * 0.18;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.35, t + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
-      osc.start(t);
-      osc.stop(t + 0.4);
-    });
-  } catch (e) {
-    console.warn("[chime] échec lecture audio:", e);
-  }
-}
-
-function tryNotify(tableNumber: number, total: number) {
-  try {
-    if (typeof window === "undefined" || !("Notification" in window)) return;
-    if (Notification.permission !== "granted") return;
-    new Notification(`Nouvelle commande · Table ${tableNumber}`, {
-      body: `Total : ${total.toLocaleString("fr-FR")} FCFA`,
-      icon: "/favicon.ico",
-      tag: "new-order",
-    });
-  } catch {
-    /* ignore */
-  }
-}
 
 export default function OrdersPage() {
   const { user, restaurant, role, loading, signOut } = useAuth();
@@ -131,17 +64,6 @@ export default function OrdersPage() {
     useState<NotificationPermission>("default");
   const [realtimeStatus, setRealtimeStatus] =
     useState<string>("connecting");
-
-  // Déverrouille l'audio au premier clic n'importe où sur la page
-  useEffect(() => {
-    const handler = () => unlockAudio();
-    window.addEventListener("click", handler, { once: true });
-    window.addEventListener("keydown", handler, { once: true });
-    return () => {
-      window.removeEventListener("click", handler);
-      window.removeEventListener("keydown", handler);
-    };
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -191,10 +113,6 @@ export default function OrdersPage() {
           if (knownIds.current.has(newOrder.id)) return;
           knownIds.current.add(newOrder.id);
           setOrders((prev) => [newOrder, ...prev]);
-          if (newOrder.status === "pending" && firstLoadDone.current) {
-            playChime();
-            tryNotify(newOrder.tableNumber, newOrder.total);
-          }
         }
       )
       .on(

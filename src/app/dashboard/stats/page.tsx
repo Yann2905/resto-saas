@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import PinGuard from "../_components/pin-guard";
 import { useAuth } from "@/lib/auth-context";
 import { Wallet, Receipt, Target, Calendar, ChevronDown } from "lucide-react";
 import { formatCompactFCFA, formatFCFA } from "@/lib/format";
@@ -164,6 +165,7 @@ export default function StatsPage() {
   }
 
   return (
+    <PinGuard>
     <main className="min-h-screen bg-stone-50 pb-20 md:pb-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
         <div className="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -301,6 +303,7 @@ export default function StatsPage() {
         </div>
       </div>
     </main>
+    </PinGuard>
   );
 }
 
