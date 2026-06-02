@@ -2,20 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle,
   Check,
   CheckCircle2,
   Clock,
   CreditCard,
-  Eye,
-  Phone,
+  ExternalLink,
   RefreshCw,
   XCircle,
 } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
-
-// ── Types ───────────────────────────────────────────────────────
 
 type PaymentRow = {
   id: string;
@@ -26,100 +22,53 @@ type PaymentRow = {
   status: "pending" | "success" | "failed";
   reference: string;
   provider_ref: string | null;
-  needs_review: boolean;
   paid_at: string | null;
-  previous_expiry: string | null;
   new_expiry: string | null;
   created_at: string;
-  updated_at: string;
   restaurants: { name: string; phone: string | null } | null;
 };
 
-type Filter = "to_review" | "confirmed" | "rejected";
+type Filter = "all" | "success" | "pending" | "failed";
 
-// ── Constants ───────────────────────────────────────────────────
-
-const METHOD_LABELS: Record<string, string> = {
-  mobile_money: "Mobile Money",
-  orange_money: "Orange Money",
-  mtn_money: "MTN Money",
-  wave: "Wave",
-  carte_bancaire: "Carte bancaire",
-  autre: "Autre",
+const PLAN_LABELS: Record<string, string> = {
+  "1_month": "1 mois",
+  "2_months": "2 mois",
+  "3_months": "3 mois",
+  "4_months": "4 mois",
+  "5_months": "5 mois",
 };
 
-const FILTER_TABS: { key: Filter; label: string }[] = [
-  { key: "to_review", label: "A v\u00e9rifier" },
-  { key: "confirmed", label: "Confirm\u00e9s" },
-  { key: "rejected", label: "Rejet\u00e9s" },
+const FILTER_TABS: { key: Filter; label: string; color: string }[] = [
+  { key: "all", label: "Tous", color: "bg-stone-900 text-white" },
+  { key: "success", label: "Payés", color: "bg-emerald-600 text-white" },
+  { key: "pending", label: "En attente", color: "bg-amber-500 text-white" },
+  { key: "failed", label: "Échoués", color: "bg-red-600 text-white" },
 ];
-
-// ── Helpers ─────────────────────────────────────────────────────
-
-function isToReview(p: PaymentRow): boolean {
-  return p.status === "success" && p.needs_review === true;
-}
-
-function isConfirmed(p: PaymentRow): boolean {
-  if (p.status !== "success") return false;
-  // needs_review explicitly false, or provider_ref starts with "reviewed:"
-  if (p.needs_review === false) {
-    return (
-      p.provider_ref?.startsWith("reviewed:") || p.provider_ref === "reviewed"
-    ) ?? false;
-  }
-  return false;
-}
-
-function isRejected(p: PaymentRow): boolean {
-  return p.status === "failed";
-}
-
-function extractPayerPhone(providerRef: string | null): string | null {
-  if (!providerRef) return null;
-  // The declare route stores the phone directly, or prefixed after review
-  const cleaned = providerRef
-    .replace(/^reviewed:/, "")
-    .replace(/^rejected:/, "");
-  // If it looks like a phone number (digits, +, spaces)
-  if (/^[\d+\s()-]{6,}$/.test(cleaned)) return cleaned;
-  return null;
-}
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
-  const date = d.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-  const time = d.toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  return `${date} ${time}`;
+  return (
+    d.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }) +
+    " " +
+    d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+  );
 }
-
-// ── Component ───────────────────────────────────────────────────
 
 export default function AdminPaymentsPage() {
   const { role } = useAuth();
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<Filter>("to_review");
-  const [toast, setToast] = useState<{
-    type: "success" | "error";
-    msg: string;
-  } | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
 
-  // ── Fetch ───────────────────────────────────────────────────
   const fetchPayments = async () => {
     try {
       const res = await fetch("/api/admin/payments");
       const json = await res.json();
-      if (json.ok) {
-        setPayments(json.payments as PaymentRow[]);
-      }
+      if (json.ok) setPayments(json.payments as PaymentRow[]);
     } catch (e) {
       console.error("[admin] fetch payments error:", e);
     } finally {
@@ -128,87 +77,43 @@ export default function AdminPaymentsPage() {
   };
 
   useEffect(() => {
-    let cancelled = false;
-    const doFetch = async () => {
-      await fetchPayments();
-      if (cancelled) return;
-    };
-    doFetch();
-    const interval = setInterval(() => {
-      if (!cancelled) fetchPayments();
-    }, 30_000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
+    fetchPayments();
+    const interval = setInterval(fetchPayments, 30_000);
+    return () => clearInterval(interval);
   }, []);
 
-  // ── Actions ─────────────────────────────────────────────────
-  const showToast = (type: "success" | "error", msg: string) => {
-    setToast({ type, msg });
-    setTimeout(() => setToast(null), 3500);
-  };
-
-  const handleAction = async (
-    paymentId: string,
-    action: "confirm" | "reject",
-  ) => {
-    try {
-      const res = await fetch("/api/admin/payments", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentId, action }),
-      });
-      const json = await res.json();
-      if (json.ok) {
-        showToast(
-          "success",
-          action === "confirm"
-            ? "Paiement confirm\u00e9"
-            : "Paiement rejet\u00e9 + abonnement r\u00e9tabli",
-        );
-        await fetchPayments();
-      } else {
-        showToast("error", json.error || "Erreur");
-      }
-    } catch (e) {
-      showToast("error", e instanceof Error ? e.message : "Erreur r\u00e9seau");
-    } finally {
-    }
-  };
-
-  // ── Filtered list ───────────────────────────────────────────
   const filtered = useMemo(() => {
-    return payments.filter((p) => {
-      if (filter === "to_review") return isToReview(p);
-      if (filter === "confirmed") return isConfirmed(p);
-      if (filter === "rejected") return isRejected(p);
-      return true;
-    });
+    if (filter === "all") return payments;
+    return payments.filter((p) => p.status === filter);
   }, [payments, filter]);
 
-  const countByFilter = useMemo(() => {
-    return {
-      to_review: payments.filter(isToReview).length,
-      confirmed: payments.filter(isConfirmed).length,
-      rejected: payments.filter(isRejected).length,
-    };
+  const counts = useMemo(() => {
+    const c = { all: payments.length, success: 0, pending: 0, failed: 0 };
+    for (const p of payments) {
+      if (p.status === "success") c.success++;
+      else if (p.status === "pending") c.pending++;
+      else if (p.status === "failed") c.failed++;
+    }
+    return c;
   }, [payments]);
 
-  // ── Render ──────────────────────────────────────────────────
+  const totalRevenue = useMemo(
+    () => payments.filter((p) => p.status === "success").reduce((s, p) => s + p.amount, 0),
+    [payments],
+  );
+
   if (role !== "superadmin") return null;
 
   return (
     <main className="min-h-screen bg-stone-50 pb-20 md:pb-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
-        {/* Header */}
-        <div className="mb-5 flex items-start justify-between gap-3 flex-wrap animate-fade-in-up">
+        <div className="mb-5 flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">
               Paiements
             </h2>
             <p className="text-sm text-stone-500 mt-0.5">
-              V\u00e9rification et validation des paiements d\u00e9clar\u00e9s
+              Suivi des paiements via Genius Pay · 30 derniers jours
             </p>
           </div>
           <button
@@ -216,46 +121,40 @@ export default function AdminPaymentsPage() {
               setLoading(true);
               fetchPayments();
             }}
-            className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-all hover:scale-105 flex items-center gap-1.5 shadow-lg shadow-stone-900/10"
+            className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-all flex items-center gap-1.5 shadow-lg shadow-stone-900/10"
           >
-            <RefreshCw className="w-4 h-4" aria-hidden /> Actualiser
+            <RefreshCw className="w-4 h-4" /> Actualiser
           </button>
         </div>
 
-        {/* Filter tabs */}
+        {/* KPI */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+          <KpiCard label="Total reçu" value={formatFCFA(totalRevenue)} color="emerald" />
+          <KpiCard label="Payés" value={String(counts.success)} color="emerald" />
+          <KpiCard label="En attente" value={String(counts.pending)} color="amber" />
+          <KpiCard label="Échoués" value={String(counts.failed)} color="red" />
+        </div>
+
+        {/* Filters */}
         <div className="bg-white rounded-2xl border border-stone-200 p-3 mb-4 flex gap-1 overflow-x-auto">
           {FILTER_TABS.map((f) => (
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
               className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium transition-all flex items-center gap-1.5 ${
-                filter === f.key
-                  ? f.key === "to_review"
-                    ? "bg-amber-500 text-white"
-                    : f.key === "confirmed"
-                      ? "bg-emerald-600 text-white"
-                      : "bg-red-600 text-white"
-                  : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                filter === f.key ? f.color : "bg-stone-100 text-stone-600 hover:bg-stone-200"
               }`}
             >
-              {f.key === "to_review" && (
-                <Eye className="w-3.5 h-3.5" aria-hidden />
-              )}
-              {f.key === "confirmed" && (
-                <CheckCircle2 className="w-3.5 h-3.5" aria-hidden />
-              )}
-              {f.key === "rejected" && (
-                <XCircle className="w-3.5 h-3.5" aria-hidden />
-              )}
+              {f.key === "success" && <CheckCircle2 className="w-3.5 h-3.5" />}
+              {f.key === "pending" && <Clock className="w-3.5 h-3.5" />}
+              {f.key === "failed" && <XCircle className="w-3.5 h-3.5" />}
               {f.label}
               <span
                 className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 rounded-full text-[10px] font-bold px-1.5 ${
-                  filter === f.key
-                    ? "bg-white/20 text-white"
-                    : "bg-stone-200 text-stone-600"
+                  filter === f.key ? "bg-white/20 text-white" : "bg-stone-200 text-stone-600"
                 }`}
               >
-                {countByFilter[f.key]}
+                {counts[f.key]}
               </span>
             </button>
           ))}
@@ -268,182 +167,138 @@ export default function AdminPaymentsPage() {
             Chargement...
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-20 animate-fade-in-up">
+          <div className="text-center py-20">
             <div className="w-20 h-20 rounded-2xl bg-stone-100 flex items-center justify-center mx-auto mb-5">
-              <CreditCard className="w-10 h-10 text-stone-400" aria-hidden />
+              <CreditCard className="w-10 h-10 text-stone-400" />
             </div>
-            <h3 className="text-lg font-bold text-stone-900 mb-1">
-              Aucun paiement
-            </h3>
+            <h3 className="text-lg font-bold text-stone-900 mb-1">Aucun paiement</h3>
             <p className="text-sm text-stone-500">
-              {filter === "to_review"
-                ? "Aucun paiement en attente de v\u00e9rification."
-                : filter === "confirmed"
-                  ? "Aucun paiement confirm\u00e9 pour le moment."
-                  : "Aucun paiement rejet\u00e9."}
+              {filter === "all"
+                ? "Aucun paiement sur les 30 derniers jours."
+                : `Aucun paiement avec le statut "${FILTER_TABS.find((f) => f.key === filter)?.label}".`}
             </p>
           </div>
         ) : (
           <div className="grid gap-3">
-            {filtered.map((p, i) => {
-              const restaurantName =
-                p.restaurants?.name || "Restaurant inconnu";
-              const payerPhone = extractPayerPhone(p.provider_ref);
-              const needsAction = isToReview(p);
-
-              return (
-                <div
-                  key={p.id}
-                  className={`bg-white rounded-2xl border overflow-hidden animate-fade-in-up hover:shadow-md transition-shadow ${
-                    needsAction
-                      ? "border-amber-300 shadow-sm shadow-amber-100"
-                      : p.status === "failed"
-                        ? "border-red-200"
-                        : "border-stone-200"
-                  }`}
-                  style={{ animationDelay: `${i * 40}ms` }}
-                >
-                  <div className="p-4 sm:p-5">
-                    {/* Top row: restaurant + status */}
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-lg flex-shrink-0 shadow-sm ${
-                            needsAction
-                              ? "bg-gradient-to-br from-amber-400 to-amber-600 text-stone-950"
-                              : p.status === "failed"
-                                ? "bg-gradient-to-br from-red-400 to-red-600 text-white"
-                                : "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white"
-                          }`}
-                        >
-                          {restaurantName.charAt(0)}
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-bold text-stone-900 truncate">
-                            {restaurantName}
-                          </h3>
-                          <div className="text-xs text-stone-500 mt-0.5">
-                            <span className="font-mono">{p.reference}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <StatusBadge payment={p} />
-                    </div>
-
-                    {/* Details grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                      <Detail
-                        label="Montant"
-                        value={formatFCFA(p.amount)}
-                        bold
-                      />
-                      <Detail
-                        label="M\u00e9thode"
-                        value={METHOD_LABELS[p.method] || p.method}
-                      />
-                      {payerPhone && (
-                        <Detail
-                          label="T\u00e9l\u00e9phone payeur"
-                          value={payerPhone}
-                          icon={
-                            <Phone
-                              className="w-3 h-3 text-stone-400"
-                              aria-hidden
-                            />
-                          }
-                        />
-                      )}
-                      <Detail label="Date" value={formatDate(p.created_at)} />
-                    </div>
-
-                    {/* Actions */}
-                    {needsAction && (
-                      <div className="mt-4 pt-3 border-t border-stone-100 flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end">
-                        <button
-                          onClick={() => handleAction(p.id, "reject")}
-                          className="rounded-xl px-4 py-2.5 text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition-colors flex items-center gap-1.5"
-                        >
-                          <XCircle className="w-3.5 h-3.5" aria-hidden />
-                          Rejeter
-                        </button>
-                        <button
-                          onClick={() => handleAction(p.id, "confirm")}
-                          className="rounded-xl px-4 py-2.5 text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center gap-1.5"
-                        >
-                          <CheckCircle2
-                            className="w-3.5 h-3.5"
-                            aria-hidden
-                          />
-                          Confirmer
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {filtered.map((p, i) => (
+              <PaymentCard key={p.id} payment={p} index={i} />
+            ))}
           </div>
         )}
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <div
-          className={`fixed bottom-20 md:bottom-4 inset-x-4 md:inset-x-auto md:right-4 md:max-w-sm z-50 animate-fade-in-up rounded-2xl border shadow-xl backdrop-blur p-4 ${
-            toast.type === "success"
-              ? "bg-emerald-50/95 border-emerald-200 text-emerald-900"
-              : "bg-red-50/95 border-red-200 text-red-900"
-          }`}
-        >
-          <div className="flex items-start gap-2 text-sm">
-            {toast.type === "success" ? (
-              <Check className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
-            ) : (
-              <AlertTriangle
-                className="w-4 h-4 flex-shrink-0 mt-0.5"
-                aria-hidden
-              />
-            )}
-            <span className="flex-1">{toast.msg}</span>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
 
-// ── Sub-components ────────────────────────────────────────────────
+function PaymentCard({ payment: p, index }: { payment: PaymentRow; index: number }) {
+  const name = p.restaurants?.name || "Restaurant inconnu";
+  const geniusUrl = p.provider_ref && !p.provider_ref.startsWith("reviewed")
+    ? `https://pay.genius.ci/checkout/${p.provider_ref}`
+    : null;
 
-function StatusBadge({ payment }: { payment: PaymentRow }) {
-  if (isToReview(payment)) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-800">
-        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-        A v\u00e9rifier
-      </span>
-    );
-  }
-  if (isConfirmed(payment)) {
+  return (
+    <div
+      className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-shadow ${
+        p.status === "success"
+          ? "border-emerald-200"
+          : p.status === "pending"
+            ? "border-amber-300 shadow-sm shadow-amber-50"
+            : "border-red-200"
+      }`}
+      style={{ animationDelay: `${index * 30}ms` }}
+    >
+      <div className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 shadow-sm ${
+                p.status === "success"
+                  ? "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white"
+                  : p.status === "pending"
+                    ? "bg-gradient-to-br from-amber-400 to-amber-600 text-stone-950"
+                    : "bg-gradient-to-br from-red-400 to-red-600 text-white"
+              }`}
+            >
+              {name.charAt(0)}
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-bold text-stone-900 truncate">{name}</h3>
+              <span className="text-xs text-stone-500 font-mono">{p.reference}</span>
+            </div>
+          </div>
+          <StatusBadge status={p.status} />
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+          <Detail label="Montant" value={formatFCFA(p.amount)} bold />
+          <Detail label="Forfait" value={PLAN_LABELS[p.plan_key] || p.plan_key} />
+          <Detail label="Date" value={formatDate(p.created_at)} />
+          {p.status === "success" && p.new_expiry && (
+            <Detail label="Nouvelle expiration" value={formatDate(p.new_expiry)} />
+          )}
+        </div>
+
+        {geniusUrl && (
+          <div className="mt-3 pt-3 border-t border-stone-100">
+            <a
+              href={geniusUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-500 hover:text-stone-900 transition-colors"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Voir sur Genius Pay ({p.provider_ref})
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === "success") {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-800">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-        Confirm\u00e9
+        <Check className="w-3 h-3" /> Payé
       </span>
     );
   }
-  if (payment.status === "failed") {
+  if (status === "pending") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-800">
-        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-        Rejet\u00e9
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-800">
+        <Clock className="w-3 h-3" /> En attente
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[10px] font-semibold text-stone-600">
-      <Clock className="w-3 h-3" aria-hidden />
-      {payment.status}
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-800">
+      <XCircle className="w-3 h-3" /> Échoué
     </span>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: string;
+  color: "emerald" | "amber" | "red";
+}) {
+  const styles = {
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    amber: "bg-amber-50 text-amber-700 border-amber-200",
+    red: "bg-red-50 text-red-700 border-red-200",
+  };
+  return (
+    <div className={`rounded-2xl border p-4 ${styles[color]}`}>
+      <div className="text-[10px] font-semibold uppercase tracking-wider opacity-70 mb-1">
+        {label}
+      </div>
+      <div className="text-lg font-bold">{value}</div>
+    </div>
   );
 }
 
@@ -451,24 +306,17 @@ function Detail({
   label,
   value,
   bold,
-  icon,
 }: {
   label: string;
   value: string;
   bold?: boolean;
-  icon?: React.ReactNode;
 }) {
   return (
     <div>
       <div className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-0.5">
         {label}
       </div>
-      <div
-        className={`text-stone-700 flex items-center gap-1 ${bold ? "font-bold" : ""}`}
-      >
-        {icon}
-        {value}
-      </div>
+      <div className={`text-stone-700 ${bold ? "font-bold" : ""}`}>{value}</div>
     </div>
   );
 }
