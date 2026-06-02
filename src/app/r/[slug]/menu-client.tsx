@@ -265,19 +265,28 @@ function ProductCard({
 }) {
   const disabled = !product.available || product.stockQuantity <= 0;
   return (
-    <div className={`group relative bg-white rounded-2xl p-3 flex gap-4 items-center border border-stone-200/80 transition-all ${disabled ? "opacity-60" : "hover:border-stone-300 hover:shadow-md hover:shadow-stone-900/5"}`}>
-      {product.imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={product.imageUrl}
-          alt={product.name}
-          className={`w-24 h-24 rounded-xl object-cover flex-shrink-0 bg-stone-100 ${disabled ? "grayscale" : ""}`}
-        />
-      ) : (
-        <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-stone-100 to-stone-200 flex-shrink-0 flex items-center justify-center text-stone-400">
-          <UtensilsCrossed className="w-8 h-8" aria-hidden />
-        </div>
-      )}
+    <div className={`group relative bg-white rounded-2xl p-3 flex gap-4 items-center border transition-all ${disabled ? "border-stone-200/50" : "border-stone-200/80 hover:border-stone-300 hover:shadow-md hover:shadow-stone-900/5"}`}>
+      <div className="relative flex-shrink-0">
+        {product.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className={`w-24 h-24 rounded-xl object-cover bg-stone-100 ${disabled ? "opacity-50" : ""}`}
+          />
+        ) : (
+          <div className={`w-24 h-24 rounded-xl bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center text-stone-400 ${disabled ? "opacity-50" : ""}`}>
+            <UtensilsCrossed className="w-8 h-8" aria-hidden />
+          </div>
+        )}
+        {disabled && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="bg-black/60 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full backdrop-blur-sm">
+              Épuisé
+            </span>
+          </div>
+        )}
+      </div>
       <div className="flex-1 min-w-0 py-1">
         <div className="font-semibold text-stone-900 truncate">
           {product.name}
@@ -285,18 +294,11 @@ function ProductCard({
         <div className="mt-1 text-sm font-semibold text-stone-700">
           {formatFCFA(product.price)}
         </div>
-        {disabled ? (
-          <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-red-600">
-            <span className="w-1 h-1 rounded-full bg-red-500" />
-            Indisponible
+        {!disabled && product.stockQuantity > 0 && product.stockQuantity <= 5 && (
+          <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-amber-700">
+            <span className="w-1 h-1 rounded-full bg-amber-500" />
+            Plus que {product.stockQuantity}
           </div>
-        ) : (
-          product.stockQuantity <= 5 && (
-            <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-amber-700">
-              <span className="w-1 h-1 rounded-full bg-amber-500" />
-              Plus que {product.stockQuantity}
-            </div>
-          )
         )}
       </div>
       <button
