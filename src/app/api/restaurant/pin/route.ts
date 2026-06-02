@@ -33,7 +33,60 @@ export async function GET(req: NextRequest) {
     .eq("id", restaurantId)
     .maybeSingle();
 
-  return NextResponse.json({ ok: true, pin: data?.pin || null });
+  return NextResponse.json({ ok: true, hasPin: !!data?.pin });
+}
+
+export async function PUT(req: NextRequest) {
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
+  const body = await req.json().catch(() => null);
+  if (!body) {
+    return NextResponse.json(
+      { ok: false, error: "Corps JSON invalide" },
+      { status: 400 },
+    );
+  }
+
+  const { restaurantId, pin } = body as {
+    restaurantId?: string;
+    pin?: string;
+  };
+
+  const targetId = restaurantId || auth.ctx.restaurantId;
+  if (!targetId) {
+    return NextResponse.json(
+      { ok: false, error: "Restaurant introuvable" },
+      { status: 400 },
+    );
+  }
+
+  const isOwner =
+    auth.ctx.role === "owner" && auth.ctx.restaurantId === targetId;
+  const isSuperadmin = auth.ctx.role === "superadmin";
+  if (!isOwner && !isSuperadmin) {
+    return NextResponse.json(
+      { ok: false, error: "Accès refusé" },
+      { status: 403 },
+    );
+  }
+
+  if (!pin || typeof pin !== "string" || !/^\d{4}$/.test(pin)) {
+    return NextResponse.json(
+      { ok: false, error: "PIN invalide" },
+      { status: 400 },
+    );
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
+    .from("restaurants")
+    .select("pin")
+    .eq("id", targetId)
+    .maybeSingle();
+
+  const valid = data?.pin === pin;
+  return NextResponse.json({ ok: true, valid });
 }
 
 export async function POST(req: NextRequest) {

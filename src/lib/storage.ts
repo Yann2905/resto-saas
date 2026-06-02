@@ -1,18 +1,10 @@
 "use client";
 
-import { supabase } from "./supabase";
-
-const BUCKET = "products";
-
-// Redimensionne + compresse une image côté navigateur (Canvas).
-// Une photo 5 Mo de smartphone passe à ~200 Ko avec une qualité visuellement
-// identique : upload 10-20× plus rapide.
 async function compressImage(
   file: File,
   maxDim = 1280,
   quality = 0.85
 ): Promise<Blob> {
-  // Si l'image est déjà petite et légère, on ne perd pas de temps.
   if (file.size < 200 * 1024 && /\.(jpe?g|webp)$/i.test(file.name)) {
     return file;
   }
@@ -59,54 +51,41 @@ async function compressImage(
   });
 }
 
+async function uploadToCloudinary(file: File | Blob, folder: string): Promise<string> {
+  const formData = new FormData();
+  const blob = file instanceof File ? file : new File([file], "image.jpg", { type: "image/jpeg" });
+  formData.append("file", blob);
+  formData.append("folder", folder);
+
+  const res = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || "Erreur upload image");
+  }
+  return data.url;
+}
+
 export async function uploadProductImage(
   restaurantId: string,
   file: File
 ): Promise<string> {
   const blob = await compressImage(file, 1280, 0.85);
-
-  const fileName = `${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2, 8)}.jpg`;
-  const path = `${restaurantId}/${fileName}`;
-
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, blob, { contentType: "image/jpeg", upsert: false });
-
-  if (error) throw error;
-
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  return uploadToCloudinary(blob, `products/${restaurantId}`);
 }
 
-export async function deleteProductImage(url: string): Promise<void> {
-  if (!url) return;
-  try {
-    const marker = `/storage/v1/object/public/${BUCKET}/`;
-    const idx = url.indexOf(marker);
-    if (idx === -1) return;
-    const path = decodeURIComponent(url.substring(idx + marker.length));
-    await supabase.storage.from(BUCKET).remove([path]);
-  } catch {
-    // silent
-  }
+export async function deleteProductImage(_url: string): Promise<void> {
+  // Cloudinary gère la suppression via le dashboard ou l'API admin.
+  // Les images non-référencées n'impactent pas le quota significativement.
 }
 
 export async function uploadLogo(
   restaurantId: string,
   file: File
 ): Promise<string> {
-  // Logos : plus petit (max 512px) car ils s'affichent en miniature.
   const blob = await compressImage(file, 512, 0.9);
-  const path = `${restaurantId}/logo.jpg`;
-
-  const { error } = await supabase.storage
-    .from("logos")
-    .upload(path, blob, { contentType: "image/jpeg", upsert: true });
-
-  if (error) throw error;
-
-  const { data } = supabase.storage.from("logos").getPublicUrl(path);
-  return `${data.publicUrl}?v=${Date.now()}`;
+  return uploadToCloudinary(blob, `logos/${restaurantId}`);
 }

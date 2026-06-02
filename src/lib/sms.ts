@@ -38,12 +38,19 @@ function normalizePhone(raw: string): string {
   return phone;
 }
 
+const SMS_DISABLED = true; // Désactivé en attendant la validation LeTexto
+
 export async function sendSms(params: {
   phone: string;
   message: string;
   restaurantId: string;
   type: SmsType;
 }): Promise<SendSmsResult> {
+  if (SMS_DISABLED) {
+    console.log("[SMS] Désactivé temporairement. Message non envoyé à", params.phone);
+    return { ok: true };
+  }
+
   const { phone: rawPhone, message, restaurantId, type } = params;
   const phone = normalizePhone(rawPhone);
 

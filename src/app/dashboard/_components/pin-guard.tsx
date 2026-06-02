@@ -12,7 +12,8 @@ export default function PinGuard({ children }: { children: React.ReactNode }) {
   const [pin, setPin] = useState(["", "", "", ""]);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [restaurantPin, setRestaurantPin] = useState<string | null>(null);
+  const [hasPin, setHasPin] = useState(false);
+  const [checking, setChecking] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -22,8 +23,8 @@ export default function PinGuard({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch(`/api/restaurant/pin?restaurantId=${restaurant.id}`);
         const data = await res.json();
-        if (data.ok && data.pin) {
-          setRestaurantPin(data.pin);
+        if (data.ok && data.hasPin) {
+          setHasPin(true);
           const alreadyVerified = sessionStorage.getItem(SESSION_KEY) === restaurant.id;
           setVerified(alreadyVerified);
         } else {
@@ -38,6 +39,32 @@ export default function PinGuard({ children }: { children: React.ReactNode }) {
     fetchPin();
   }, [restaurant]);
 
+  const verifyPin = async (entered: string) => {
+    if (!restaurant || checking) return;
+    setChecking(true);
+    try {
+      const res = await fetch("/api/restaurant/pin", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurantId: restaurant.id, pin: entered }),
+      });
+      const data = await res.json();
+      if (data.ok && data.valid) {
+        setVerified(true);
+        sessionStorage.setItem(SESSION_KEY, restaurant.id);
+      } else {
+        setError(true);
+        setPin(["", "", "", ""]);
+        setTimeout(() => inputRefs.current[0]?.focus(), 150);
+      }
+    } catch {
+      setError(true);
+      setPin(["", "", "", ""]);
+      setTimeout(() => inputRefs.current[0]?.focus(), 150);
+    }
+    setChecking(false);
+  };
+
   const handleDigit = (index: number, value: string) => {
     if (!/^\d?$/.test(value)) return;
     const newPin = [...pin];
@@ -50,17 +77,7 @@ export default function PinGuard({ children }: { children: React.ReactNode }) {
     }
 
     if (index === 3 && value) {
-      const entered = newPin.join("");
-      if (entered === restaurantPin) {
-        setVerified(true);
-        if (restaurant) {
-          sessionStorage.setItem(SESSION_KEY, restaurant.id);
-        }
-      } else {
-        setError(true);
-        setPin(["", "", "", ""]);
-        setTimeout(() => inputRefs.current[0]?.focus(), 150);
-      }
+      verifyPin(newPin.join(""));
     }
   };
 
@@ -74,18 +91,8 @@ export default function PinGuard({ children }: { children: React.ReactNode }) {
     e.preventDefault();
     const text = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 4);
     if (text.length === 4) {
-      const newPin = text.split("");
-      setPin(newPin);
-      if (newPin.join("") === restaurantPin) {
-        setVerified(true);
-        if (restaurant) {
-          sessionStorage.setItem(SESSION_KEY, restaurant.id);
-        }
-      } else {
-        setError(true);
-        setPin(["", "", "", ""]);
-        setTimeout(() => inputRefs.current[0]?.focus(), 150);
-      }
+      setPin(text.split(""));
+      verifyPin(text);
     }
   };
 
@@ -127,17 +134,25 @@ export default function PinGuard({ children }: { children: React.ReactNode }) {
                 onChange={(e) => handleDigit(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
                 autoFocus={i === 0}
-                className={`w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-900/10 ${
+                disabled={checking}
+                className={`w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-900/10 disabled:opacity-50 ${
                   error
-                    ? "border-red-400 bg-red-50 text-red-700 animate-shake"
+                    ? "border-red-400 bg-red-50 text-red-700"
                     : "border-stone-300 bg-stone-50 text-stone-900 focus:border-stone-900"
                 }`}
               />
             ))}
           </div>
 
-          {error && (
-            <p className="text-sm text-red-600 flex items-center justify-center gap-1.5 animate-fade-in-up">
+          {checking && (
+            <div className="flex items-center justify-center gap-2 text-sm text-stone-500">
+              <span className="w-3.5 h-3.5 border-2 border-stone-300 border-t-stone-700 rounded-full animate-spin" />
+              Vérification…
+            </div>
+          )}
+
+          {error && !checking && (
+            <p className="text-sm text-red-600 flex items-center justify-center gap-1.5">
               <X className="w-4 h-4" /> Code incorrect
             </p>
           )}

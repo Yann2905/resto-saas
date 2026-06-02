@@ -302,11 +302,11 @@ function PinSection({
   setToast: (v: string | null) => void;
 }) {
   const [pin, setPin] = useState(["", "", "", ""]);
-  const [currentPin, setCurrentPin] = useState<string | null>(null);
   const [hasPin, setHasPin] = useState(false);
   const [loadingPin, setLoadingPin] = useState(true);
   const [mode, setMode] = useState<PinMode>("idle");
   const [error, setError] = useState(false);
+  const [checking, setChecking] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -314,8 +314,7 @@ function PinSection({
       try {
         const res = await fetch(`/api/restaurant/pin?restaurantId=${restaurant.id}`);
         const data = await res.json();
-        if (data.ok && data.pin) {
-          setCurrentPin(data.pin);
+        if (data.ok && data.hasPin) {
           setHasPin(true);
         }
       } catch {
@@ -332,8 +331,22 @@ function PinSection({
     setTimeout(() => inputRefs.current[0]?.focus(), 100);
   };
 
+  const verifyPinServer = async (entered: string): Promise<boolean> => {
+    try {
+      const res = await fetch("/api/restaurant/pin", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurantId: restaurant.id, pin: entered }),
+      });
+      const data = await res.json();
+      return data.ok && data.valid;
+    } catch {
+      return false;
+    }
+  };
+
   const handleDigit = (index: number, value: string) => {
-    if (!/^\d?$/.test(value)) return;
+    if (!/^\d?$/.test(value) || checking) return;
     const newPin = [...pin];
     newPin[index] = value;
     setPin(newPin);
@@ -347,24 +360,32 @@ function PinSection({
       const entered = newPin.join("");
 
       if (mode === "verify_to_delete") {
-        if (entered === currentPin) {
-          doRemovePin();
-        } else {
-          setError(true);
-          setPin(["", "", "", ""]);
-          setTimeout(() => inputRefs.current[0]?.focus(), 150);
-        }
+        setChecking(true);
+        verifyPinServer(entered).then((valid) => {
+          if (valid) {
+            doRemovePin();
+          } else {
+            setError(true);
+            setPin(["", "", "", ""]);
+            setTimeout(() => inputRefs.current[0]?.focus(), 150);
+          }
+          setChecking(false);
+        });
       } else if (mode === "verify_to_change") {
-        if (entered === currentPin) {
-          setMode("set_new");
-          setPin(["", "", "", ""]);
-          setError(false);
-          setTimeout(() => inputRefs.current[0]?.focus(), 150);
-        } else {
-          setError(true);
-          setPin(["", "", "", ""]);
-          setTimeout(() => inputRefs.current[0]?.focus(), 150);
-        }
+        setChecking(true);
+        verifyPinServer(entered).then((valid) => {
+          if (valid) {
+            setMode("set_new");
+            setPin(["", "", "", ""]);
+            setError(false);
+            setTimeout(() => inputRefs.current[0]?.focus(), 150);
+          } else {
+            setError(true);
+            setPin(["", "", "", ""]);
+            setTimeout(() => inputRefs.current[0]?.focus(), 150);
+          }
+          setChecking(false);
+        });
       } else if (mode === "set_new") {
         doSavePin(entered);
       }
@@ -390,12 +411,12 @@ function PinSection({
       });
       const data = await res.json();
       if (data.ok) {
-        setCurrentPin(newPin);
+        const wasNew = !hasPin;
         setHasPin(true);
         setMode("idle");
         resetInputs();
         sessionStorage.removeItem("resto-saas:pin-ok");
-        setToast(hasPin ? "Code PIN modifié" : "Code PIN activé");
+        setToast(wasNew ? "Code PIN activé" : "Code PIN modifié");
         setTimeout(() => setToast(null), 2500);
       } else {
         setToast(data.error || "Erreur");
@@ -416,7 +437,6 @@ function PinSection({
       });
       const data = await res.json();
       if (data.ok) {
-        setCurrentPin(null);
         setHasPin(false);
         setMode("idle");
         resetInputs();

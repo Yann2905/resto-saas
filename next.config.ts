@@ -21,7 +21,7 @@ const cspDirectives = [
   // 'unsafe-inline' nécessaire pour Tailwind v4 + styled-jsx.
   "style-src 'self' 'unsafe-inline'",
   // images : self + data URIs + blobs + Supabase Storage.
-  `img-src 'self' data: blob: ${supabaseOrigin}`.trim(),
+  `img-src 'self' data: blob: ${supabaseOrigin} https://res.cloudinary.com`.trim(),
   "font-src 'self' data:",
   // API + WebSocket realtime Supabase
   `connect-src 'self' ${supabaseOrigin} ${supabaseWs}`.trim(),

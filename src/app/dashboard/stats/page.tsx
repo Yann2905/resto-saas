@@ -8,9 +8,10 @@ import { Wallet, Receipt, Target, Calendar, ChevronDown } from "lucide-react";
 import { formatCompactFCFA, formatFCFA } from "@/lib/format";
 import type { DayRevenue, PeakHour, StatsSummary, TopProduct } from "@/lib/stats";
 
-type Range = "7d" | "14d" | "30d" | "all";
+type Range = "today" | "7d" | "14d" | "30d" | "all";
 
 const RANGE_LABELS: Record<Range, string> = {
+  today: "Aujourd'hui",
   "7d": "7 jours",
   "14d": "14 jours",
   "30d": "30 jours",
@@ -32,6 +33,9 @@ function endOfDay(d: Date): Date {
 function rangeDates(r: Range): { from: Date; to: Date; days: number } {
   const to = endOfDay(new Date());
   const from = new Date(to);
+  if (r === "today") {
+    return { from: startOfDay(new Date()), to, days: 1 };
+  }
   if (r === "7d") {
     from.setDate(from.getDate() - 6);
     return { from: startOfDay(from), to, days: 7 };
@@ -47,6 +51,11 @@ function rangeDates(r: Range): { from: Date; to: Date; days: number } {
   // all : 1 an en arrière
   from.setFullYear(from.getFullYear() - 1);
   return { from: startOfDay(from), to, days: 30 };
+}
+
+function dayDates(dateStr: string): { from: Date; to: Date; days: number } {
+  const d = new Date(dateStr);
+  return { from: startOfDay(d), to: endOfDay(d), days: 1 };
 }
 
 // monthKey : "YYYY-MM"
@@ -75,9 +84,9 @@ function lastNMonths(n = 12): Array<{ key: string; label: string }> {
 
 export default function StatsPage() {
   const { user, restaurant, role, loading } = useAuth();
-  // Mode "range" (7d/14d/30d/all) ou "month" (un mois précis)
-  const [range, setRange] = useState<Range>("14d");
-  const [month, setMonth] = useState<string>(""); // "" = mode range
+  const [range, setRange] = useState<Range>("today");
+  const [month, setMonth] = useState<string>("");
+  const [specificDay, setSpecificDay] = useState<string>("");
   const [summary, setSummary] = useState<StatsSummary | null>(null);
   const [byDay, setByDay] = useState<DayRevenue[]>([]);
   const [top, setTop] = useState<TopProduct[]>([]);
@@ -96,9 +105,11 @@ export default function StatsPage() {
     if (!restaurantId) return;
     let cancelled = false;
 
-    const { from, to, days } = month
-      ? { ...monthRange(month), days: 0 }
-      : rangeDates(range);
+    const { from, to, days } = specificDay
+      ? dayDates(specificDay)
+      : month
+        ? { ...monthRange(month), days: 0 }
+        : rangeDates(range);
 
     setFetching(true);
 
@@ -107,7 +118,7 @@ export default function StatsPage() {
       from: from.toISOString(),
       to: to.toISOString(),
       days: String(days),
-      mode: month ? "month" : "range",
+      mode: specificDay ? "day" : month ? "month" : "range",
     });
 
     fetch(`/api/stats?${params}`)
@@ -147,11 +158,18 @@ export default function StatsPage() {
     return () => {
       cancelled = true;
     };
-  }, [restaurantId, range, month]);
+  }, [restaurantId, range, month, specificDay]);
 
-  const periodLabel = month
-    ? months.find((m) => m.key === month)?.label ?? month
-    : RANGE_LABELS[range];
+  const periodLabel = specificDay
+    ? new Date(specificDay).toLocaleDateString("fr-FR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+    : month
+      ? months.find((m) => m.key === month)?.label ?? month
+      : RANGE_LABELS[range];
 
   if (loading || !restaurant) {
     return (
@@ -179,15 +197,16 @@ export default function StatsPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Toggles relatifs : 7j / 14j / 30j / Tout */}
+            {/* Toggles : Aujourd'hui / 7j / 14j / 30j / Tout */}
             <div className="flex gap-1 bg-white border border-stone-200 rounded-full p-1">
               {(Object.keys(RANGE_LABELS) as Range[]).map((r) => {
-                const active = !month && range === r;
+                const active = !month && !specificDay && range === r;
                 return (
                   <button
                     key={r}
                     onClick={() => {
                       setMonth("");
+                      setSpecificDay("");
                       setRange(r);
                     }}
                     className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
@@ -202,17 +221,45 @@ export default function StatsPage() {
               })}
             </div>
 
+            {/* Jour précis */}
+            <div className="relative">
+              <input
+                type="date"
+                value={specificDay}
+                max={new Date().toISOString().split("T")[0]}
+                onChange={(e) => {
+                  setSpecificDay(e.target.value);
+                  setMonth("");
+                }}
+                className={`rounded-full pl-9 pr-3 py-2 text-xs font-semibold border transition-all cursor-pointer ${
+                  specificDay
+                    ? "bg-stone-900 text-white border-stone-900"
+                    : "bg-white text-stone-700 border-stone-200 hover:bg-stone-50"
+                }`}
+              />
+              <Calendar
+                className={`pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 ${
+                  specificDay ? "text-white" : "text-stone-500"
+                }`}
+                aria-hidden
+              />
+            </div>
+
+            {/* Mois précis */}
             <div className="relative">
               <select
                 value={month}
-                onChange={(e) => setMonth(e.target.value)}
+                onChange={(e) => {
+                  setMonth(e.target.value);
+                  setSpecificDay("");
+                }}
                 className={`appearance-none rounded-full pl-9 pr-9 py-2 text-xs font-semibold border transition-all cursor-pointer ${
                   month
                     ? "bg-stone-900 text-white border-stone-900"
                     : "bg-white text-stone-700 border-stone-200 hover:bg-stone-50"
                 }`}
               >
-                <option value="">— Choisir un mois —</option>
+                <option value="">— Mois —</option>
                 {months.map((m) => (
                   <option key={m.key} value={m.key}>
                     {m.label}
@@ -233,12 +280,14 @@ export default function StatsPage() {
               />
             </div>
 
-            {month && (
+            {(month || specificDay) && (
               <button
-                onClick={() => setMonth("")}
+                onClick={() => {
+                  setMonth("");
+                  setSpecificDay("");
+                  setRange("today");
+                }}
                 className="rounded-full px-3 py-1.5 text-xs font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors"
-                title="Revenir à une période relative"
-                aria-label="Effacer la sélection du mois"
               >
                 Effacer
               </button>
