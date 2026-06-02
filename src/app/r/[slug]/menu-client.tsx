@@ -263,7 +263,7 @@ function ProductCard({
   onAdd: () => void;
   justAdded: boolean;
 }) {
-  const disabled = !product.available || product.stockQuantity <= 0;
+  const disabled = !product.available;
   return (
     <div className="group relative bg-white rounded-2xl p-3 flex gap-4 items-center border border-stone-200/80 hover:border-stone-300 hover:shadow-md hover:shadow-stone-900/5 transition-all">
       {product.imageUrl ? (
