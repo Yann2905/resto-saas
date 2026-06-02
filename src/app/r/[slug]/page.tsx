@@ -24,12 +24,22 @@ export default async function RestaurantMenuPage({
 
   if (!isSubscriptionActive(restaurant)) {
     return (
-      <main className="min-h-screen flex items-center justify-center p-6 text-center">
-        <div>
-          <h1 className="text-2xl font-bold mb-2">Service indisponible</h1>
-          <p className="text-gray-600">
-            Ce restaurant est temporairement indisponible.
+      <main className="min-h-screen flex items-center justify-center p-6 bg-stone-50">
+        <div className="max-w-sm text-center">
+          <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">🍽️</span>
+          </div>
+          <h1 className="text-xl font-bold text-stone-900 mb-2">
+            Commande en ligne indisponible
+          </h1>
+          <p className="text-sm text-stone-600 mb-4">
+            Le service de commande en ligne de{" "}
+            <span className="font-semibold">{restaurant.name}</span>{" "}
+            est temporairement suspendu.
           </p>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            Veuillez appeler un serveur pour passer votre commande. Merci de votre compréhension.
+          </div>
         </div>
       </main>
     );

@@ -530,7 +530,9 @@ function CreateForm({
       phone: form.phone,
       ownerEmail: form.ownerEmail,
       ownerPassword: form.ownerPassword,
-      subscriptionExpiresAt: form.expiry ? new Date(form.expiry) : null,
+      subscriptionExpiresAt: form.expiry
+        ? new Date(form.expiry)
+        : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
     });
     if (ok) {
       setForm({
@@ -590,7 +592,7 @@ function CreateForm({
             className="input"
           />
         </Field>
-        <Field label="Expiration abonnement (optionnel)">
+        <Field label="Expiration (14j gratuits si vide)">
           <input
             type="date"
             value={form.expiry}

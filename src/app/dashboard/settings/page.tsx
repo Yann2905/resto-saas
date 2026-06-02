@@ -206,6 +206,11 @@ function SubscriptionSection({
         day: "2-digit",
         month: "long",
         year: "numeric",
+      }) +
+      " à " +
+      new Date(restaurant.subscriptionExpiresAt).toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
       })
     : "Non définie";
 
