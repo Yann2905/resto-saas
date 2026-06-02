@@ -57,6 +57,8 @@ export const getProducts = unstable_cache(
       .from("products")
       .select("*")
       .eq("restaurant_id", restaurantId)
+      .eq("available", true)
+      .gt("stock_quantity", 0)
       .order("order", { ascending: true });
 
     if (error || !data) return [];
