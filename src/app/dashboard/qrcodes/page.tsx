@@ -19,6 +19,88 @@ const COLOR_THEMES = {
 type ThemeKey = keyof typeof COLOR_THEMES;
 
 
+type ThemeColors = (typeof COLOR_THEMES)[ThemeKey];
+
+const PRINT_HEAD = `<meta charset="utf-8"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&display=swap" rel="stylesheet"/>`;
+
+const PRINT_SCRIPT = `<script>window.addEventListener('load',function(){setTimeout(function(){window.print()},300)});</script>`;
+
+function buildFullHtml(name: string, th: ThemeColors, tables: number[], codes: Record<number, string>): string {
+  const pages = tables
+    .map((t) => {
+      const src = codes[t];
+      if (!src) return "";
+      return `<div class="page" style="background:${th.bg}">
+        <div class="card">
+          <div class="resto" style="color:${th.text}">${name}</div>
+          <div class="table-num" style="color:${th.text}">Table ${t}</div>
+          <img src="${src}" alt="QR table ${t}" />
+          <div class="scan" style="color:${th.text}">Scannez pour commander</div>
+        </div>
+      </div>`;
+    })
+    .join("\n");
+
+  return `<!DOCTYPE html><html lang="fr"><head>${PRINT_HEAD}
+<title>QR codes – ${name}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#fff;-webkit-font-smoothing:antialiased}
+.page{width:100%;height:100vh;display:flex;align-items:center;justify-content:center;page-break-after:always;break-after:page}
+.page:last-child{page-break-after:auto;break-after:auto}
+.card{width:80%;max-width:400px;border-radius:24px;padding:32px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.resto{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;margin-bottom:8px;opacity:0.85}
+.table-num{font-size:48px;font-weight:700;letter-spacing:-0.025em;margin-bottom:20px}
+img{width:100%;max-width:320px;aspect-ratio:1/1;border-radius:16px}
+.scan{font-size:14px;margin-top:16px;opacity:0.7;font-weight:500}
+@media print{body{padding:0}@page{margin:0;size:auto}.page{height:100vh}}
+</style></head><body>${pages}${PRINT_SCRIPT}</body></html>`;
+}
+
+function buildGridHtml(name: string, th: ThemeColors, tables: number[], codes: Record<number, string>): string {
+  const chunks: number[][] = [];
+  for (let i = 0; i < tables.length; i += 4) {
+    chunks.push(tables.slice(i, i + 4));
+  }
+
+  const pages = chunks
+    .map((chunk) => {
+      const cells = chunk
+        .map((t) => {
+          const src = codes[t];
+          if (!src) return `<div class="cell"></div>`;
+          return `<div class="cell" style="background:${th.bg};border:2px solid ${th.border}">
+            <div class="resto" style="color:${th.text}">${name}</div>
+            <div class="table-num" style="color:${th.text}">Table ${t}</div>
+            <img src="${src}" alt="QR table ${t}" />
+            <div class="scan" style="color:${th.text}">Scannez pour commander</div>
+          </div>`;
+        })
+        .join("\n");
+      return `<div class="page"><div class="grid">${cells}</div></div>`;
+    })
+    .join("\n");
+
+  return `<!DOCTYPE html><html lang="fr"><head>${PRINT_HEAD}
+<title>QR codes – ${name}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#fff;-webkit-font-smoothing:antialiased}
+.page{width:100%;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:12mm;page-break-after:always;break-after:page}
+.page:last-child{page-break-after:auto;break-after:auto}
+.grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:16px;width:100%;height:calc(100vh - 24mm)}
+.cell{border-radius:16px;padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.resto{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;margin-bottom:4px;opacity:0.85}
+.table-num{font-size:32px;font-weight:700;letter-spacing:-0.025em;margin-bottom:10px}
+img{width:100%;max-width:200px;aspect-ratio:1/1;border-radius:12px}
+.scan{font-size:10px;margin-top:8px;opacity:0.7;font-weight:500}
+@media print{body{padding:0}@page{margin:0;size:A4}.page{height:100vh;padding:10mm}}
+</style></head><body>${pages}${PRINT_SCRIPT}</body></html>`;
+}
+
 export default function QrCodesPage() {
   const { user, restaurant, role, loading } = useAuth();
   const [tableCount, setTableCount] = useState(10);
@@ -80,6 +162,7 @@ export default function QrCodesPage() {
   /* ── État de la modale export PDF ──────────────────────────── */
   const [showExport, setShowExport] = useState(false);
   const [theme, setTheme] = useState<ThemeKey>("blanc");
+  const [printFormat, setPrintFormat] = useState<"full" | "grid">("full");
   const [selectedTables, setSelectedTables] = useState<Set<number>>(
     () => new Set(Array.from({ length: tableCount }, (_, i) => i + 1))
   );
@@ -133,59 +216,9 @@ export default function QrCodesPage() {
     if (!restaurant || previewTables.length === 0) return;
     const th = COLOR_THEMES[theme];
 
-    // Un QR par page — format autocollant
-    const pagesHtml = previewTables
-      .map((t) => {
-        const src = themedCodes[t];
-        if (!src) return "";
-        return `
-      <div class="page" style="background:${th.bg}">
-        <div class="card">
-          <div class="resto" style="color:${th.text}">${restaurant.name}</div>
-          <div class="table-num" style="color:${th.text}">Table ${t}</div>
-          <img src="${src}" alt="QR table ${t}" />
-          <div class="scan" style="color:${th.text}">Scannez pour commander</div>
-        </div>
-      </div>`;
-      })
-      .join("\n");
-
-    const html = `<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="utf-8"/>
-<title>QR codes – ${restaurant.name}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&display=swap" rel="stylesheet"/>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-  background:#fff;-webkit-font-smoothing:antialiased}
-.page{width:100%;height:100vh;display:flex;align-items:center;justify-content:center;
-  page-break-after:always;break-after:page}
-.page:last-child{page-break-after:auto;break-after:auto}
-.card{width:80%;max-width:400px;border-radius:24px;padding:32px;display:flex;flex-direction:column;
-  align-items:center;text-align:center}
-.resto{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;
-  margin-bottom:8px;opacity:0.85}
-.table-num{font-size:48px;font-weight:700;letter-spacing:-0.025em;margin-bottom:20px}
-img{width:100%;max-width:320px;aspect-ratio:1/1;border-radius:16px}
-.scan{font-size:14px;margin-top:16px;opacity:0.7;font-weight:500}
-@media print{
-  body{padding:0}
-  @page{margin:0;size:auto}
-  .page{height:100vh}
-}
-</style>
-</head>
-<body>
-${pagesHtml}
-<script>
-window.addEventListener('load',function(){setTimeout(function(){window.print()},300)});
-</script>
-</body>
-</html>`;
+    const html = printFormat === "grid"
+      ? buildGridHtml(restaurant.name, th, previewTables, themedCodes)
+      : buildFullHtml(restaurant.name, th, previewTables, themedCodes);
 
     const w = window.open("", "_blank");
     if (w) {
@@ -387,14 +420,35 @@ window.addEventListener('load',function(){setTimeout(function(){window.print()},
                     </div>
                   </div>
 
-                  {/* Info format */}
+                  {/* Format */}
                   <div>
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 mb-2 block">
                       Format d&apos;impression
                     </span>
-                    <p className="text-sm text-stone-600">
-                      1 QR code par page — idéal pour autocollants
-                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setPrintFormat("full")}
+                        className={`flex-1 rounded-xl border-2 p-3 text-left transition-all ${
+                          printFormat === "full"
+                            ? "border-stone-900 bg-stone-50"
+                            : "border-stone-200 hover:border-stone-300"
+                        }`}
+                      >
+                        <div className="text-sm font-bold text-stone-900">1 par page</div>
+                        <div className="text-[11px] text-stone-500">Grand format, autocollant</div>
+                      </button>
+                      <button
+                        onClick={() => setPrintFormat("grid")}
+                        className={`flex-1 rounded-xl border-2 p-3 text-left transition-all ${
+                          printFormat === "grid"
+                            ? "border-stone-900 bg-stone-50"
+                            : "border-stone-200 hover:border-stone-300"
+                        }`}
+                      >
+                        <div className="text-sm font-bold text-stone-900">4 par page</div>
+                        <div className="text-[11px] text-stone-500">Économique, à découper</div>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
