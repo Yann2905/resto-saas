@@ -265,13 +265,13 @@ function ProductCard({
 }) {
   const disabled = !product.available || product.stockQuantity <= 0;
   return (
-    <div className="group relative bg-white rounded-2xl p-3 flex gap-4 items-center border border-stone-200/80 hover:border-stone-300 hover:shadow-md hover:shadow-stone-900/5 transition-all">
+    <div className={`group relative bg-white rounded-2xl p-3 flex gap-4 items-center border border-stone-200/80 transition-all ${disabled ? "opacity-60" : "hover:border-stone-300 hover:shadow-md hover:shadow-stone-900/5"}`}>
       {product.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={product.imageUrl}
           alt={product.name}
-          className="w-24 h-24 rounded-xl object-cover flex-shrink-0 bg-stone-100"
+          className={`w-24 h-24 rounded-xl object-cover flex-shrink-0 bg-stone-100 ${disabled ? "grayscale" : ""}`}
         />
       ) : (
         <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-stone-100 to-stone-200 flex-shrink-0 flex items-center justify-center text-stone-400">
