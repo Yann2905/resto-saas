@@ -19,6 +19,7 @@ create table public.restaurants (
   logo_url text,
   active boolean not null default true,
   subscription_expires_at timestamptz,
+  low_stock_threshold integer not null default 10,
   -- {"mon":{"open":"08:00","close":"22:00","closed":false}, ...}
   -- null = ouvert 24/7
   opening_hours jsonb,

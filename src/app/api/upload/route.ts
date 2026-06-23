@@ -1,14 +1,32 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/server-auth";
-import { createHmac } from "crypto";
+import { createHash } from "crypto";
 
 const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME!;
 const API_KEY = process.env.CLOUDINARY_API_KEY!;
 const API_SECRET = process.env.CLOUDINARY_API_SECRET!;
 
+function signCloudinaryUpload(params: Record<string, string>) {
+  const paramsToSign = Object.entries(params)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}=${value}`)
+    .join("&");
+
+  return createHash("sha1")
+    .update(`${paramsToSign}${API_SECRET}`)
+    .digest("hex");
+}
+
 export async function POST(request: Request) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+
+  if (!CLOUD_NAME || !API_KEY || !API_SECRET) {
+    return NextResponse.json(
+      { ok: false, error: "Configuration Cloudinary manquante" },
+      { status: 500 },
+    );
+  }
 
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
@@ -30,10 +48,7 @@ export async function POST(request: Request) {
   }
 
   const timestamp = Math.floor(Date.now() / 1000).toString();
-  const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
-  const signature = createHmac("sha256", API_SECRET)
-    .update(paramsToSign)
-    .digest("hex");
+  const signature = signCloudinaryUpload({ folder, timestamp });
 
   const cloudForm = new FormData();
   cloudForm.append("file", file);
