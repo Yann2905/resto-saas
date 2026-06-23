@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
     subscriptionExpiresAt?: unknown;
     openingHours?: unknown;
     logoUrl?: unknown;
+    lowStockThreshold?: unknown;
   } | null;
 
   if (!body) {
@@ -97,6 +98,16 @@ export async function POST(req: NextRequest) {
       );
     }
     update.opening_hours = body.openingHours as OpeningHours | null;
+  }
+  if (body.lowStockThreshold !== undefined) {
+    const val = Number(body.lowStockThreshold);
+    if (isNaN(val) || val < 0 || !Number.isInteger(val)) {
+      return NextResponse.json(
+        { ok: false, error: "Seuil de stock bas invalide" },
+        { status: 400 }
+      );
+    }
+    update.low_stock_threshold = val;
   }
 
   // Champs réservés au superadmin

@@ -98,3 +98,19 @@ export async function toastError(message: string): Promise<void> {
     },
   });
 }
+
+export async function alertLowStock(productName: string, quantity: number): Promise<void> {
+  await Swal.fire({
+    icon: "warning",
+    title: "Stock presque épuisé !",
+    html: `Le produit <strong class="text-stone-900 font-bold">${productName}</strong> n'a plus que <span class="text-amber-600 font-extrabold">${quantity}</span> unités en stock.`,
+    confirmButtonText: "Compris",
+    buttonsStyling: false,
+    customClass: {
+      popup: "!rounded-3xl !p-6 !shadow-2xl",
+      title: "!text-stone-900 !font-bold !text-xl !tracking-tight",
+      htmlContainer: "!text-stone-600 !text-sm !mt-2",
+      confirmButton: "!rounded-full !px-6 !py-2.5 !text-sm !font-semibold !bg-amber-500 hover:!bg-amber-600 !text-stone-950 !shadow-md",
+    },
+  });
+}

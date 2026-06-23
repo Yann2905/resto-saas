@@ -17,7 +17,7 @@ import {
   WEEK_LABELS,
   defaultOpeningHours,
 } from "@/lib/opening-hours";
-import { updateRestaurantHours } from "@/lib/admin";
+import { updateRestaurantHours, updateRestaurant } from "@/lib/admin";
 import type { DaySchedule, OpeningHours, WeekKey } from "@/types";
 
 export default function SettingsPage() {
@@ -25,6 +25,8 @@ export default function SettingsPage() {
   const [hours, setHours] = useState<OpeningHours>(defaultOpeningHours());
   const [alwaysOpen, setAlwaysOpen] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
+  const [lowStockThreshold, setLowStockThreshold] = useState(10);
+  const [savingThreshold, setSavingThreshold] = useState(false);
 
   useEffect(() => {
     if (!loading && !user && !role) window.location.href = "/dashboard/login";
@@ -34,6 +36,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!restaurant || restaurant.id === lastRestaurantId.current) return;
     lastRestaurantId.current = restaurant.id;
+    setLowStockThreshold(restaurant.lowStockThreshold ?? 10);
     if (restaurant.openingHours) {
       setHours(restaurant.openingHours);
       setAlwaysOpen(false);
@@ -56,6 +59,24 @@ export default function SettingsPage() {
     } catch (e) {
       setToast(e instanceof Error ? e.message : "Erreur");
       setTimeout(() => setToast(null), 3000);
+    }
+  };
+
+  const handleSaveThreshold = async () => {
+    if (!restaurant) return;
+    setSavingThreshold(true);
+    try {
+      await updateRestaurant({
+        restaurantId: restaurant.id,
+        lowStockThreshold,
+      });
+      setToast("Seuil d'alerte enregistré");
+      setTimeout(() => setToast(null), 2500);
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : "Erreur");
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setSavingThreshold(false);
     }
   };
 
@@ -163,6 +184,49 @@ export default function SettingsPage() {
           Astuce : les passages d'une journée à l'autre (ex : 18h → 02h) sont
           gérés automatiquement.
         </p>
+
+        {/* ── Section Alertes de Stock ─────────────────────────── */}
+        <section className="bg-white rounded-2xl border border-stone-200 p-5 mt-6">
+          <div className="mb-4">
+            <h3 className="font-bold text-stone-900 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              Alertes de stock bas
+            </h3>
+            <p className="text-xs text-stone-500 mt-0.5">
+              Configurez le seuil critique à partir duquel vous recevez une alerte de stock.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-semibold text-stone-700 mb-1">
+                Seuil d'alerte (en quantité)
+              </label>
+              <p className="text-xs text-stone-500">
+                Vous serez alerté par un signal sonore et un modal si un produit descend à ce nombre ou moins.
+              </p>
+            </div>
+            <div className="w-full sm:w-32">
+              <input
+                type="number"
+                min={0}
+                value={lowStockThreshold}
+                onChange={(e) => setLowStockThreshold(Math.max(0, parseInt(e.target.value) || 0))}
+                className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900 font-bold focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 flex justify-end">
+            <button
+              onClick={handleSaveThreshold}
+              disabled={savingThreshold}
+              className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors disabled:bg-stone-400"
+            >
+              {savingThreshold ? "Enregistrement..." : "Enregistrer le seuil"}
+            </button>
+          </div>
+        </section>
 
         {/* ── Section Code PIN ─────────────────────────────────── */}
         <PinSection restaurant={restaurant} setToast={setToast} />

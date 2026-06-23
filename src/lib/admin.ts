@@ -59,6 +59,7 @@ type UpdatePayload = {
   active?: boolean;
   subscriptionExpiresAt?: string | null;
   openingHours?: OpeningHours | null;
+  lowStockThreshold?: number;
 };
 
 export async function updateRestaurant(payload: UpdatePayload): Promise<void> {

@@ -1,39 +1,57 @@
 import { NextResponse } from "next/server";
+import { createSupabaseAdminClient } from "@/lib/supabase-admin";
 
-// Endpoint léger pour empêcher Vercel + Supabase de "geler".
-// À appeler toutes les 5 minutes depuis un cron externe (cron-job.org, etc.).
-// On fait un ping HEAD très bon marché vers Supabase (sans toucher la base)
-// pour garder le DNS/TLS et la lambda chauds.
-
-export const runtime = "edge"; // démarrage <100ms (vs Node ~500ms)
+// Endpoint pour empêcher Vercel + Supabase de se mettre en pause.
+// Ce script effectue une requête réelle sur la base de données.
+// À appeler régulièrement (ex: toutes les heures ou tous les jours) depuis un cron externe (cron-job.org, Vercel Crons, etc.).
 
 export async function GET() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  let supabaseOk = false;
-  let supabaseLatencyMs: number | null = null;
+  let authOk = false;
+  let dbOk = false;
+  let errorMsg: string | null = null;
+  let latencyMs: number | null = null;
 
   if (url) {
     const t0 = Date.now();
     try {
-      // /auth/v1/health est public et ultra-léger
+      // 1. Ping de l'API Auth (léger)
       const res = await fetch(`${url}/auth/v1/health`, {
         method: "GET",
         cache: "no-store",
       });
-      supabaseOk = res.ok;
-      supabaseLatencyMs = Date.now() - t0;
-    } catch {
-      supabaseOk = false;
+      authOk = res.ok;
+
+      // 2. Requête réelle en base de données pour générer de l'activité SQL (évite la mise en pause Supabase)
+      const admin = createSupabaseAdminClient();
+      const { error } = await admin
+        .from("restaurants")
+        .select("id")
+        .limit(1);
+
+      if (error) {
+        errorMsg = error.message;
+      } else {
+        dbOk = true;
+      }
+
+      latencyMs = Date.now() - t0;
+    } catch (err: any) {
+      errorMsg = err?.message || String(err);
     }
   }
 
   return NextResponse.json(
     {
-      ok: true,
+      ok: dbOk,
       ts: new Date().toISOString(),
-      runtime: "edge",
-      supabase: { ok: supabaseOk, latencyMs: supabaseLatencyMs },
+      auth: { ok: authOk },
+      database: { ok: dbOk, error: errorMsg },
+      latencyMs,
     },
-    { headers: { "Cache-Control": "no-store" } }
+    {
+      status: dbOk ? 200 : 500,
+      headers: { "Cache-Control": "no-store" },
+    }
   );
 }
