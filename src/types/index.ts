@@ -20,6 +20,8 @@ export type Restaurant = {
   openingHours: OpeningHours | null;
   createdAt: string; // ISO
   lowStockThreshold: number;
+  plan: "starter" | "pro" | "business";
+  planExpiresAt: string | null;
 };
 
 export type Category = {
@@ -149,6 +151,8 @@ export type RestaurantRow = {
   created_at: string;
   updated_at: string;
   low_stock_threshold: number;
+  plan?: string;
+  plan_expires_at?: string | null;
 };
 
 export type CategoryRow = {
@@ -238,6 +242,8 @@ export function mapRestaurant(r: RestaurantRow): Restaurant {
     openingHours: r.opening_hours,
     createdAt: r.created_at,
     lowStockThreshold: r.low_stock_threshold ?? 10,
+    plan: (r.plan as "starter" | "pro" | "business") ?? "starter",
+    planExpiresAt: r.plan_expires_at ?? null,
   };
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/server-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getPlanLimits } from "@/lib/plan-limits";
 
 /**
  * GET /api/staff — Liste les serveurs du restaurant
@@ -49,6 +50,14 @@ export async function POST(request: NextRequest) {
   if (!auth.ok) return auth.response;
   if (auth.ctx.role === "waiter") {
     return NextResponse.json({ ok: false, error: "Accès refusé" }, { status: 403 });
+  }
+
+  const limits = getPlanLimits(auth.ctx.plan);
+  if (!limits.waiters) {
+    return NextResponse.json(
+      { ok: false, error: "La gestion des serveurs nécessite le plan Pro ou Business" },
+      { status: 403 },
+    );
   }
 
   const restaurantId = auth.ctx.restaurantId;

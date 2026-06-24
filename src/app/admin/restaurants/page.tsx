@@ -145,7 +145,7 @@ export default function AdminRestaurantsPage() {
 
   const handleSaveEdit = async (
     r: Restaurant,
-    payload: { name: string; address: string; phone: string; expiry: string }
+    payload: { name: string; address: string; phone: string; expiry: string; plan: string }
   ) => {
 
     try {
@@ -158,6 +158,14 @@ export default function AdminRestaurantsPage() {
         r.id,
         payload.expiry ? new Date(payload.expiry) : null
       );
+      // Mise à jour du plan
+      if (payload.plan !== r.plan) {
+        await fetch("/api/admin/restaurants/plan", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ restaurantId: r.id, plan: payload.plan }),
+        });
+      }
       showToast("success", `« ${payload.name} » mis à jour`);
       setEditingId(null);
     } catch (e) {
@@ -368,14 +376,25 @@ function RestaurantRowView({
             <span className="font-mono">/{restaurant.slug}</span>
             {restaurant.address && <> · {restaurant.address}</>}
           </div>
-          <div className="mt-1 text-[11px] text-stone-500">
-            {expiry
-              ? `Expire le ${expiry.toLocaleDateString("fr-FR", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })}`
-              : "Sans date d'expiration"}
+          <div className="mt-1 flex items-center gap-2 flex-wrap">
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+              restaurant.plan === "business"
+                ? "bg-amber-100 text-amber-800"
+                : restaurant.plan === "pro"
+                ? "bg-blue-100 text-blue-800"
+                : "bg-stone-100 text-stone-600"
+            }`}>
+              {restaurant.plan ?? "starter"}
+            </span>
+            <span className="text-[11px] text-stone-500">
+              {expiry
+                ? `Expire le ${expiry.toLocaleDateString("fr-FR", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}`
+                : "Sans date d'expiration"}
+            </span>
           </div>
         </div>
       </div>
@@ -420,6 +439,7 @@ function EditForm({
     address: string;
     phone: string;
     expiry: string;
+    plan: string;
   }) => void;
 }) {
   const expiryIso = restaurant.subscriptionExpiresAt
@@ -430,6 +450,7 @@ function EditForm({
     address: restaurant.address ?? "",
     phone: restaurant.phone ?? "",
     expiry: expiryIso,
+    plan: restaurant.plan ?? "starter",
   });
 
   const submit = (e: React.FormEvent) => {
@@ -469,6 +490,17 @@ function EditForm({
             onChange={(e) => setForm({ ...form, expiry: e.target.value })}
             className="input"
           />
+        </Field>
+        <Field label="Plan">
+          <select
+            value={form.plan}
+            onChange={(e) => setForm({ ...form, plan: e.target.value as "starter" | "pro" | "business" })}
+            className="input"
+          >
+            <option value="starter">Starter (10 tables)</option>
+            <option value="pro">Pro (25 tables + serveurs)</option>
+            <option value="business">Business (illimité)</option>
+          </select>
         </Field>
       </div>
       <div className="mt-4 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">

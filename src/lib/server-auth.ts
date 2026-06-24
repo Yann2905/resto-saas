@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "./supabase-server";
 import { createSupabaseAdminClient } from "./supabase-admin";
+import { isPlanExpired } from "./plan-limits";
 
 export type AuthedContext = {
   userId: string;
@@ -8,6 +9,8 @@ export type AuthedContext = {
   restaurantId: string | null;
   displayName: string | null;
   assignedTables: number[];
+  plan: string;
+  planExpired: boolean;
 };
 
 export async function requireUser(): Promise<
@@ -46,6 +49,21 @@ export async function requireUser(): Promise<
     };
   }
 
+  let plan = "starter";
+  let planExpiresAt: string | null = null;
+
+  if (profile.restaurant_id) {
+    const { data: resto } = await admin
+      .from("restaurants")
+      .select("plan, plan_expires_at")
+      .eq("id", profile.restaurant_id)
+      .maybeSingle();
+    if (resto) {
+      plan = (resto.plan as string) ?? "starter";
+      planExpiresAt = (resto.plan_expires_at as string) ?? null;
+    }
+  }
+
   return {
     ok: true,
     ctx: {
@@ -54,6 +72,8 @@ export async function requireUser(): Promise<
       restaurantId: profile.restaurant_id as string | null,
       displayName: (profile.display_name as string) ?? null,
       assignedTables: (profile.assigned_tables as number[]) ?? [],
+      plan,
+      planExpired: isPlanExpired(planExpiresAt),
     },
   };
 }

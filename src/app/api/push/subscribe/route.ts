@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/server-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getPlanLimits } from "@/lib/plan-limits";
 
 /**
  * POST /api/push/subscribe — Enregistrer une subscription push
@@ -13,6 +14,14 @@ export async function POST(request: NextRequest) {
   const restaurantId = auth.ctx.restaurantId;
   if (!restaurantId) {
     return NextResponse.json({ ok: false, error: "Aucun restaurant" }, { status: 400 });
+  }
+
+  const limits = getPlanLimits(auth.ctx.plan);
+  if (!limits.pushNotifications) {
+    return NextResponse.json(
+      { ok: false, error: "Les notifications push nécessitent le plan Pro ou Business" },
+      { status: 403 },
+    );
   }
 
   let body: Record<string, unknown>;

@@ -103,7 +103,9 @@ img{width:100%;max-width:200px;aspect-ratio:1/1;border-radius:12px}
 
 export default function QrCodesPage() {
   const { user, restaurant, role, loading } = useAuth();
-  const [tableCount, setTableCount] = useState(10);
+
+  const maxTables = restaurant?.plan === "business" ? 999 : restaurant?.plan === "pro" ? 25 : 10;
+  const [tableCount, setTableCount] = useState(maxTables);
   const [baseUrl, setBaseUrl] = useState("");
   const [codes, setCodes] = useState<Record<number, string>>({});
 
@@ -288,19 +290,25 @@ export default function QrCodesPage() {
                   value={tableCount}
                   onChange={(e) =>
                     setTableCount(
-                      Math.max(1, Math.min(200, parseInt(e.target.value) || 1))
+                      Math.max(1, Math.min(maxTables, parseInt(e.target.value) || 1))
                     )
                   }
                   className="w-24 text-center rounded-lg border border-stone-300 px-3 py-2 text-lg font-semibold focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
                 />
                 <button
-                  onClick={() => setTableCount((n) => Math.min(200, n + 1))}
+                  onClick={() => setTableCount((n) => Math.min(maxTables, n + 1))}
                   className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 text-lg"
                 >
                   +
                 </button>
               </div>
             </label>
+            {tableCount >= maxTables && maxTables < 999 && (
+              <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+                Votre plan {restaurant?.plan === "pro" ? "Pro" : "Starter"} est limité à {maxTables} tables.
+                Passez au plan supérieur pour plus de tables.
+              </p>
+            )}
             <label className="block">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 mb-1.5 block">
                 URL de base

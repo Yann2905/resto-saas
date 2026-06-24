@@ -41,6 +41,31 @@ export default function TeamPage() {
     );
   }
 
+  if (restaurant && restaurant.plan === "starter") {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-6 bg-stone-50">
+        <div className="text-center max-w-md">
+          <Users className="w-12 h-12 text-stone-300 mx-auto mb-4" />
+          <h2 className="text-lg font-semibold text-stone-800 mb-2">
+            Gestion des serveurs
+          </h2>
+          <p className="text-stone-500 text-sm mb-4">
+            La gestion des serveurs est disponible à partir du plan Pro.
+            Contactez-nous sur WhatsApp pour passer au plan supérieur.
+          </p>
+          <a
+            href="https://wa.me/2250575343846?text=Bonjour%2C%20je%20souhaite%20passer%20au%20plan%20Pro."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-stone-900 text-white rounded-full px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors"
+          >
+            Passer au plan Pro
+          </a>
+        </div>
+      </main>
+    );
+  }
+
   const handleCreate = async () => {
     setCreating(true);
     try {

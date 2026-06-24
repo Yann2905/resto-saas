@@ -37,7 +37,11 @@ export default function DashboardNav() {
 
   if (pathname === "/dashboard/login" || (!user && !role) || !restaurant) return null;
 
-  const TABS = role === "waiter" ? WAITER_TABS : OWNER_TABS;
+  const plan = restaurant?.plan ?? "starter";
+  const ownerTabs = plan === "starter"
+    ? OWNER_TABS.filter((t) => t.href !== "/dashboard/team")
+    : OWNER_TABS;
+  const TABS = role === "waiter" ? WAITER_TABS : ownerTabs;
 
   const handleLogout = async () => {
     const ok = await confirmAction({
