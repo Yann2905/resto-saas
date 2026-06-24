@@ -69,7 +69,7 @@ export default function LoginPage() {
         window.location.replace(next);
       } else if (cache.role === "superadmin") {
         window.location.replace("/admin");
-      } else if (cache.role === "owner" && cache.restaurant) {
+      } else if ((cache.role === "owner" || cache.role === "waiter") && cache.restaurant) {
         window.location.replace("/dashboard/orders");
       }
     } catch {
@@ -147,7 +147,7 @@ export default function LoginPage() {
         return;
       }
 
-      if (profile?.role === "owner" && profile?.restaurant_id) {
+      if ((profile?.role === "owner" || profile?.role === "waiter") && profile?.restaurant_id) {
         // Restaurant via REST direct
         const r = await fetchRest<{
           id: string;
@@ -160,6 +160,9 @@ export default function LoginPage() {
           subscription_expires_at: string | null;
           opening_hours: unknown;
           created_at: string;
+          plan: string | null;
+          feature_overrides: unknown;
+          is_partner: boolean | null;
         }>(
           `restaurants?id=eq.${profile.restaurant_id}&select=*`,
           accessToken
@@ -177,6 +180,9 @@ export default function LoginPage() {
               subscriptionExpiresAt: r.subscription_expires_at,
               openingHours: r.opening_hours,
               createdAt: r.created_at,
+              plan: r.plan ?? "starter",
+              featureOverrides: r.feature_overrides ?? {},
+              isPartner: r.is_partner ?? false,
             }
           : null;
 
@@ -185,7 +191,7 @@ export default function LoginPage() {
             "resto-saas:auth-v1",
             JSON.stringify({
               userId: data.user.id,
-              role: "owner",
+              role: profile.role,
               restaurant: restaurantCache,
               ts: Date.now(),
             })
