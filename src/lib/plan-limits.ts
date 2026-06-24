@@ -9,6 +9,7 @@ export type FeatureOverrides = {
 
 type ResolvedLimits = {
   maxTables: number;
+  canChangeMaxTables: boolean;
   waiters: boolean;
   pushNotifications: boolean;
   fullStats: boolean;
@@ -18,20 +19,23 @@ type ResolvedLimits = {
 const PLAN_DEFAULTS: Record<Plan, ResolvedLimits> = {
   starter: {
     maxTables: 10,
+    canChangeMaxTables: false,
     waiters: false,
     pushNotifications: false,
     fullStats: false,
     label: "Starter",
   },
   pro: {
-    maxTables: 25,
+    maxTables: 10,
+    canChangeMaxTables: true,
     waiters: true,
     pushNotifications: true,
     fullStats: true,
     label: "Pro",
   },
   business: {
-    maxTables: 999,
+    maxTables: 10,
+    canChangeMaxTables: true,
     waiters: true,
     pushNotifications: true,
     fullStats: true,
@@ -45,7 +49,7 @@ export function getPlanLimits(
   isPartner?: boolean,
 ): ResolvedLimits {
   if (isPartner) {
-    return { ...PLAN_DEFAULTS.business, label: "Partenaire" };
+    return { ...PLAN_DEFAULTS.business, canChangeMaxTables: true, label: "Partenaire" };
   }
 
   const key = (plan ?? "starter") as Plan;
@@ -57,6 +61,7 @@ export function getPlanLimits(
 
   return {
     maxTables: overrides.maxTables ?? base.maxTables,
+    canChangeMaxTables: base.canChangeMaxTables,
     waiters: overrides.waiters ?? base.waiters,
     pushNotifications: overrides.pushNotifications ?? base.pushNotifications,
     fullStats: overrides.fullStats ?? base.fullStats,

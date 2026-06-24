@@ -105,9 +105,10 @@ export default function QrCodesPage() {
   const { user, restaurant, role, loading } = useAuth();
 
   const overrideMax = (restaurant?.featureOverrides as Record<string, unknown>)?.maxTables as number | undefined;
-  const maxTables = restaurant?.isPartner
-    ? 999
-    : overrideMax ?? (restaurant?.plan === "business" ? 999 : restaurant?.plan === "pro" ? 25 : 10);
+  const maxTables = overrideMax ?? 10;
+  const canChange = restaurant?.isPartner
+    || restaurant?.plan === "pro"
+    || restaurant?.plan === "business";
   const [tableCount, setTableCount] = useState(maxTables);
   const [baseUrl, setBaseUrl] = useState("");
   const [codes, setCodes] = useState<Record<number, string>>({});
@@ -282,7 +283,8 @@ export default function QrCodesPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setTableCount((n) => Math.max(1, n - 1))}
-                  className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 text-lg"
+                  disabled={!canChange}
+                  className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 text-lg disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   −
                 </button>
@@ -291,26 +293,31 @@ export default function QrCodesPage() {
                   min="1"
                   max="200"
                   value={tableCount}
+                  disabled={!canChange}
                   onChange={(e) =>
                     setTableCount(
-                      Math.max(1, Math.min(maxTables, parseInt(e.target.value) || 1))
+                      Math.max(1, Math.min(200, parseInt(e.target.value) || 1))
                     )
                   }
-                  className="w-24 text-center rounded-lg border border-stone-300 px-3 py-2 text-lg font-semibold focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+                  className="w-24 text-center rounded-lg border border-stone-300 px-3 py-2 text-lg font-semibold focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button
-                  onClick={() => setTableCount((n) => Math.min(maxTables, n + 1))}
-                  className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 text-lg"
+                  onClick={() => setTableCount((n) => Math.min(200, n + 1))}
+                  disabled={!canChange}
+                  className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 text-lg disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   +
                 </button>
               </div>
             </label>
-            {tableCount >= maxTables && maxTables < 999 && (
-              <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-                Votre plan {restaurant?.plan === "pro" ? "Pro" : "Starter"} est limité à {maxTables} tables.
-                Passez au plan supérieur pour plus de tables.
-              </p>
+            {!canChange && (
+              <div className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 flex items-start gap-2">
+                <span className="text-amber-500 text-base leading-none">🔒</span>
+                <span>
+                  Votre plan Starter est limité à {maxTables} tables fixes.
+                  Passez au plan Pro ou Business pour ajuster le nombre de tables.
+                </span>
+              </div>
             )}
             <label className="block">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 mb-1.5 block">

@@ -60,8 +60,8 @@ const FEATURES: {
 
 const PLAN_DEFAULTS: Record<string, Record<string, boolean | number>> = {
   starter: { waiters: false, pushNotifications: false, fullStats: false, maxTables: 10 },
-  pro: { waiters: true, pushNotifications: true, fullStats: true, maxTables: 25 },
-  business: { waiters: true, pushNotifications: true, fullStats: true, maxTables: 999 },
+  pro: { waiters: true, pushNotifications: true, fullStats: true, maxTables: 10 },
+  business: { waiters: true, pushNotifications: true, fullStats: true, maxTables: 10 },
 };
 
 export default function RestaurantDetailPage() {
