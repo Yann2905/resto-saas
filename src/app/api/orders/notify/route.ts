@@ -41,21 +41,31 @@ export async function POST(request: NextRequest) {
       url: "/dashboard/orders",
     };
 
-    if (order.assigned_to) {
-      const { data: owners } = await admin
-        .from("profiles")
-        .select("id")
-        .eq("restaurant_id", order.restaurant_id)
-        .eq("role", "owner");
+    // Toujours notifier le(s) owner(s)
+    const { data: owners } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("restaurant_id", order.restaurant_id)
+      .eq("role", "owner");
 
-      const pushTasks = [
-        sendPushToRestaurant(order.restaurant_id, { ...payload, body: `Total : ${total} FCFA — Glissez pour voir` }, order.assigned_to),
-        ...(owners ?? []).map((o) => sendPushToRestaurant(order.restaurant_id, payload, o.id)),
-      ];
-      await Promise.allSettled(pushTasks);
-    } else {
-      await sendPushToRestaurant(order.restaurant_id, payload);
+    const pushTasks = (owners ?? []).map((o) =>
+      sendPushToRestaurant(order.restaurant_id, payload, o.id)
+    );
+
+    if (order.assigned_to) {
+      // Notifier le serveur assigné (sa table)
+      pushTasks.push(
+        sendPushToRestaurant(
+          order.restaurant_id,
+          { ...payload, body: `Table ${order.table_number} · ${total} FCFA — Glissez pour voir` },
+          order.assigned_to,
+        )
+      );
     }
+    // Si aucun serveur assigné → seul le owner est notifié.
+    // Après 2 min sans acknowledge, le dashboard escalade automatiquement.
+
+    await Promise.allSettled(pushTasks);
   } catch (e) {
     console.error("[push] notify error:", e);
   }
