@@ -1,6 +1,13 @@
 export type Plan = "starter" | "pro" | "business";
 
-type PlanLimits = {
+export type FeatureOverrides = {
+  waiters?: boolean;
+  pushNotifications?: boolean;
+  fullStats?: boolean;
+  maxTables?: number;
+};
+
+type ResolvedLimits = {
   maxTables: number;
   waiters: boolean;
   pushNotifications: boolean;
@@ -8,7 +15,7 @@ type PlanLimits = {
   label: string;
 };
 
-const LIMITS: Record<Plan, PlanLimits> = {
+const PLAN_DEFAULTS: Record<Plan, ResolvedLimits> = {
   starter: {
     maxTables: 10,
     waiters: false,
@@ -32,9 +39,29 @@ const LIMITS: Record<Plan, PlanLimits> = {
   },
 };
 
-export function getPlanLimits(plan: string | null | undefined): PlanLimits {
+export function getPlanLimits(
+  plan: string | null | undefined,
+  overrides?: FeatureOverrides | null,
+  isPartner?: boolean,
+): ResolvedLimits {
+  if (isPartner) {
+    return { ...PLAN_DEFAULTS.business, label: "Partenaire" };
+  }
+
   const key = (plan ?? "starter") as Plan;
-  return LIMITS[key] ?? LIMITS.starter;
+  const base = PLAN_DEFAULTS[key] ?? PLAN_DEFAULTS.starter;
+
+  if (!overrides || Object.keys(overrides).length === 0) {
+    return base;
+  }
+
+  return {
+    maxTables: overrides.maxTables ?? base.maxTables,
+    waiters: overrides.waiters ?? base.waiters,
+    pushNotifications: overrides.pushNotifications ?? base.pushNotifications,
+    fullStats: overrides.fullStats ?? base.fullStats,
+    label: base.label,
+  };
 }
 
 export function isPlanExpired(expiresAt: string | null | undefined): boolean {

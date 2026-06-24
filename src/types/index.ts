@@ -22,6 +22,8 @@ export type Restaurant = {
   lowStockThreshold: number;
   plan: "starter" | "pro" | "business";
   planExpiresAt: string | null;
+  featureOverrides: Record<string, unknown>;
+  isPartner: boolean;
 };
 
 export type Category = {
@@ -153,6 +155,8 @@ export type RestaurantRow = {
   low_stock_threshold: number;
   plan?: string;
   plan_expires_at?: string | null;
+  feature_overrides?: Record<string, unknown>;
+  is_partner?: boolean;
 };
 
 export type CategoryRow = {
@@ -244,6 +248,8 @@ export function mapRestaurant(r: RestaurantRow): Restaurant {
     lowStockThreshold: r.low_stock_threshold ?? 10,
     plan: (r.plan as "starter" | "pro" | "business") ?? "starter",
     planExpiresAt: r.plan_expires_at ?? null,
+    featureOverrides: (r.feature_overrides as Record<string, unknown>) ?? {},
+    isPartner: r.is_partner ?? false,
   };
 }
 

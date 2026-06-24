@@ -104,7 +104,10 @@ img{width:100%;max-width:200px;aspect-ratio:1/1;border-radius:12px}
 export default function QrCodesPage() {
   const { user, restaurant, role, loading } = useAuth();
 
-  const maxTables = restaurant?.plan === "business" ? 999 : restaurant?.plan === "pro" ? 25 : 10;
+  const overrideMax = (restaurant?.featureOverrides as Record<string, unknown>)?.maxTables as number | undefined;
+  const maxTables = restaurant?.isPartner
+    ? 999
+    : overrideMax ?? (restaurant?.plan === "business" ? 999 : restaurant?.plan === "pro" ? 25 : 10);
   const [tableCount, setTableCount] = useState(maxTables);
   const [baseUrl, setBaseUrl] = useState("");
   const [codes, setCodes] = useState<Record<number, string>>({});

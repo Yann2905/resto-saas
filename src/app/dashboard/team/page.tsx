@@ -41,7 +41,11 @@ export default function TeamPage() {
     );
   }
 
-  if (restaurant && restaurant.plan === "starter") {
+  const waitersAllowed = restaurant?.isPartner
+    || (restaurant?.featureOverrides as Record<string, unknown>)?.waiters === true
+    || (restaurant?.plan !== "starter");
+
+  if (restaurant && !waitersAllowed) {
     return (
       <main className="min-h-screen flex items-center justify-center p-6 bg-stone-50">
         <div className="text-center max-w-md">

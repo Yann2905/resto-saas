@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "./supabase-server";
 import { createSupabaseAdminClient } from "./supabase-admin";
-import { isPlanExpired } from "./plan-limits";
+import { isPlanExpired, type FeatureOverrides } from "./plan-limits";
 
 export type AuthedContext = {
   userId: string;
@@ -11,6 +11,8 @@ export type AuthedContext = {
   assignedTables: number[];
   plan: string;
   planExpired: boolean;
+  featureOverrides: FeatureOverrides;
+  isPartner: boolean;
 };
 
 export async function requireUser(): Promise<
@@ -51,16 +53,20 @@ export async function requireUser(): Promise<
 
   let plan = "starter";
   let planExpiresAt: string | null = null;
+  let featureOverrides: FeatureOverrides = {};
+  let isPartner = false;
 
   if (profile.restaurant_id) {
     const { data: resto } = await admin
       .from("restaurants")
-      .select("plan, plan_expires_at")
+      .select("plan, plan_expires_at, feature_overrides, is_partner")
       .eq("id", profile.restaurant_id)
       .maybeSingle();
     if (resto) {
       plan = (resto.plan as string) ?? "starter";
       planExpiresAt = (resto.plan_expires_at as string) ?? null;
+      featureOverrides = (resto.feature_overrides as FeatureOverrides) ?? {};
+      isPartner = (resto.is_partner as boolean) ?? false;
     }
   }
 
@@ -74,6 +80,8 @@ export async function requireUser(): Promise<
       assignedTables: (profile.assigned_tables as number[]) ?? [],
       plan,
       planExpired: isPlanExpired(planExpiresAt),
+      featureOverrides,
+      isPartner,
     },
   };
 }

@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Accès refusé" }, { status: 403 });
   }
 
-  const limits = getPlanLimits(auth.ctx.plan);
+  const limits = getPlanLimits(auth.ctx.plan, auth.ctx.featureOverrides, auth.ctx.isPartner);
   if (!limits.waiters) {
     return NextResponse.json(
       { ok: false, error: "La gestion des serveurs nécessite le plan Pro ou Business" },

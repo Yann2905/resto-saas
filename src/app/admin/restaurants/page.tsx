@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { AlertTriangle, Check, Plus, Search, Store, X } from "lucide-react";
 import { Restaurant, RestaurantRow, mapRestaurant } from "@/types";
 import {
@@ -409,6 +410,12 @@ function RestaurantRowView({
         >
           {restaurant.active ? "Actif" : "Inactif"}
         </button>
+        <Link
+          href={`/admin/restaurants/${restaurant.id}`}
+          className="rounded-lg px-3 py-2 text-xs font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
+        >
+          Gérer
+        </Link>
         <button
           onClick={onEdit}
           className="rounded-lg px-3 py-2 text-xs font-semibold bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors"

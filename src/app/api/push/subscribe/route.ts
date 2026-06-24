@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Aucun restaurant" }, { status: 400 });
   }
 
-  const limits = getPlanLimits(auth.ctx.plan);
+  const limits = getPlanLimits(auth.ctx.plan, auth.ctx.featureOverrides, auth.ctx.isPartner);
   if (!limits.pushNotifications) {
     return NextResponse.json(
       { ok: false, error: "Les notifications push nécessitent le plan Pro ou Business" },
