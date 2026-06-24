@@ -57,13 +57,16 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    return NextResponse.json({
-      ok: true,
-      summary: summaryRes.data,
-      byDay: dayRes.data ?? [],
-      top: topRes.data ?? [],
-      peak: peakRes.data ?? [],
-    });
+    return NextResponse.json(
+      {
+        ok: true,
+        summary: summaryRes.data,
+        byDay: dayRes.data ?? [],
+        top: topRes.data ?? [],
+        peak: peakRes.data ?? [],
+      },
+      { headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=120" } },
+    );
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : "Erreur stats" },

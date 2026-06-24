@@ -9,18 +9,26 @@ import {
   QrCode,
   Settings,
   LogOut,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { confirmAction } from "@/lib/swal";
 
-const TABS: Array<{ href: string; label: string; Icon: LucideIcon }> = [
+type Tab = { href: string; label: string; Icon: LucideIcon };
+
+const OWNER_TABS: Tab[] = [
   { href: "/dashboard/orders", label: "Commandes", Icon: ClipboardList },
   { href: "/dashboard/menu", label: "Menu", Icon: UtensilsCrossed },
   { href: "/dashboard/stats", label: "Stats", Icon: BarChart3 },
   { href: "/dashboard/qrcodes", label: "QR codes", Icon: QrCode },
+  { href: "/dashboard/team", label: "Équipe", Icon: Users },
   { href: "/dashboard/settings", label: "Réglages", Icon: Settings },
+];
+
+const WAITER_TABS: Tab[] = [
+  { href: "/dashboard/orders", label: "Commandes", Icon: ClipboardList },
 ];
 
 export default function DashboardNav() {
@@ -28,6 +36,8 @@ export default function DashboardNav() {
   const { user, restaurant, role, signOut } = useAuth();
 
   if (pathname === "/dashboard/login" || (!user && !role) || !restaurant) return null;
+
+  const TABS = role === "waiter" ? WAITER_TABS : OWNER_TABS;
 
   const handleLogout = async () => {
     const ok = await confirmAction({
@@ -98,7 +108,7 @@ export default function DashboardNav() {
       </header>
 
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-stone-200 pb-[env(safe-area-inset-bottom)]">
-        <div className="grid grid-cols-5">
+        <div className="flex justify-around">
           {TABS.map(({ href, label, Icon }) => {
             const active = pathname.startsWith(href);
             return (

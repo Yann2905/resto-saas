@@ -39,19 +39,26 @@ export function playChime() {
       audioCtx = new AC();
     }
     if (audioCtx.state === "suspended") void audioCtx.resume();
-    [880, 1100].forEach((freq, i) => {
-      const osc = audioCtx!.createOscillator();
-      const gain = audioCtx!.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx!.destination);
-      osc.frequency.value = freq;
-      const t = audioCtx!.currentTime + i * 0.18;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.35, t + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
-      osc.start(t);
-      osc.stop(t + 0.4);
-    });
+    // 3 répétitions espacées de 0.8s, volume augmenté à 0.7
+    for (let rep = 0; rep < 3; rep++) {
+      [880, 1100].forEach((freq, i) => {
+        const osc = audioCtx!.createOscillator();
+        const gain = audioCtx!.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx!.destination);
+        osc.frequency.value = freq;
+        const t = audioCtx!.currentTime + rep * 0.8 + i * 0.18;
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.7, t + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+        osc.start(t);
+        osc.stop(t + 0.4);
+      });
+    }
+    // Vibration sur mobile (200ms x 3 avec pauses de 150ms)
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate([200, 150, 200, 150, 200]);
+    }
   } catch (e) {
     console.warn("[chime] échec lecture audio:", e);
   }
@@ -100,11 +107,45 @@ function tryNotify(tableNumber: number, total: number) {
   }
 }
 
+async function subscribeToPush() {
+  try {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription: existing.toJSON() }),
+      });
+      return;
+    }
+    const res = await fetch("/api/push/subscribe");
+    const json = await res.json();
+    if (!json.ok || !json.publicKey) return;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: json.publicKey,
+    });
+    await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subscription: sub.toJSON() }),
+    });
+  } catch (e) {
+    console.warn("[push] subscribe failed:", e);
+  }
+}
+
 export default function OrderSoundAlert() {
   const { restaurant } = useAuth();
   const knownIds = useRef<Set<string>>(new Set());
   const alertedProducts = useRef<Set<string>>(new Set());
   const initDone = useRef(false);
+
+  useEffect(() => {
+    subscribeToPush();
+  }, []);
 
   // Utiliser des refs pour éviter les closures périmées dans les abonnements Realtime
   const thresholdRef = useRef(10);

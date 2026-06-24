@@ -18,54 +18,57 @@ import { unstable_cache } from "next/cache";
 
 const REVALIDATE = 30; // secondes
 
-export const getRestaurantBySlug = unstable_cache(
-  async (slug: string): Promise<Restaurant | null> => {
-    const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase
-      .from("restaurants")
-      .select("*")
-      .eq("slug", slug)
-      .maybeSingle();
+export const getRestaurantBySlug = (slug: string) =>
+  unstable_cache(
+    async (): Promise<Restaurant | null> => {
+      const supabase = createSupabaseAdminClient();
+      const { data, error } = await supabase
+        .from("restaurants")
+        .select("*")
+        .eq("slug", slug)
+        .maybeSingle();
 
-    if (error || !data) return null;
-    return mapRestaurant(data as RestaurantRow);
-  },
-  ["restaurant-by-slug"],
-  { revalidate: REVALIDATE, tags: ["restaurants"] },
-);
+      if (error || !data) return null;
+      return mapRestaurant(data as RestaurantRow);
+    },
+    [`restaurant-by-slug-${slug}`],
+    { revalidate: REVALIDATE, tags: [`restaurant-${slug}`] },
+  )();
 
-export const getCategories = unstable_cache(
-  async (restaurantId: string): Promise<Category[]> => {
-    const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase
-      .from("categories")
-      .select("*")
-      .eq("restaurant_id", restaurantId)
-      .order("order", { ascending: true });
+export const getCategories = (restaurantId: string) =>
+  unstable_cache(
+    async (): Promise<Category[]> => {
+      const supabase = createSupabaseAdminClient();
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .order("order", { ascending: true });
 
-    if (error || !data) return [];
-    return (data as CategoryRow[]).map(mapCategory);
-  },
-  ["categories"],
-  { revalidate: REVALIDATE, tags: ["categories"] },
-);
+      if (error || !data) return [];
+      return (data as CategoryRow[]).map(mapCategory);
+    },
+    [`categories-${restaurantId}`],
+    { revalidate: REVALIDATE, tags: [`categories-${restaurantId}`] },
+  )();
 
-export const getProducts = unstable_cache(
-  async (restaurantId: string): Promise<Product[]> => {
-    const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .eq("restaurant_id", restaurantId)
-      .eq("available", true)
-      .order("order", { ascending: true });
+export const getProducts = (restaurantId: string) =>
+  unstable_cache(
+    async (): Promise<Product[]> => {
+      const supabase = createSupabaseAdminClient();
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .eq("available", true)
+        .order("order", { ascending: true });
 
-    if (error || !data) return [];
-    return (data as ProductRow[]).map(mapProduct);
-  },
-  ["products"],
-  { revalidate: REVALIDATE, tags: ["products"] },
-);
+      if (error || !data) return [];
+      return (data as ProductRow[]).map(mapProduct);
+    },
+    [`products-${restaurantId}`],
+    { revalidate: REVALIDATE, tags: [`products-${restaurantId}`] },
+  )();
 
 export function isSubscriptionActive(r: Restaurant): boolean {
   if (!r.active) return false;

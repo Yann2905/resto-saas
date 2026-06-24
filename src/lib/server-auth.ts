@@ -4,8 +4,10 @@ import { createSupabaseAdminClient } from "./supabase-admin";
 
 export type AuthedContext = {
   userId: string;
-  role: "owner" | "superadmin";
+  role: "owner" | "superadmin" | "waiter";
   restaurantId: string | null;
+  displayName: string | null;
+  assignedTables: number[];
 };
 
 export async function requireUser(): Promise<
@@ -30,7 +32,7 @@ export async function requireUser(): Promise<
   const admin = createSupabaseAdminClient();
   const { data: profile, error } = await admin
     .from("profiles")
-    .select("role, restaurant_id")
+    .select("role, restaurant_id, display_name, assigned_tables")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -48,8 +50,10 @@ export async function requireUser(): Promise<
     ok: true,
     ctx: {
       userId: user.id,
-      role: profile.role as "owner" | "superadmin",
+      role: profile.role as "owner" | "superadmin" | "waiter",
       restaurantId: profile.restaurant_id as string | null,
+      displayName: (profile.display_name as string) ?? null,
+      assignedTables: (profile.assigned_tables as number[]) ?? [],
     },
   };
 }

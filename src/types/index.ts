@@ -42,6 +42,8 @@ export type Product = {
   order: number;
 };
 
+export type UserRole = "owner" | "superadmin" | "waiter";
+
 export type OrderStatus = "pending" | "preparing" | "ready" | "served";
 
 export type OrderItem = {
@@ -59,8 +61,19 @@ export type Order = {
   items: OrderItem[];
   total: number;
   status: OrderStatus;
+  assignedTo: string | null;
+  assignedName: string | null;
+  acknowledgedAt: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type StaffMember = {
+  id: string;
+  email: string;
+  displayName: string;
+  assignedTables: number[];
+  createdAt: string;
 };
 
 export type CartItem = {
@@ -169,6 +182,8 @@ export type OrderRow = {
   items: OrderItem[];
   total: number;
   status: OrderStatus;
+  assigned_to: string | null;
+  acknowledged_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -250,7 +265,7 @@ export function mapProduct(p: ProductRow): Product {
   };
 }
 
-export function mapOrder(o: OrderRow): Order {
+export function mapOrder(o: OrderRow & { assigned_name?: string | null }): Order {
   return {
     id: o.id,
     restaurantId: o.restaurant_id,
@@ -258,6 +273,9 @@ export function mapOrder(o: OrderRow): Order {
     items: o.items,
     total: o.total,
     status: o.status,
+    assignedTo: o.assigned_to,
+    assignedName: o.assigned_name ?? null,
+    acknowledgedAt: o.acknowledged_at,
     createdAt: o.created_at,
     updatedAt: o.updated_at,
   };

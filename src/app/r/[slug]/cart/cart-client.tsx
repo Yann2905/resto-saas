@@ -48,6 +48,12 @@ export default function CartClient({ restaurant, tableNumber }: Props) {
       return;
     }
     clearCart(restaurant.id, tableKey);
+    // Notification push au serveur (fire-and-forget)
+    fetch("/api/orders/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: res.orderId }),
+    }).catch(() => {});
     router.push(`/r/${restaurant.slug}/order/${res.orderId}?table=${tableNumber}`);
   };
 

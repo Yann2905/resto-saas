@@ -28,6 +28,8 @@ const STATUS_SUB: Record<OrderStatus, string> = {
   served: "Bon appétit ! Merci de votre visite.",
 };
 
+type OrderWithWaiter = Order & { assignedName?: string | null; acknowledgedAt?: string | null };
+
 const STATUS_ICON: Record<OrderStatus, LucideIcon> = {
   pending: Inbox,
   preparing: ChefHat,
@@ -51,7 +53,7 @@ export default function OrderTracker({
   orderId,
   tableNumber,
 }: Props) {
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<OrderWithWaiter | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -157,9 +159,17 @@ export default function OrderTracker({
             </div>
           </div>
 
-          <p className="text-sm text-stone-300 mb-5 leading-relaxed">
+          <p className="text-sm text-stone-300 mb-3 leading-relaxed">
             {STATUS_SUB[order.status]}
           </p>
+          {order.acknowledgedAt && order.assignedName && (
+            <div className="flex items-center gap-2 mb-3 bg-white/10 rounded-xl px-4 py-2.5 backdrop-blur-sm">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-sm text-stone-200">
+                Prise en charge par <span className="font-semibold text-white">{order.assignedName}</span>
+              </span>
+            </div>
+          )}
 
           <div className="flex gap-1.5">
             {STATUS_ORDER.map((s, i) => (

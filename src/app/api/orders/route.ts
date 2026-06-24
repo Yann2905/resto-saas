@@ -45,8 +45,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: errServed.message }, { status: 500 });
   }
 
-  return NextResponse.json({
-    ok: true,
-    orders: [...(activeData ?? []), ...(servedData ?? [])],
-  });
+  return NextResponse.json(
+    { ok: true, orders: [...(activeData ?? []), ...(servedData ?? [])] },
+    { headers: { "Cache-Control": "private, no-cache, max-age=0" } },
+  );
 }

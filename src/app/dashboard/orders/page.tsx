@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Bell, Lock, Printer, Volume2 } from "lucide-react";
+import { Bell, CheckCircle2, Lock, Printer, Volume2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { Order, OrderRow, OrderStatus, mapOrder } from "@/types";
 import { formatFCFA } from "@/lib/format";
 import { playChime } from "../_components/order-sound-alert";
+import { toastSuccess } from "@/lib/swal";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "En attente",
@@ -222,8 +223,55 @@ export default function OrdersPage() {
     [orders]
   );
 
+  // Serveurs voient uniquement leurs commandes assignées
+  const isWaiter = role === "waiter";
+
+  // Timer 2 min : commandes pending non-acknowledged depuis > 2 min → broadcast
+  const [escalatedIds, setEscalatedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (isWaiter) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const newEscalated = new Set(escalatedIds);
+      for (const o of orders) {
+        if (o.status === "pending" && !o.acknowledgedAt && o.assignedTo) {
+          const age = now - new Date(o.createdAt).getTime();
+          if (age > 2 * 60 * 1000 && !escalatedIds.has(o.id)) {
+            newEscalated.add(o.id);
+            playChime();
+          }
+        }
+      }
+      if (newEscalated.size !== escalatedIds.size) setEscalatedIds(newEscalated);
+    }, 10_000);
+    return () => clearInterval(interval);
+  }, [orders, escalatedIds, isWaiter]);
+
+  const myOrders = isWaiter
+    ? orders.filter((o) => o.assignedTo === user?.id || escalatedIds.has(o.id) || !o.assignedTo)
+    : orders;
+
   const filteredOrders =
-    filter === "all" ? orders : orders.filter((o) => o.status === filter);
+    filter === "all" ? myOrders : myOrders.filter((o) => o.status === filter);
+
+  const acknowledge = async (orderId: string) => {
+    const res = await fetch("/api/orders/acknowledge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId }),
+    });
+    const json = await res.json();
+    if (json.ok) {
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId
+            ? { ...o, acknowledgedAt: json.acknowledgedAt, assignedName: json.waiterName }
+            : o
+        )
+      );
+      void toastSuccess("Commande prise en charge !");
+    }
+  };
 
   if (loading && !restaurant) {
     return (
@@ -425,11 +473,43 @@ export default function OrdersPage() {
                       </span>
                     </div>
 
+                    {/* Assignation & accusé de réception */}
+                    {order.assignedTo && (
+                      <div className={`flex items-center gap-2 mb-3 text-xs ${order.acknowledgedAt ? "text-emerald-700" : "text-amber-700"}`}>
+                        {order.acknowledgedAt ? (
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        ) : (
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        )}
+                        <span>
+                          {order.acknowledgedAt
+                            ? `Pris en charge${order.assignedName ? ` par ${order.assignedName}` : ""}`
+                            : `Assigné${order.assignedName ? ` à ${order.assignedName}` : ""} — en attente`
+                          }
+                        </span>
+                      </div>
+                    )}
+                    {escalatedIds.has(order.id) && !order.acknowledgedAt && (
+                      <div className="flex items-center gap-2 mb-3 text-xs text-red-700 bg-red-50 rounded-lg px-3 py-1.5">
+                        <Bell className="w-3.5 h-3.5" />
+                        Commande non prise en charge depuis 2 min{order.assignedName ? ` (${order.assignedName})` : ""}
+                      </div>
+                    )}
+
                     <div className="flex gap-2">
+                      {order.status === "pending" && !order.acknowledgedAt && (
+                        <button
+                          onClick={() => acknowledge(order.id)}
+                          className="flex-1 bg-emerald-600 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          J&apos;ai reçu
+                        </button>
+                      )}
                       {NEXT_STATUS[order.status] && (
                         <button
                           onClick={() => advance(order)}
-                          className="flex-1 bg-stone-900 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors flex items-center justify-center gap-1.5"
+                          className={`flex-1 bg-stone-900 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors flex items-center justify-center gap-1.5`}
                         >
                           {STATUS_LABELS[NEXT_STATUS[order.status]!]}
                         </button>

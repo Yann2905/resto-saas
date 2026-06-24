@@ -12,7 +12,7 @@ import { supabase } from "./supabase";
 import { User } from "@supabase/supabase-js";
 import { Restaurant, RestaurantRow, mapRestaurant } from "@/types";
 
-export type UserRole = "owner" | "superadmin";
+export type UserRole = "owner" | "superadmin" | "waiter";
 
 type AuthCtx = {
   user: User | null;

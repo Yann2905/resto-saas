@@ -25,7 +25,8 @@ export async function GET() {
       "id, restaurant_id, plan_key, amount, method, status, reference, provider_ref, needs_review, paid_at, previous_expiry, new_expiry, created_at, updated_at, restaurants(name, phone)",
     )
     .gte("created_at", thirtyDaysAgo)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(200);
 
   if (error) {
     return NextResponse.json(
@@ -34,7 +35,10 @@ export async function GET() {
     );
   }
 
-  return NextResponse.json({ ok: true, payments: payments ?? [] });
+  return NextResponse.json(
+    { ok: true, payments: payments ?? [] },
+    { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } },
+  );
 }
 
 /**
