@@ -560,23 +560,86 @@ export default function Home() {
       </section>
 
       {/* ── Footer ──────────────────────────────────────── */}
-      <footer className="relative z-10 border-t border-stone-900 py-8">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-stone-950 text-sm">
-              R
+      <footer className="relative z-10 border-t border-stone-900 py-10">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-stone-950 text-sm">
+                  R
+                </div>
+                <span className="font-semibold text-sm">Resto SaaS</span>
+              </div>
+              <p className="text-xs text-stone-500 max-w-xs">
+                Solution de commande digitale par QR code pour les restaurants
+                en Côte d&apos;Ivoire.
+              </p>
             </div>
-            <span className="text-sm text-stone-500">
-              © {new Date().getFullYear()} Resto SaaS — Côte d&apos;Ivoire
-            </span>
+            <div className="flex flex-wrap gap-x-10 gap-y-4 text-sm">
+              <div>
+                <h4 className="font-semibold text-stone-300 mb-2">Produit</h4>
+                <ul className="space-y-1.5 text-stone-500">
+                  <li>
+                    <a href="#fonctionnalites" className="hover:text-stone-300 transition-colors">
+                      Fonctionnalités
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#tarifs" className="hover:text-stone-300 transition-colors">
+                      Tarifs
+                    </a>
+                  </li>
+                  <li>
+                    <Link href="/dashboard/login" className="hover:text-stone-300 transition-colors">
+                      Espace restaurant
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-stone-300 mb-2">Entreprise</h4>
+                <ul className="space-y-1.5 text-stone-500">
+                  <li>
+                    <Link href="/a-propos" className="hover:text-stone-300 transition-colors">
+                      À propos
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/contact" className="hover:text-stone-300 transition-colors">
+                      Contact
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-stone-300 mb-2">Légal</h4>
+                <ul className="space-y-1.5 text-stone-500">
+                  <li>
+                    <Link href="/cgu" className="hover:text-stone-300 transition-colors">
+                      CGU
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/confidentialite" className="hover:text-stone-300 transition-colors">
+                      Confidentialité
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-4 text-xs text-stone-600">
-            <Link
-              href="/dashboard/login"
-              className="hover:text-stone-300 transition-colors"
+          <div className="border-t border-stone-900 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span className="text-xs text-stone-600">
+              © {new Date().getFullYear()} Resto SaaS — Daloa, Côte d&apos;Ivoire
+            </span>
+            <a
+              href="https://wa.me/2250575343846"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-stone-500 hover:text-emerald-400 transition-colors"
             >
-              Espace restaurant
-            </Link>
+              WhatsApp : +225 05 75 34 38 46
+            </a>
           </div>
         </div>
       </footer>
