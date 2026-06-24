@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
 import { sendPushToRestaurant } from "@/lib/push";
+import { rateLimit } from "@/lib/rate-limit";
 
-/**
- * POST /api/orders/notify — Envoie une push notification pour une nouvelle commande
- * Body: { orderId }
- * Appelé fire-and-forget après la création de la commande.
- * Pas d'auth requise (appelé côté client public).
- */
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (!rateLimit(`notify:${ip}`, 30, 60_000)) {
+    return NextResponse.json({ ok: false, error: "Trop de requêtes" }, { status: 429 });
+  }
   let body: Record<string, unknown>;
   try {
     body = await request.json();
