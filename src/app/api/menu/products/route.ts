@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { requireUser } from "@/lib/server-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
 
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
+  revalidateTag(`products-${restaurantId}`, "max");
   return NextResponse.json({ ok: true });
 }
 
@@ -72,5 +74,6 @@ export async function DELETE(req: NextRequest) {
   const { error } = await admin.from("products").delete().eq("id", id);
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
+  revalidateTag(`products-${prod.restaurant_id}`, "max");
   return NextResponse.json({ ok: true });
 }

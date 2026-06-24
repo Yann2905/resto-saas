@@ -1,11 +1,13 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-// Admin client using service role key (server-side only, never expose to client)
-export function createSupabaseAdminClient() {
+let _adminClient: SupabaseClient | null = null;
+
+export function createSupabaseAdminClient(): SupabaseClient {
+  if (_adminClient) return _adminClient;
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set");
   }
-  return createClient(
+  _adminClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
     {
@@ -15,4 +17,5 @@ export function createSupabaseAdminClient() {
       },
     }
   );
+  return _adminClient;
 }

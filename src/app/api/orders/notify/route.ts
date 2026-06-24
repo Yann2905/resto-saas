@@ -36,45 +36,26 @@ export async function POST(request: NextRequest) {
   const total = (order.total as number).toLocaleString("fr-FR");
 
   try {
-    if (order.assigned_to) {
-      // Notification au serveur assigné
-      await sendPushToRestaurant(
-        order.restaurant_id,
-        {
-          title: `Nouvelle commande · Table ${order.table_number}`,
-          body: `Total : ${total} FCFA — Glissez pour voir`,
-          url: "/dashboard/orders",
-        },
-        order.assigned_to,
-      );
+    const payload = {
+      title: `Nouvelle commande · Table ${order.table_number}`,
+      body: `Total : ${total} FCFA`,
+      url: "/dashboard/orders",
+    };
 
-      // Notification aussi au propriétaire (supervision)
+    if (order.assigned_to) {
       const { data: owners } = await admin
         .from("profiles")
         .select("id")
         .eq("restaurant_id", order.restaurant_id)
         .eq("role", "owner");
 
-      if (owners) {
-        for (const owner of owners) {
-          await sendPushToRestaurant(
-            order.restaurant_id,
-            {
-              title: `Nouvelle commande · Table ${order.table_number}`,
-              body: `Total : ${total} FCFA`,
-              url: "/dashboard/orders",
-            },
-            owner.id,
-          );
-        }
-      }
+      const pushTasks = [
+        sendPushToRestaurant(order.restaurant_id, { ...payload, body: `Total : ${total} FCFA — Glissez pour voir` }, order.assigned_to),
+        ...(owners ?? []).map((o) => sendPushToRestaurant(order.restaurant_id, payload, o.id)),
+      ];
+      await Promise.allSettled(pushTasks);
     } else {
-      // Pas de serveur assigné → notification à tout le restaurant
-      await sendPushToRestaurant(order.restaurant_id, {
-        title: `Nouvelle commande · Table ${order.table_number}`,
-        body: `Total : ${total} FCFA`,
-        url: "/dashboard/orders",
-      });
+      await sendPushToRestaurant(order.restaurant_id, payload);
     }
   } catch (e) {
     console.error("[push] notify error:", e);

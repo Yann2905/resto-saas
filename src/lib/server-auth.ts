@@ -33,11 +33,10 @@ export async function requireUser(): Promise<
     };
   }
 
-  // Use admin client to bypass RLS for the profile lookup
   const admin = createSupabaseAdminClient();
   const { data: profile, error } = await admin
     .from("profiles")
-    .select("role, restaurant_id, display_name, assigned_tables")
+    .select("role, restaurant_id, display_name, assigned_tables, restaurants(plan, plan_expires_at, feature_overrides, is_partner)")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -51,24 +50,11 @@ export async function requireUser(): Promise<
     };
   }
 
-  let plan = "starter";
-  let planExpiresAt: string | null = null;
-  let featureOverrides: FeatureOverrides = {};
-  let isPartner = false;
-
-  if (profile.restaurant_id) {
-    const { data: resto } = await admin
-      .from("restaurants")
-      .select("plan, plan_expires_at, feature_overrides, is_partner")
-      .eq("id", profile.restaurant_id)
-      .maybeSingle();
-    if (resto) {
-      plan = (resto.plan as string) ?? "starter";
-      planExpiresAt = (resto.plan_expires_at as string) ?? null;
-      featureOverrides = (resto.feature_overrides as FeatureOverrides) ?? {};
-      isPartner = (resto.is_partner as boolean) ?? false;
-    }
-  }
+  const resto = profile.restaurants as { plan?: string; plan_expires_at?: string; feature_overrides?: FeatureOverrides; is_partner?: boolean } | null;
+  const plan = (resto?.plan as string) ?? "starter";
+  const planExpiresAt = (resto?.plan_expires_at as string) ?? null;
+  const featureOverrides: FeatureOverrides = (resto?.feature_overrides as FeatureOverrides) ?? {};
+  const isPartner = (resto?.is_partner as boolean) ?? false;
 
   return {
     ok: true,

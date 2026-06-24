@@ -18,35 +18,36 @@ export async function GET(req: NextRequest) {
 
   const admin = createSupabaseAdminClient();
 
-  // Active orders (pending, preparing, ready)
-  const { data: activeData, error: errActive } = await admin
-    .from("orders")
-    .select("*")
-    .eq("restaurant_id", restaurantId)
-    .neq("status", "served")
-    .order("created_at", { ascending: false });
-
-  if (errActive) {
-    return NextResponse.json({ ok: false, error: errActive.message }, { status: 500 });
-  }
-
-  // Served orders from today only
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-  const { data: servedData, error: errServed } = await admin
-    .from("orders")
-    .select("*")
-    .eq("restaurant_id", restaurantId)
-    .eq("status", "served")
-    .gte("created_at", todayStart.toISOString())
-    .order("created_at", { ascending: false });
 
-  if (errServed) {
-    return NextResponse.json({ ok: false, error: errServed.message }, { status: 500 });
+  const [activeRes, servedRes] = await Promise.all([
+    admin
+      .from("orders")
+      .select("*")
+      .eq("restaurant_id", restaurantId)
+      .neq("status", "served")
+      .order("created_at", { ascending: false })
+      .limit(200),
+    admin
+      .from("orders")
+      .select("*")
+      .eq("restaurant_id", restaurantId)
+      .eq("status", "served")
+      .gte("created_at", todayStart.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(100),
+  ]);
+
+  if (activeRes.error) {
+    return NextResponse.json({ ok: false, error: activeRes.error.message }, { status: 500 });
+  }
+  if (servedRes.error) {
+    return NextResponse.json({ ok: false, error: servedRes.error.message }, { status: 500 });
   }
 
   return NextResponse.json(
-    { ok: true, orders: [...(activeData ?? []), ...(servedData ?? [])] },
+    { ok: true, orders: [...(activeRes.data ?? []), ...(servedRes.data ?? [])] },
     { headers: { "Cache-Control": "private, no-cache, max-age=0" } },
   );
 }

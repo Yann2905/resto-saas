@@ -167,9 +167,11 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Accès refusé" }, { status: 403 });
   }
 
-  await admin.from("orders").update({ assigned_to: null }).eq("assigned_to", waiterId);
-  await admin.from("profiles").delete().eq("id", waiterId);
-  await admin.auth.admin.deleteUser(waiterId);
+  await Promise.all([
+    admin.from("orders").update({ assigned_to: null }).eq("assigned_to", waiterId),
+    admin.from("profiles").delete().eq("id", waiterId),
+    admin.auth.admin.deleteUser(waiterId),
+  ]);
 
   return NextResponse.json({ ok: true });
 }

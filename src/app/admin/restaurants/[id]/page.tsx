@@ -81,23 +81,20 @@ export default function RestaurantDetailPage() {
   const [overrides, setOverrides] = useState<Record<string, boolean | number | undefined>>({});
 
   const fetchRestaurant = useCallback(async () => {
-    const res = await fetch("/api/admin/restaurants/list");
+    const res = await fetch(`/api/admin/restaurants/get?id=${id}`);
     const json = await res.json();
-    if (!json.ok) return;
-    const all = (json.restaurants as RestaurantRow[]).map(mapRestaurant);
-    const found = all.find((r) => r.id === id);
-    if (found) {
-      setRestaurant(found);
-      setPlan(found.plan);
-      setIsPartner(found.isPartner);
-      setActive(found.active);
-      setExpiry(
-        found.subscriptionExpiresAt
-          ? new Date(found.subscriptionExpiresAt).toISOString().slice(0, 10)
-          : ""
-      );
-      setOverrides((found.featureOverrides as Record<string, boolean | number | undefined>) ?? {});
-    }
+    if (!json.ok) { setLoading(false); return; }
+    const found = mapRestaurant(json.restaurant as RestaurantRow);
+    setRestaurant(found);
+    setPlan(found.plan);
+    setIsPartner(found.isPartner);
+    setActive(found.active);
+    setExpiry(
+      found.subscriptionExpiresAt
+        ? new Date(found.subscriptionExpiresAt).toISOString().slice(0, 10)
+        : ""
+    );
+    setOverrides((found.featureOverrides as Record<string, boolean | number | undefined>) ?? {});
     setLoading(false);
   }, [id]);
 
