@@ -97,23 +97,36 @@ self.addEventListener("push", (event) => {
     data: { url: data.url },
   };
 
-  event.waitUntil(self.registration.showNotification(data.title, options));
+  event.waitUntil(
+    self.registration.showNotification(data.title, options).then(() => {
+      // Badge sur l'icône de l'app (le chiffre rouge)
+      if (navigator.setAppBadge) {
+        return self.registration.getNotifications().then((notifs) => {
+          navigator.setAppBadge(notifs.length + 1);
+        });
+      }
+    })
+  );
 });
 
-// Clic sur la notification → ouvrir la page
+// Clic sur la notification → ouvrir la page + effacer le badge
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   const url = event.notification.data?.url || "/dashboard/orders";
 
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-      for (const client of clients) {
-        if (client.url.includes("/dashboard") && "focus" in client) {
-          return client.focus();
+    Promise.all([
+      // Effacer le badge quand on clique
+      navigator.clearAppBadge ? navigator.clearAppBadge() : Promise.resolve(),
+      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+        for (const client of clients) {
+          if (client.url.includes("/dashboard") && "focus" in client) {
+            return client.focus();
+          }
         }
-      }
-      return self.clients.openWindow(url);
-    })
+        return self.clients.openWindow(url);
+      }),
+    ])
   );
 });

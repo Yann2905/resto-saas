@@ -14,6 +14,11 @@ export default function PwaRegister() {
       });
     }
 
+    // Effacer le badge quand l'utilisateur ouvre l'app
+    if ("clearAppBadge" in navigator) {
+      (navigator as unknown as { clearAppBadge: () => Promise<void> }).clearAppBadge().catch(() => {});
+    }
+
     const handler = (e: Event) => {
       e.preventDefault();
       setInstallPrompt(e);
