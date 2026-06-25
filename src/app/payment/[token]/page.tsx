@@ -33,6 +33,7 @@ export default async function PaymentPage({ params }: Props) {
       token={token}
       restaurantName={restaurant.name}
       currentExpiry={restaurant.subscription_expires_at}
+      planTier={(restaurant.plan as "starter" | "pro" | "business") ?? "starter"}
     />
   );
 }

@@ -7,7 +7,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
-import { PLANS, computeNewExpiry, type Plan } from "@/lib/payment-plans";
+import { getPlansByTier, getTierLabel, computeNewExpiry, type Plan, type PlanTier } from "@/lib/payment-plans";
 
 type Step = "plan" | "processing" | "success" | "error";
 
@@ -15,13 +15,17 @@ type Props = {
   token: string;
   restaurantName: string;
   currentExpiry: string | null;
+  planTier: PlanTier;
 };
 
 export default function PaymentClient({
   token,
   restaurantName,
   currentExpiry,
+  planTier,
 }: Props) {
+  const tierPlans = getPlansByTier(planTier);
+  const tierLabel = getTierLabel(planTier);
   const [step, setStep] = useState<Step>("plan");
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [error, setError] = useState("");
@@ -133,14 +137,14 @@ export default function PaymentClient({
         {step === "plan" && (
           <section className="animate-fade-in-up">
             <h2 className="text-lg font-bold text-stone-900 mb-1">
-              Choisissez votre forfait
+              Rechargement — Formule {tierLabel}
             </h2>
             <p className="text-sm text-stone-500 mb-5">
-              Vous serez redirigé vers la page de paiement sécurisée.
+              Choisissez la durée. Vous serez redirigé vers le paiement sécurisé.
             </p>
 
             <div className="space-y-3">
-              {PLANS.map((plan) => {
+              {tierPlans.map((plan) => {
                 const newExpiry = computeNewExpiry(currentExpiry, plan.months);
                 const newExpiryLabel = newExpiry.toLocaleDateString("fr-FR", {
                   day: "2-digit",

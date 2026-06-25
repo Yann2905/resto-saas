@@ -1,33 +1,60 @@
+export type PlanTier = "starter" | "pro" | "business";
+
 export type PlanKey =
-  | "1_month"
-  | "2_months"
-  | "3_months"
-  | "4_months"
-  | "5_months";
+  | "starter_1m"
+  | "starter_6m"
+  | "starter_1y"
+  | "pro_1m"
+  | "pro_6m"
+  | "pro_1y"
+  | "business_1m"
+  | "business_6m"
+  | "business_1y";
 
 export type Plan = {
   key: PlanKey;
+  tier: PlanTier;
   label: string;
   months: number;
-  price: number;         // FCFA
-  pricePerMonth: number; // FCFA
-  saving: number;        // FCFA économisé vs prix mensuel × durée
+  price: number;
+  pricePerMonth: number;
+  saving: number;
   popular?: boolean;
 };
 
-const BASE_MONTHLY = 5000; // FCFA
+const TIER_LABELS: Record<PlanTier, string> = {
+  starter: "Starter",
+  pro: "Pro",
+  business: "Business",
+};
 
 export const PLANS: Plan[] = [
-  { key: "1_month",  label: "1 mois",  months: 1, price: 5000,  pricePerMonth: 5000, saving: 0 },
-  { key: "2_months", label: "2 mois",  months: 2, price: 10000, pricePerMonth: 5000, saving: 0 },
-  { key: "3_months", label: "3 mois",  months: 3, price: 12000, pricePerMonth: 4000, saving: 3000, popular: true },
-  { key: "4_months", label: "4 mois",  months: 4, price: 17000, pricePerMonth: 4250, saving: 3000 },
-  { key: "5_months", label: "5 mois",  months: 5, price: 20000, pricePerMonth: 4000, saving: 5000 },
+  // Starter — 10 000 FCFA/mois
+  { key: "starter_1m", tier: "starter", label: "Starter · 1 mois",  months: 1,  price: 10000,  pricePerMonth: 10000, saving: 0 },
+  { key: "starter_6m", tier: "starter", label: "Starter · 6 mois",  months: 6,  price: 50000,  pricePerMonth: 8300,  saving: 10000, popular: true },
+  { key: "starter_1y", tier: "starter", label: "Starter · 1 an",    months: 12, price: 90000,  pricePerMonth: 7500,  saving: 30000 },
+  // Pro — 15 000 FCFA/mois
+  { key: "pro_1m",     tier: "pro",     label: "Pro · 1 mois",      months: 1,  price: 15000,  pricePerMonth: 15000, saving: 0 },
+  { key: "pro_6m",     tier: "pro",     label: "Pro · 6 mois",      months: 6,  price: 75000,  pricePerMonth: 12500, saving: 15000, popular: true },
+  { key: "pro_1y",     tier: "pro",     label: "Pro · 1 an",        months: 12, price: 130000, pricePerMonth: 10800, saving: 50000 },
+  // Business — 30 000 FCFA/mois
+  { key: "business_1m", tier: "business", label: "Business · 1 mois", months: 1,  price: 30000,  pricePerMonth: 30000, saving: 0 },
+  { key: "business_6m", tier: "business", label: "Business · 6 mois", months: 6,  price: 150000, pricePerMonth: 25000, saving: 30000, popular: true },
+  { key: "business_1y", tier: "business", label: "Business · 1 an",   months: 12, price: 280000, pricePerMonth: 23300, saving: 80000 },
 ];
+
+export function getPlansByTier(tier: PlanTier): Plan[] {
+  return PLANS.filter((p) => p.tier === tier);
+}
+
+export function getTierLabel(tier: PlanTier): string {
+  return TIER_LABELS[tier];
+}
 
 export function getPlan(key: string): Plan | undefined {
   return PLANS.find((p) => p.key === key);
 }
+
 
 /**
  * Calcule la nouvelle date d'expiration.
