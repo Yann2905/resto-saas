@@ -226,26 +226,30 @@ export default function OrdersPage() {
   // Serveurs voient uniquement leurs commandes assignées
   const isWaiter = role === "waiter";
 
-  // Timer 2 min : commandes pending non-acknowledged depuis > 2 min → broadcast
+  // Timer 1 min : commandes pending non-acknowledged depuis > 1 min → notifier tout le monde
   const [escalatedIds, setEscalatedIds] = useState<Set<string>>(new Set());
   useEffect(() => {
-    if (isWaiter) return;
     const interval = setInterval(() => {
       const now = Date.now();
       const newEscalated = new Set(escalatedIds);
       for (const o of orders) {
         if (o.status === "pending" && !o.acknowledgedAt && o.assignedTo) {
           const age = now - new Date(o.createdAt).getTime();
-          if (age > 2 * 60 * 1000 && !escalatedIds.has(o.id)) {
+          if (age > 60_000 && !escalatedIds.has(o.id)) {
             newEscalated.add(o.id);
             playChime();
+            fetch("/api/orders/escalate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId: o.id }),
+            }).catch(() => {});
           }
         }
       }
       if (newEscalated.size !== escalatedIds.size) setEscalatedIds(newEscalated);
     }, 10_000);
     return () => clearInterval(interval);
-  }, [orders, escalatedIds, isWaiter]);
+  }, [orders, escalatedIds]);
 
   const myOrders = isWaiter
     ? orders.filter((o) => o.assignedTo === user?.id || escalatedIds.has(o.id) || !o.assignedTo)
@@ -492,7 +496,7 @@ export default function OrdersPage() {
                     {escalatedIds.has(order.id) && !order.acknowledgedAt && (
                       <div className="flex items-center gap-2 mb-3 text-xs text-red-700 bg-red-50 rounded-lg px-3 py-1.5">
                         <Bell className="w-3.5 h-3.5" />
-                        Commande non prise en charge depuis 2 min{order.assignedName ? ` (${order.assignedName})` : ""}
+                        Commande non prise en charge depuis 1 min{order.assignedName ? ` (${order.assignedName})` : ""}
                       </div>
                     )}
 
