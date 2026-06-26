@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, Loader2, ShoppingCart } from "lucide-react";
 import { CartItem } from "@/types";
+import { supabase } from "@/lib/supabase";
 import {
   cartTotal,
   clearCart,
@@ -13,6 +14,8 @@ import {
 } from "@/lib/cart";
 import { formatFCFA } from "@/lib/format";
 import { createOrder } from "@/lib/orders";
+
+type StockIssue = { name: string; requested: number; available: number };
 
 type Props = {
   restaurant: { id: string; name: string; slug: string };
@@ -31,6 +34,8 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [stockIssues, setStockIssues] = useState<StockIssue[]>([]);
+  const [checkingStock, setCheckingStock] = useState(false);
 
   useEffect(() => {
     setItems(getCart(restaurant.id, tableKey));
@@ -41,6 +46,35 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
 
   const changeQty = (productId: string, qty: number) => {
     updateQuantity(restaurant.id, tableKey, productId, qty);
+  };
+
+  const checkStock = async () => {
+    setCheckingStock(true);
+    setStockIssues([]);
+    setError(null);
+    const productIds = items.map((i) => i.productId);
+    const { data: products } = await supabase
+      .from("products")
+      .select("id, name, stock_quantity")
+      .in("id", productIds);
+    setCheckingStock(false);
+    if (!products) {
+      setShowConfirm(true);
+      return;
+    }
+    const issues: StockIssue[] = [];
+    for (const item of items) {
+      const p = products.find((pr) => pr.id === item.productId);
+      if (p && p.stock_quantity < item.quantity) {
+        issues.push({ name: p.name, requested: item.quantity, available: p.stock_quantity });
+      }
+    }
+    if (issues.length > 0) {
+      setStockIssues(issues);
+    } else {
+      setStockIssues([]);
+      setShowConfirm(true);
+    }
   };
 
   const handleSubmit = async () => {
@@ -148,6 +182,24 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
           </div>
         )}
 
+        {stockIssues.length > 0 && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl animate-fade-in-up">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" aria-hidden />
+              <span className="text-sm font-semibold text-red-700">Stock insuffisant</span>
+            </div>
+            <ul className="space-y-1.5">
+              {stockIssues.map((issue) => (
+                <li key={issue.name} className="text-sm text-red-700">
+                  <span className="font-medium">{issue.name}</span> — vous en demandez {issue.requested}, il n&apos;en reste que{" "}
+                  <span className="font-bold">{issue.available}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-red-500 mt-2">Réduisez les quantités ci-dessus puis réessayez.</p>
+          </div>
+        )}
+
         {error && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-start gap-2 animate-fade-in-up">
             <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
@@ -169,11 +221,15 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
             </div>
             <button
               type="button"
-              onClick={() => setShowConfirm(true)}
-              disabled={submitting}
-              className="w-full rounded-2xl bg-[#722F37] text-white font-bold text-base py-4 hover:bg-[#5a2530] active:scale-[0.98] transition-all shadow-lg shadow-[#722F37]/30"
+              onClick={checkStock}
+              disabled={submitting || checkingStock}
+              className="w-full rounded-2xl bg-[#722F37] text-white font-bold text-base py-4 hover:bg-[#5a2530] active:scale-[0.98] transition-all shadow-lg shadow-[#722F37]/30 flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              Commander · {formatFCFA(total)}
+              {checkingStock ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Vérification…</>
+              ) : (
+                <>Commander · {formatFCFA(total)}</>
+              )}
             </button>
           </div>
         </div>
