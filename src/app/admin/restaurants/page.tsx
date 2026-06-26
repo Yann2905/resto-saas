@@ -146,7 +146,7 @@ export default function AdminRestaurantsPage() {
 
   const handleSaveEdit = async (
     r: Restaurant,
-    payload: { name: string; address: string; phone: string; expiry: string; plan: string }
+    payload: { name: string; address: string; phone: string; expiry: string; plan: string; type: RestaurantType }
   ) => {
 
     try {
@@ -165,6 +165,14 @@ export default function AdminRestaurantsPage() {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ restaurantId: r.id, plan: payload.plan }),
+        });
+      }
+      // Mise à jour du type
+      if (payload.type !== r.type) {
+        await fetch("/api/admin/restaurants/features", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ restaurantId: r.id, type: payload.type }),
         });
       }
       showToast("success", `« ${payload.name} » mis à jour`);
@@ -456,6 +464,7 @@ function EditForm({
     phone: string;
     expiry: string;
     plan: string;
+    type: RestaurantType;
   }) => void;
 }) {
   const expiryIso = restaurant.subscriptionExpiresAt
@@ -467,6 +476,7 @@ function EditForm({
     phone: restaurant.phone ?? "",
     expiry: expiryIso,
     plan: restaurant.plan ?? "starter",
+    type: restaurant.type ?? "restaurant" as RestaurantType,
   });
 
   const submit = (e: React.FormEvent) => {
@@ -516,6 +526,17 @@ function EditForm({
             <option value="starter">Starter (10 tables)</option>
             <option value="pro">Pro (25 tables + serveurs)</option>
             <option value="business">Business (illimité)</option>
+          </select>
+        </Field>
+        <Field label="Type" className="sm:col-span-2">
+          <select
+            value={form.type}
+            onChange={(e) => setForm({ ...form, type: e.target.value as RestaurantType })}
+            className="input"
+          >
+            <option value="restaurant">Restaurant</option>
+            <option value="hotel">Hôtel</option>
+            <option value="both">Restaurant + Hôtel</option>
           </select>
         </Field>
       </div>
