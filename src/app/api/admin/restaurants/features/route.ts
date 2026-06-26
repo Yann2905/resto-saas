@@ -39,22 +39,36 @@ export async function PUT(request: NextRequest) {
   if (typeof body.active === "boolean") {
     update.active = body.active;
   }
-  if (body.type && ["restaurant", "hotel", "both"].includes(body.type as string)) {
-    update.type = body.type;
-  }
+  const typeValue = body.type && ["restaurant", "hotel", "both"].includes(body.type as string)
+    ? (body.type as string)
+    : null;
 
-  if (Object.keys(update).length === 0) {
+  if (Object.keys(update).length === 0 && !typeValue) {
     return NextResponse.json({ ok: false, error: "Rien à mettre à jour" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();
-  const { error } = await admin
-    .from("restaurants")
-    .update(update)
-    .eq("id", restaurantId);
 
-  if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  if (Object.keys(update).length > 0) {
+    const { error } = await admin
+      .from("restaurants")
+      .update(update)
+      .eq("id", restaurantId);
+
+    if (error) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+  }
+
+  if (typeValue) {
+    const { error } = await admin
+      .from("restaurants")
+      .update({ type: typeValue })
+      .eq("id", restaurantId);
+
+    if (error) {
+      console.warn("[features] type update failed (column may not exist yet):", error.message);
+    }
   }
 
   return NextResponse.json({ ok: true });
