@@ -21,7 +21,7 @@ export async function GET() {
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("profiles")
-    .select("id, email, display_name, assigned_tables, created_at")
+    .select("id, email, display_name, assigned_tables, assigned_rooms, created_at")
     .eq("restaurant_id", restaurantId)
     .eq("role", "waiter")
     .order("created_at", { ascending: true });
@@ -35,6 +35,7 @@ export async function GET() {
     email: p.email,
     displayName: p.display_name ?? p.email,
     assignedTables: p.assigned_tables ?? [],
+    assignedRooms: (p as Record<string, unknown>).assigned_rooms as string[] ?? [],
     createdAt: p.created_at,
   }));
 
@@ -123,6 +124,7 @@ export async function POST(request: NextRequest) {
       email,
       displayName,
       assignedTables: [],
+      assignedRooms: [],
       createdAt: newUser.user.created_at,
     },
   });
