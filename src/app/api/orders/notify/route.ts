@@ -22,15 +22,27 @@ export async function POST(request: NextRequest) {
 
   const admin = createSupabaseAdminClient();
 
-  const { data: order } = await admin
+  const { data: order, error: orderError } = await admin
     .from("orders")
-    .select("restaurant_id, table_number, room_label, order_type, total, assigned_to")
+    .select("*")
     .eq("id", orderId)
     .maybeSingle();
+
+  if (orderError) {
+    console.error("[notify] order fetch error:", orderError.message);
+    return NextResponse.json({ ok: false }, { status: 500 });
+  }
 
   if (!order) {
     return NextResponse.json({ ok: false }, { status: 404 });
   }
+
+  console.log("[notify] order data:", {
+    id: orderId,
+    room_label: order.room_label,
+    table_number: order.table_number,
+    order_type: order.order_type,
+  });
 
   const total = (order.total as number).toLocaleString("fr-FR");
   const location = order.room_label

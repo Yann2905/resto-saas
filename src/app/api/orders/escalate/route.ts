@@ -28,14 +28,14 @@ export async function POST(request: NextRequest) {
 
   const admin = createSupabaseAdminClient();
 
-  const { data: order } = await admin
+  const { data: order, error: orderError } = await admin
     .from("orders")
-    .select("id, restaurant_id, table_number, room_label, order_type, total, assigned_to, acknowledged_at, created_at")
+    .select("*")
     .eq("id", orderId)
     .maybeSingle();
 
-  if (!order) {
-    return NextResponse.json({ ok: false }, { status: 404 });
+  if (orderError || !order) {
+    return NextResponse.json({ ok: false }, { status: orderError ? 500 : 404 });
   }
 
   if (order.restaurant_id !== auth.ctx.restaurantId && auth.ctx.role !== "superadmin") {
@@ -58,7 +58,9 @@ export async function POST(request: NextRequest) {
   const total = (order.total as number).toLocaleString("fr-FR");
   const location = order.room_label
     ? `Chambre ${order.room_label}`
-    : `Table ${order.table_number}`;
+    : order.table_number
+    ? `Table ${order.table_number}`
+    : "Commande";
 
   const payload = {
     title: `Commande non prise en charge · ${location}`,
