@@ -24,12 +24,24 @@ export async function GET(req: NextRequest) {
 
   const admin = createSupabaseAdminClient();
 
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  const spanMs = toDate.getTime() - fromDate.getTime();
+  const prevTo = new Date(fromDate.getTime() - 1);
+  const prevFrom = new Date(prevTo.getTime() - spanMs);
+
   try {
-    const [summaryRes, dayRes, topRes, peakRes] = await Promise.all([
+    const [summaryRes, prevSummaryRes, dayRes, topRes, peakRes] = await Promise.all([
       admin.rpc("restaurant_stats", {
         p_restaurant_id: restaurantId,
         p_from: from,
         p_to: to,
+      }).single(),
+
+      admin.rpc("restaurant_stats", {
+        p_restaurant_id: restaurantId,
+        p_from: prevFrom.toISOString(),
+        p_to: prevTo.toISOString(),
       }).single(),
 
       mode === "month"
@@ -61,6 +73,7 @@ export async function GET(req: NextRequest) {
       {
         ok: true,
         summary: summaryRes.data,
+        previous: prevSummaryRes.data,
         byDay: dayRes.data ?? [],
         top: topRes.data ?? [],
         peak: peakRes.data ?? [],

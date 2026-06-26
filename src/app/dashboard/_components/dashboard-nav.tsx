@@ -67,9 +67,13 @@ export default function DashboardNav() {
       <header className="bg-white/90 backdrop-blur-md border-b border-stone-200 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-stone-950 text-base sm:text-lg flex-shrink-0">
-              {restaurant.name.charAt(0)}
-            </div>
+            {restaurant.logoUrl ? (
+              <img src={restaurant.logoUrl} alt="" className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-stone-950 text-base sm:text-lg flex-shrink-0">
+                {restaurant.name.charAt(0)}
+              </div>
+            )}
             <div className="min-w-0">
               <h1 className="text-sm sm:text-base font-bold text-stone-900 tracking-tight leading-tight truncate">
                 {restaurant.name}

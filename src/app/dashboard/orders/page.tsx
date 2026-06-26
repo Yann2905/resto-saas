@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Bell, CheckCircle2, Lock, Printer, Volume2 } from "lucide-react";
+import { ArrowRight, Bell, CheckCircle2, Lock, Printer, Volume2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { Order, OrderRow, OrderStatus, OrderType, isHotelType, mapOrder } from "@/types";
@@ -26,31 +26,39 @@ const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
 
 const STATUS_STYLES: Record<
   OrderStatus,
-  { ring: string; badge: string; dot: string; accent: string }
+  { ring: string; badge: string; dot: string; accent: string; card: string; dotPulse: boolean }
 > = {
   pending: {
-    ring: "ring-amber-200",
-    badge: "bg-amber-50 text-amber-800 border-amber-200",
+    ring: "ring-amber-300",
+    badge: "bg-amber-100 text-amber-900 border-amber-300",
     dot: "bg-amber-500",
-    accent: "from-amber-400/10 to-transparent",
+    accent: "from-amber-400/20 to-amber-100/5",
+    card: "border-amber-300 shadow-amber-100/50 shadow-md",
+    dotPulse: true,
   },
   preparing: {
     ring: "ring-blue-200",
     badge: "bg-blue-50 text-blue-800 border-blue-200",
     dot: "bg-blue-500",
-    accent: "from-blue-400/10 to-transparent",
+    accent: "from-blue-400/15 to-transparent",
+    card: "border-blue-200 shadow-sm",
+    dotPulse: true,
   },
   ready: {
-    ring: "ring-emerald-200",
-    badge: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    ring: "ring-emerald-300",
+    badge: "bg-emerald-100 text-emerald-900 border-emerald-300",
     dot: "bg-emerald-500",
-    accent: "from-emerald-400/10 to-transparent",
+    accent: "from-emerald-400/20 to-transparent",
+    card: "border-emerald-300 shadow-emerald-100/50 shadow-md",
+    dotPulse: true,
   },
   served: {
     ring: "ring-stone-200",
-    badge: "bg-stone-100 text-stone-600 border-stone-200",
-    dot: "bg-stone-400",
-    accent: "from-stone-400/5 to-transparent",
+    badge: "bg-stone-100 text-stone-500 border-stone-200",
+    dot: "bg-stone-300",
+    accent: "from-transparent to-transparent",
+    card: "border-stone-200 opacity-60",
+    dotPulse: false,
   },
 };
 
@@ -456,10 +464,16 @@ export default function OrdersPage() {
               const created = order.createdAt
                 ? new Date(order.createdAt)
                 : null;
+              const nextStatus = NEXT_STATUS[order.status];
               return (
-                <div
+                <SwipeableCard
                   key={order.id}
-                  className={`relative overflow-hidden bg-white rounded-2xl border border-stone-200 shadow-sm hover:shadow-md transition-shadow animate-fade-in-up`}
+                  onSwipe={() => advance(order)}
+                  nextLabel={nextStatus ? STATUS_LABELS[nextStatus] : null}
+                  disabled={!nextStatus}
+                >
+                <div
+                  className={`relative overflow-hidden bg-white rounded-2xl border transition-all duration-300 animate-fade-in-up hover:shadow-lg ${st.card}`}
                 >
                   <div
                     className={`absolute inset-0 bg-gradient-to-br ${st.accent} pointer-events-none`}
@@ -495,7 +509,7 @@ export default function OrdersPage() {
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${st.badge}`}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${st.dot}`}
+                          className={`w-1.5 h-1.5 rounded-full ${st.dot} ${st.dotPulse ? "animate-pulse" : ""}`}
                         />
                         {STATUS_LABELS[order.status]}
                       </span>
@@ -608,6 +622,7 @@ export default function OrdersPage() {
                     </div>
                   </div>
                 </div>
+                </SwipeableCard>
               );
             })}
           </div>
@@ -645,6 +660,70 @@ function StatCard({
         } ${!isText ? colorMap[color].split(" ")[0] : ""}`}
       >
         {value}
+      </div>
+    </div>
+  );
+}
+
+function SwipeableCard({
+  children,
+  onSwipe,
+  nextLabel,
+  disabled,
+}: {
+  children: React.ReactNode;
+  onSwipe: () => void;
+  nextLabel: string | null;
+  disabled?: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const startX = useRef(0);
+  const currentX = useRef(0);
+  const swiping = useRef(false);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (disabled || !nextLabel) return;
+    startX.current = e.touches[0].clientX;
+    currentX.current = 0;
+    swiping.current = true;
+  }, [disabled, nextLabel]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!swiping.current || !ref.current) return;
+    const diff = e.touches[0].clientX - startX.current;
+    currentX.current = Math.max(0, Math.min(diff, 120));
+    ref.current.style.transform = `translateX(${currentX.current}px)`;
+    ref.current.style.transition = "none";
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!swiping.current || !ref.current) return;
+    swiping.current = false;
+    ref.current.style.transition = "transform 0.3s ease";
+    if (currentX.current > 80) {
+      ref.current.style.transform = "translateX(0)";
+      onSwipe();
+    } else {
+      ref.current.style.transform = "translateX(0)";
+    }
+    currentX.current = 0;
+  }, [onSwipe]);
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl md:overflow-visible">
+      {nextLabel && (
+        <div className="absolute inset-y-0 left-0 w-24 bg-emerald-500 rounded-l-2xl flex items-center justify-center md:hidden">
+          <ArrowRight className="w-6 h-6 text-white" />
+        </div>
+      )}
+      <div
+        ref={ref}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ transform: "translateX(0)" }}
+      >
+        {children}
       </div>
     </div>
   );

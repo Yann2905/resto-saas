@@ -29,7 +29,7 @@ function unlockAudio() {
   }
 }
 
-export function playChime() {
+export function playChime(orderType?: "food" | "service" | "issue") {
   try {
     if (!audioCtx) {
       const AC =
@@ -39,28 +39,72 @@ export function playChime() {
       audioCtx = new AC();
     }
     if (audioCtx.state === "suspended") void audioCtx.resume();
-    // 3 répétitions espacées de 0.8s, volume augmenté à 0.7
-    for (let rep = 0; rep < 3; rep++) {
-      [880, 1100].forEach((freq, i) => {
-        const osc = audioCtx!.createOscillator();
-        const gain = audioCtx!.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx!.destination);
-        osc.frequency.value = freq;
-        const t = audioCtx!.currentTime + rep * 0.8 + i * 0.18;
-        gain.gain.setValueAtTime(0.0001, t);
-        gain.gain.exponentialRampToValueAtTime(0.7, t + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
-        osc.start(t);
-        osc.stop(t + 0.4);
-      });
+
+    if (orderType === "issue") {
+      playAlarmSound();
+    } else if (orderType === "service") {
+      playBellSound();
+    } else {
+      playFoodChime();
     }
-    // Vibration sur mobile (200ms x 3 avec pauses de 150ms)
+
     if (typeof navigator !== "undefined" && navigator.vibrate) {
-      navigator.vibrate([200, 150, 200, 150, 200]);
+      navigator.vibrate(orderType === "issue" ? [300, 100, 300, 100, 300] : [200, 150, 200, 150, 200]);
     }
   } catch (e) {
     console.warn("[chime] échec lecture audio:", e);
+  }
+}
+
+function playFoodChime() {
+  for (let rep = 0; rep < 3; rep++) {
+    [880, 1100].forEach((freq, i) => {
+      const osc = audioCtx!.createOscillator();
+      const gain = audioCtx!.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx!.destination);
+      osc.frequency.value = freq;
+      const t = audioCtx!.currentTime + rep * 0.8 + i * 0.18;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.7, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+      osc.start(t);
+      osc.stop(t + 0.4);
+    });
+  }
+}
+
+function playBellSound() {
+  [660, 880, 1047].forEach((freq, i) => {
+    const osc = audioCtx!.createOscillator();
+    const gain = audioCtx!.createGain();
+    osc.type = "sine";
+    osc.connect(gain);
+    gain.connect(audioCtx!.destination);
+    osc.frequency.value = freq;
+    const t = audioCtx!.currentTime + i * 0.25;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.5, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    osc.start(t);
+    osc.stop(t + 0.6);
+  });
+}
+
+function playAlarmSound() {
+  for (let rep = 0; rep < 4; rep++) {
+    const osc = audioCtx!.createOscillator();
+    const gain = audioCtx!.createGain();
+    osc.type = "square";
+    osc.connect(gain);
+    gain.connect(audioCtx!.destination);
+    osc.frequency.value = rep % 2 === 0 ? 440 : 520;
+    const t = audioCtx!.currentTime + rep * 0.3;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.4, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+    osc.start(t);
+    osc.stop(t + 0.25);
   }
 }
 
@@ -93,12 +137,13 @@ export function playWarningChime() {
   }
 }
 
-function tryNotify(tableNumber: number, total: number) {
+function tryNotify(tableNumber: number, total: number, roomLabel?: string) {
   try {
     if (typeof window === "undefined" || !("Notification" in window)) return;
     if (Notification.permission !== "granted") return;
-    new Notification(`Nouvelle commande · Table ${tableNumber}`, {
-      body: `Total : ${total.toLocaleString("fr-FR")} FCFA`,
+    const location = roomLabel ? `Chambre ${roomLabel}` : tableNumber ? `Table ${tableNumber}` : "Nouvelle commande";
+    new Notification(`Nouvelle commande · ${location}`, {
+      body: total > 0 ? `Total : ${total.toLocaleString("fr-FR")} FCFA` : "",
       icon: "/favicon.ico",
       tag: "new-order",
     });
@@ -196,12 +241,12 @@ export default function OrderSoundAlert() {
           filter: `restaurant_id=eq.${restaurantId}`,
         },
         (payload) => {
-          const row = payload.new as { id: string; status: string; table_number: number; total: number };
+          const row = payload.new as { id: string; status: string; table_number: number; room_label?: string; order_type?: string; total: number };
           if (knownIds.current.has(row.id)) return;
           knownIds.current.add(row.id);
           if (row.status === "pending" && initDone.current) {
-            playChime();
-            tryNotify(row.table_number, row.total);
+            playChime(row.order_type as "food" | "service" | "issue" | undefined);
+            tryNotify(row.table_number, row.total, row.room_label);
           }
         },
       )

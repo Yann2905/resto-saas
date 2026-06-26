@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import PinGuard from "../_components/pin-guard";
 import { useAuth } from "@/lib/auth-context";
-import { Wallet, Receipt, Target, Calendar, ChevronDown } from "lucide-react";
+import { Wallet, Receipt, Target, Calendar, ChevronDown, Crown, TrendingUp, TrendingDown } from "lucide-react";
 import { formatCompactFCFA, formatFCFA } from "@/lib/format";
 import type { DayRevenue, PeakHour, StatsSummary, TopProduct } from "@/lib/stats";
 
@@ -88,6 +88,7 @@ export default function StatsPage() {
   const [month, setMonth] = useState<string>("");
   const [specificDay, setSpecificDay] = useState<string>("");
   const [summary, setSummary] = useState<StatsSummary | null>(null);
+  const [previousSummary, setPreviousSummary] = useState<StatsSummary | null>(null);
   const [byDay, setByDay] = useState<DayRevenue[]>([]);
   const [top, setTop] = useState<TopProduct[]>([]);
   const [peak, setPeak] = useState<PeakHour[]>([]);
@@ -134,6 +135,16 @@ export default function StatsPage() {
           totalRevenue: Number(row?.total_revenue ?? 0),
           totalOrders: Number(row?.total_orders ?? 0),
           avgTicket: Number(row?.avg_ticket ?? 0),
+        });
+        const prev = json.previous as {
+          total_revenue: number;
+          total_orders: number;
+          avg_ticket: number;
+        } | null;
+        setPreviousSummary({
+          totalRevenue: Number(prev?.total_revenue ?? 0),
+          totalOrders: Number(prev?.total_orders ?? 0),
+          avgTicket: Number(prev?.avg_ticket ?? 0),
         });
         setByDay(
           ((json.byDay ?? []) as Array<{ day: string; revenue: number; orders_count: number }>).map(
@@ -295,24 +306,45 @@ export default function StatsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <KPI
             label="Chiffre d'affaires"
             value={formatFCFA(summary?.totalRevenue ?? 0)}
+            currentValue={summary?.totalRevenue}
+            previousValue={previousSummary?.totalRevenue}
             color="emerald"
             Icon={Wallet}
           />
           <KPI
             label="Commandes"
             value={String(summary?.totalOrders ?? 0)}
+            currentValue={summary?.totalOrders}
+            previousValue={previousSummary?.totalOrders}
             color="blue"
             Icon={Receipt}
           />
           <KPI
             label="Ticket moyen"
             value={formatFCFA(Math.round(summary?.avgTicket ?? 0))}
+            currentValue={summary?.avgTicket}
+            previousValue={previousSummary?.avgTicket}
             color="amber"
             Icon={Target}
+          />
+          <KPI
+            label="Meilleur jour"
+            value={
+              byDay.length > 0
+                ? formatDay(byDay.reduce((best, d) => (d.revenue > best.revenue ? d : best), byDay[0]).day)
+                : "—"
+            }
+            subtitle={
+              byDay.length > 0
+                ? formatFCFA(Math.max(...byDay.map((d) => d.revenue)))
+                : undefined
+            }
+            color="purple"
+            Icon={Crown}
           />
         </div>
 
@@ -359,19 +391,32 @@ export default function StatsPage() {
 function KPI({
   label,
   value,
+  currentValue,
+  previousValue,
+  subtitle,
   color,
   Icon,
 }: {
   label: string;
   value: string;
-  color: "emerald" | "blue" | "amber";
+  currentValue?: number;
+  previousValue?: number;
+  subtitle?: string;
+  color: "emerald" | "blue" | "amber" | "purple";
   Icon: typeof Wallet;
 }) {
   const map = {
     emerald: "bg-emerald-50 text-emerald-700",
     blue: "bg-blue-50 text-blue-700",
     amber: "bg-amber-50 text-amber-700",
+    purple: "bg-purple-50 text-purple-700",
   };
+
+  let changePct: number | null = null;
+  if (currentValue !== undefined && previousValue !== undefined && previousValue > 0) {
+    changePct = ((currentValue - previousValue) / previousValue) * 100;
+  }
+
   return (
     <div className="relative overflow-hidden bg-white rounded-2xl border border-stone-200 p-4 sm:p-5">
       <div className="flex items-start justify-between">
@@ -382,6 +427,17 @@ function KPI({
           <div className="mt-1 font-bold tracking-tight text-stone-900 text-xl sm:text-2xl tabular-nums truncate">
             {value}
           </div>
+          {changePct !== null && (
+            <div className={`mt-1 flex items-center gap-1 text-xs font-semibold ${changePct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+              {changePct >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+              {changePct >= 0 ? "+" : ""}{Math.round(changePct)}% vs préc.
+            </div>
+          )}
+          {subtitle && (
+            <div className="mt-1 text-xs font-medium text-stone-500 truncate">
+              {subtitle}
+            </div>
+          )}
         </div>
         <div className={`rounded-xl ${map[color]} p-2.5`}>
           <Icon className="w-5 h-5" aria-hidden />

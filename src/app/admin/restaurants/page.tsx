@@ -590,7 +590,9 @@ function CreateForm({
     ownerPassword: "",
     expiry: "",
     type: "restaurant" as RestaurantType,
+    logoUrl: "",
   });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const ok = await onSubmit({
@@ -604,6 +606,7 @@ function CreateForm({
         ? new Date(form.expiry)
         : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       type: form.type,
+      logoUrl: form.logoUrl || undefined,
     });
     if (ok) {
       setForm({
@@ -615,6 +618,7 @@ function CreateForm({
         ownerPassword: "",
         expiry: "",
         type: "restaurant",
+        logoUrl: "",
       });
     }
   };
@@ -670,6 +674,43 @@ function CreateForm({
                 <div className="text-[10px] text-stone-500 leading-tight">{opt.desc}</div>
               </button>
             ))}
+          </div>
+        </Field>
+        <Field label="Logo (optionnel)" className="sm:col-span-2">
+          <div className="flex items-center gap-3">
+            {form.logoUrl ? (
+              <img src={form.logoUrl} alt="" className="w-12 h-12 rounded-xl object-cover border border-stone-200" />
+            ) : (
+              <div className="w-12 h-12 rounded-xl bg-stone-100 flex items-center justify-center text-stone-400 text-lg font-bold">
+                {form.name.charAt(0).toUpperCase() || "?"}
+              </div>
+            )}
+            <label className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium border transition-colors ${uploadingLogo ? "opacity-50" : "hover:bg-stone-50"} border-stone-200 text-stone-700`}>
+              {uploadingLogo ? "Upload…" : form.logoUrl ? "Changer" : "Ajouter un logo"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploadingLogo}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setUploadingLogo(true);
+                  const fd = new FormData();
+                  fd.append("file", file);
+                  fd.append("folder", "logos");
+                  const res = await fetch("/api/upload", { method: "POST", body: fd });
+                  const json = await res.json();
+                  setUploadingLogo(false);
+                  if (json.ok) setForm((prev) => ({ ...prev, logoUrl: json.url }));
+                }}
+              />
+            </label>
+            {form.logoUrl && (
+              <button type="button" onClick={() => setForm({ ...form, logoUrl: "" })} className="text-xs text-red-600 hover:underline">
+                Supprimer
+              </button>
+            )}
           </div>
         </Field>
         <Field label="Adresse" className="sm:col-span-2">

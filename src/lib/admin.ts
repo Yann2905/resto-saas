@@ -13,6 +13,7 @@ export type CreateRestaurantInput = {
   ownerPassword: string;
   subscriptionExpiresAt: Date | null;
   type?: RestaurantType;
+  logoUrl?: string;
 };
 
 export type CreateRestaurantResult =

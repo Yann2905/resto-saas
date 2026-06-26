@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
     ownerPassword?: unknown;
     subscriptionExpiresAt?: unknown;
     type?: unknown;
+    logoUrl?: unknown;
   } | null;
 
   if (!body) {
@@ -84,6 +85,7 @@ export async function POST(req: NextRequest) {
     (body.subscriptionExpiresAt as string | null | undefined) ?? null;
   const validTypes = ["restaurant", "hotel", "both"];
   const type = typeof body.type === "string" && validTypes.includes(body.type) ? body.type : "restaurant";
+  const logoUrl = typeof body.logoUrl === "string" && body.logoUrl.startsWith("https://") ? body.logoUrl : null;
 
   const admin = createSupabaseAdminClient();
 
@@ -107,6 +109,7 @@ export async function POST(req: NextRequest) {
       name,
       address: address || null,
       phone: phone || null,
+      logo_url: logoUrl,
       active: true,
       subscription_expires_at: subscriptionExpiresAt,
       type,
