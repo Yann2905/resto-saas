@@ -13,6 +13,7 @@ type Props = {
   categories: Category[];
   products: Product[];
   tableNumber: number | null;
+  roomLabel?: string | null;
 };
 
 export default function MenuClient({
@@ -20,6 +21,7 @@ export default function MenuClient({
   categories,
   products,
   tableNumber,
+  roomLabel,
 }: Props) {
   const router = useRouter();
   const [count, setCount] = useState(0);
@@ -27,7 +29,11 @@ export default function MenuClient({
   const [activeParent, setActiveParent] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const tableKey = tableNumber ? String(tableNumber) : "na";
+  const tableKey = roomLabel ?? (tableNumber ? String(tableNumber) : "na");
+  const locationLabel = roomLabel ? `Chambre ${roomLabel}` : `Table ${tableNumber}`;
+  const locationParam = roomLabel
+    ? `room=${encodeURIComponent(roomLabel)}`
+    : `table=${tableNumber}`;
 
   useEffect(() => {
     const refresh = () => {
@@ -84,7 +90,7 @@ export default function MenuClient({
     setTimeout(() => setJustAdded((prev) => (prev === p.id ? null : prev)), 600);
   };
 
-  if (!tableNumber) {
+  if (!tableNumber && !roomLabel) {
     return (
       <main className="min-h-screen flex items-center justify-center p-6 bg-stone-50">
         <div className="max-w-sm text-center">
@@ -118,7 +124,7 @@ export default function MenuClient({
               </h1>
               <p className="text-xs text-stone-500 mt-0.5 flex items-center gap-1.5">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Table {tableNumber} · En service
+                {locationLabel} · En service
               </p>
             </div>
           </div>
@@ -243,7 +249,7 @@ export default function MenuClient({
         <div className="fixed bottom-4 inset-x-4 z-30 max-w-2xl mx-auto animate-fade-in-up">
           <SwipeConfirm
             onConfirm={() =>
-              router.push(`/r/${restaurant.slug}/cart?table=${tableNumber}`)
+              router.push(`/r/${restaurant.slug}/cart?${locationParam}`)
             }
             label={`Voir mon panier · ${formatFCFA(total)}`}
             hint={`${count} article${count > 1 ? "s" : ""} — glissez pour voir le panier`}

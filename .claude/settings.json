@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.ts$|\\\\.tsx$\")",
+      "Bash(npx tsc *)",
+      "Bash(npx next *)",
+      "Bash(npx web-push *)",
+      "Bash(git commit -m ' *)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s \"https://www.resto-saas.com/\" -o /dev/null -w \"%{http_code} %{time_total}s\")",
+      "Bash(npm ls *)",
+      "Bash(start \"\" \"C:\\\\Users\\\\DELL\\\\resto-saas\\\\resto-saas-tests\\\\target\\\\gatling\\\\jssimulation-20260624192638068\\\\index.html\")",
+      "Bash(curl -s \"https://www.resto-saas.com/api/admin/restaurants/get\" -o /dev/null -w \"%{http_code}\")",
+      "Bash(curl -s \"https://www.resto-saas.com/api/admin/restaurants/get\" -w \"\\\\nHTTP %{http_code}\")",
+      "Bash(start \"\" \"C:\\\\Users\\\\DELL\\\\resto-saas\\\\resto-saas-tests\\\\target\\\\gatling\\\\jssimulation-20260624194312340\\\\index.html\")"
+    ]
+  }
+}

@@ -13,8 +13,9 @@ export type CreateOrderResult =
 
 export async function createOrder(
   restaurantId: string,
-  tableNumber: number,
-  items: CartItem[]
+  tableNumber: number | null,
+  items: CartItem[],
+  roomLabel?: string | null,
 ): Promise<CreateOrderResult> {
   if (items.length === 0) return { ok: false, error: "Panier vide" };
 
@@ -27,6 +28,28 @@ export async function createOrder(
     p_restaurant_id: restaurantId,
     p_table_number: tableNumber,
     p_items: payload,
+    p_room_label: roomLabel ?? null,
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+  return { ok: true, orderId: data as string };
+}
+
+export async function createHotelOrder(
+  restaurantId: string,
+  roomLabel: string,
+  orderType: "service" | "issue",
+  items: { id: string; label: string }[],
+): Promise<CreateOrderResult> {
+  if (items.length === 0) return { ok: false, error: "Aucun élément sélectionné" };
+
+  const { data, error } = await supabase.rpc("create_hotel_order", {
+    p_restaurant_id: restaurantId,
+    p_room_label: roomLabel,
+    p_order_type: orderType,
+    p_items: items,
   });
 
   if (error) {

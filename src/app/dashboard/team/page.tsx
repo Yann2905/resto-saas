@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus, Trash2, Users, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { confirmDanger, toastSuccess, toastError } from "@/lib/swal";
-import type { StaffMember } from "@/types";
+import { isHotelType, type StaffMember } from "@/types";
 
 export default function TeamPage() {
   const { restaurant, role, loading } = useAuth();
@@ -14,6 +14,11 @@ export default function TeamPage() {
   const [form, setForm] = useState({ displayName: "", email: "", password: "" });
   const [editingTables, setEditingTables] = useState<string | null>(null);
   const [tablesInput, setTablesInput] = useState("");
+  const [editingRooms, setEditingRooms] = useState<string | null>(null);
+  const [roomsInput, setRoomsInput] = useState("");
+  const isHotel = isHotelType(restaurant?.type);
+  const showTables = restaurant?.type === "restaurant" || restaurant?.type === "both";
+  const showRooms = isHotel;
 
   const fetchStaff = useCallback(async () => {
     const res = await fetch("/api/staff");
@@ -140,6 +145,31 @@ export default function TeamPage() {
     }
   };
 
+  const handleSaveRooms = async (waiterId: string) => {
+    const rooms = roomsInput
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const res = await fetch("/api/staff/tables", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ waiterId, rooms }),
+    });
+    const json = await res.json();
+    if (json.ok) {
+      setStaff((prev) =>
+        prev.map((s) =>
+          s.id === waiterId ? { ...s, assignedRooms: rooms } : s
+        )
+      );
+      setEditingRooms(null);
+      void toastSuccess("Chambres assignées !");
+    } else {
+      void toastError(json.error);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-stone-50 pb-20 md:pb-0">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
@@ -149,7 +179,7 @@ export default function TeamPage() {
               Équipe
             </h2>
             <p className="text-sm text-stone-500 mt-0.5">
-              Gérez vos serveurs et leurs zones de tables
+              {isHotel ? "Gérez votre staff et leurs chambres" : "Gérez vos serveurs et leurs zones de tables"}
             </p>
           </div>
           <button
@@ -247,63 +277,125 @@ export default function TeamPage() {
                   </button>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-stone-100">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
-                      Tables assignées
-                    </span>
-                    {editingTables !== w.id && (
-                      <button
-                        onClick={() => {
-                          setEditingTables(w.id);
-                          setTablesInput(w.assignedTables.join(", "));
-                        }}
-                        className="text-xs text-stone-600 hover:text-stone-900 underline underline-offset-2"
-                      >
-                        Modifier
-                      </button>
-                    )}
-                  </div>
-
-                  {editingTables === w.id ? (
-                    <div className="mt-2 flex gap-2">
-                      <input
-                        type="text"
-                        value={tablesInput}
-                        onChange={(e) => setTablesInput(e.target.value)}
-                        placeholder="1, 2, 3, 4, 5"
-                        className="flex-1 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
-                      />
-                      <button
-                        onClick={() => handleSaveTables(w.id)}
-                        className="bg-stone-900 text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-stone-800 transition-colors"
-                      >
-                        OK
-                      </button>
-                      <button
-                        onClick={() => setEditingTables(null)}
-                        className="text-stone-400 hover:text-stone-700 px-2"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {w.assignedTables.length === 0 ? (
-                        <span className="text-xs text-stone-400 italic">Aucune table assignée</span>
-                      ) : (
-                        w.assignedTables.map((t) => (
-                          <span
-                            key={t}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-stone-100 text-stone-700 text-sm font-semibold"
-                          >
-                            {t}
-                          </span>
-                        ))
+                {showTables && (
+                  <div className="mt-4 pt-3 border-t border-stone-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
+                        Tables assignées
+                      </span>
+                      {editingTables !== w.id && (
+                        <button
+                          onClick={() => {
+                            setEditingTables(w.id);
+                            setTablesInput(w.assignedTables.join(", "));
+                          }}
+                          className="text-xs text-stone-600 hover:text-stone-900 underline underline-offset-2"
+                        >
+                          Modifier
+                        </button>
                       )}
                     </div>
-                  )}
-                </div>
+
+                    {editingTables === w.id ? (
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          type="text"
+                          value={tablesInput}
+                          onChange={(e) => setTablesInput(e.target.value)}
+                          placeholder="1, 2, 3, 4, 5"
+                          className="flex-1 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+                        />
+                        <button
+                          onClick={() => handleSaveTables(w.id)}
+                          className="bg-stone-900 text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-stone-800 transition-colors"
+                        >
+                          OK
+                        </button>
+                        <button
+                          onClick={() => setEditingTables(null)}
+                          className="text-stone-400 hover:text-stone-700 px-2"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {w.assignedTables.length === 0 ? (
+                          <span className="text-xs text-stone-400 italic">Aucune table assignée</span>
+                        ) : (
+                          w.assignedTables.map((t) => (
+                            <span
+                              key={t}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-stone-100 text-stone-700 text-sm font-semibold"
+                            >
+                              {t}
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {showRooms && (
+                  <div className="mt-4 pt-3 border-t border-stone-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
+                        Chambres assignées
+                      </span>
+                      {editingRooms !== w.id && (
+                        <button
+                          onClick={() => {
+                            setEditingRooms(w.id);
+                            setRoomsInput(w.assignedRooms.join(", "));
+                          }}
+                          className="text-xs text-stone-600 hover:text-stone-900 underline underline-offset-2"
+                        >
+                          Modifier
+                        </button>
+                      )}
+                    </div>
+
+                    {editingRooms === w.id ? (
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          type="text"
+                          value={roomsInput}
+                          onChange={(e) => setRoomsInput(e.target.value)}
+                          placeholder="101, Suite Royale, Cocotier"
+                          className="flex-1 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+                        />
+                        <button
+                          onClick={() => handleSaveRooms(w.id)}
+                          className="bg-stone-900 text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-stone-800 transition-colors"
+                        >
+                          OK
+                        </button>
+                        <button
+                          onClick={() => setEditingRooms(null)}
+                          className="text-stone-400 hover:text-stone-700 px-2"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {w.assignedRooms.length === 0 ? (
+                          <span className="text-xs text-stone-400 italic">Aucune chambre assignée</span>
+                        ) : (
+                          w.assignedRooms.map((r) => (
+                            <span
+                              key={r}
+                              className="inline-flex items-center justify-center px-3 h-8 rounded-lg bg-stone-100 text-stone-700 text-sm font-semibold"
+                            >
+                              {r}
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

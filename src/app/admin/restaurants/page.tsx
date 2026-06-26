@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Check, Plus, Search, Store, X } from "lucide-react";
-import { Restaurant, RestaurantRow, mapRestaurant } from "@/types";
+import { AlertTriangle, Check, Hotel, Plus, Search, Store, UtensilsCrossed, X } from "lucide-react";
+import { Restaurant, RestaurantRow, RestaurantType, mapRestaurant } from "@/types";
 import {
   createRestaurantWithOwner,
   deleteRestaurant,
@@ -123,7 +123,7 @@ export default function AdminRestaurantsPage() {
   const handleCreate = async (input: CreateRestaurantInput) => {
     const res = await createRestaurantWithOwner(input);
     if (res.ok) {
-      showToast("success", `Restaurant « ${input.name} » créé`);
+      showToast("success", `Établissement « ${input.name} » créé`);
       setShowCreate(false);
     } else {
       showToast("error", res.error);
@@ -197,7 +197,7 @@ export default function AdminRestaurantsPage() {
         <div className="mb-5 flex items-start justify-between gap-3 flex-wrap">
           <div className="animate-fade-in-up">
             <h2 className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">
-              Restaurants
+              Établissements
             </h2>
             <p className="text-sm text-stone-500 mt-0.5">
               {restaurants.length} établissement
@@ -212,7 +212,7 @@ export default function AdminRestaurantsPage() {
             }}
             className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-all hover:scale-105 flex items-center gap-1.5 shadow-lg shadow-stone-900/10"
           >
-            <Plus className="w-4 h-4" aria-hidden /> Nouveau restaurant
+            <Plus className="w-4 h-4" aria-hidden /> Nouvel établissement
           </button>
         </div>
 
@@ -269,12 +269,12 @@ export default function AdminRestaurantsPage() {
             </div>
             <h3 className="text-lg font-bold text-stone-900 mb-1">
               {restaurants.length === 0
-                ? "Aucun restaurant"
+                ? "Aucun établissement"
                 : "Aucun résultat"}
             </h3>
             <p className="text-sm text-stone-500">
               {restaurants.length === 0
-                ? "Créez votre premier restaurant pour commencer."
+                ? "Créez votre premier établissement pour commencer."
                 : "Ajustez votre recherche ou le filtre."}
             </p>
           </div>
@@ -378,6 +378,15 @@ function RestaurantRowView({
             {restaurant.address && <> · {restaurant.address}</>}
           </div>
           <div className="mt-1 flex items-center gap-2 flex-wrap">
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+              restaurant.type === "hotel"
+                ? "bg-purple-100 text-purple-800"
+                : restaurant.type === "both"
+                ? "bg-indigo-100 text-indigo-800"
+                : "bg-stone-100 text-stone-600"
+            }`}>
+              {restaurant.type === "hotel" ? "Hôtel" : restaurant.type === "both" ? "Resto + Hôtel" : "Restaurant"}
+            </span>
             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
               restaurant.plan === "business"
                 ? "bg-amber-100 text-amber-800"
@@ -559,6 +568,7 @@ function CreateForm({
     ownerEmail: "",
     ownerPassword: "",
     expiry: "",
+    type: "restaurant" as RestaurantType,
   });
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -572,6 +582,7 @@ function CreateForm({
       subscriptionExpiresAt: form.expiry
         ? new Date(form.expiry)
         : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      type: form.type,
     });
     if (ok) {
       setForm({
@@ -582,6 +593,7 @@ function CreateForm({
         ownerEmail: "",
         ownerPassword: "",
         expiry: "",
+        type: "restaurant",
       });
     }
   };
@@ -592,18 +604,18 @@ function CreateForm({
       className="mb-5 rounded-2xl border-2 border-stone-900 bg-white overflow-hidden animate-fade-in-up"
     >
       <div className="bg-gradient-to-r from-stone-900 to-stone-800 text-white px-5 py-3">
-        <h3 className="font-bold tracking-tight">Nouveau restaurant</h3>
+        <h3 className="font-bold tracking-tight">Nouvel établissement</h3>
         <p className="text-[11px] text-stone-400">
-          Crée le restaurant ET le compte owner en une étape
+          Crée l&apos;établissement ET le compte propriétaire en une étape
         </p>
       </div>
       <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Nom du restaurant">
+        <Field label="Nom de l'établissement">
           <input
             required
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="Chez Mama"
+            placeholder="Chez Mama, Hôtel Ivoire…"
             className="input"
           />
         </Field>
@@ -614,6 +626,30 @@ function CreateForm({
             placeholder="chez-mama (auto si vide)"
             className="input"
           />
+        </Field>
+        <Field label="Type d'établissement" className="sm:col-span-2">
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { value: "restaurant" as const, label: "Restaurant", Icon: UtensilsCrossed, desc: "Menu et commandes par table" },
+              { value: "hotel" as const, label: "Hôtel", Icon: Hotel, desc: "Room service, services et signalements" },
+              { value: "both" as const, label: "Les deux", Icon: Store, desc: "Restaurant + services hôteliers" },
+            ]).map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setForm({ ...form, type: opt.value })}
+                className={`rounded-xl border-2 p-3 text-left transition-all ${
+                  form.type === opt.value
+                    ? "border-stone-900 bg-stone-50"
+                    : "border-stone-200 hover:border-stone-300"
+                }`}
+              >
+                <opt.Icon className={`w-5 h-5 mb-1.5 ${form.type === opt.value ? "text-stone-900" : "text-stone-400"}`} />
+                <div className="text-sm font-bold text-stone-900">{opt.label}</div>
+                <div className="text-[10px] text-stone-500 leading-tight">{opt.desc}</div>
+              </button>
+            ))}
+          </div>
         </Field>
         <Field label="Adresse" className="sm:col-span-2">
           <input
@@ -684,7 +720,7 @@ function CreateForm({
           type="submit"
           className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors flex items-center justify-center gap-2"
         >
-          Créer le restaurant
+          Créer l&apos;établissement
         </button>
       </div>
       <style jsx>{`

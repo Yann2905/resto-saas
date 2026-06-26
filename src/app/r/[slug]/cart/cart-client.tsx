@@ -17,12 +17,17 @@ import SwipeConfirm from "../_components/swipe-confirm";
 
 type Props = {
   restaurant: { id: string; name: string; slug: string };
-  tableNumber: number;
+  tableNumber: number | null;
+  roomLabel?: string | null;
 };
 
-export default function CartClient({ restaurant, tableNumber }: Props) {
+export default function CartClient({ restaurant, tableNumber, roomLabel }: Props) {
   const router = useRouter();
-  const tableKey = String(tableNumber);
+  const tableKey = roomLabel ?? String(tableNumber);
+  const locationLabel = roomLabel ? `Chambre ${roomLabel}` : `Table ${tableNumber}`;
+  const locationParam = roomLabel
+    ? `room=${encodeURIComponent(roomLabel)}`
+    : `table=${tableNumber}`;
   const [items, setItems] = useState<CartItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,20 +46,19 @@ export default function CartClient({ restaurant, tableNumber }: Props) {
   const handleSubmit = async () => {
     setSubmitting(true);
     setError(null);
-    const res = await createOrder(restaurant.id, tableNumber, items);
+    const res = await createOrder(restaurant.id, tableNumber, items, roomLabel);
     setSubmitting(false);
     if (!res.ok) {
       setError(res.error);
       return;
     }
     clearCart(restaurant.id, tableKey);
-    // Notification push au serveur (fire-and-forget)
     fetch("/api/orders/notify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ orderId: res.orderId }),
     }).catch(() => {});
-    router.push(`/r/${restaurant.slug}/order/${res.orderId}?table=${tableNumber}`);
+    router.push(`/r/${restaurant.slug}/order/${res.orderId}?${locationParam}`);
   };
 
   const total = cartTotal(items);
@@ -64,7 +68,7 @@ export default function CartClient({ restaurant, tableNumber }: Props) {
       <header className="bg-white/90 backdrop-blur-md border-b border-stone-200 sticky top-0 z-20">
         <div className="max-w-2xl mx-auto px-5 py-4 flex items-center gap-3">
           <Link
-            href={`/r/${restaurant.slug}?table=${tableNumber}`}
+            href={`/r/${restaurant.slug}?${locationParam}`}
             className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors"
             aria-label="Retour au menu"
           >
@@ -76,7 +80,7 @@ export default function CartClient({ restaurant, tableNumber }: Props) {
             </h1>
             <p className="text-xs text-stone-500 flex items-center gap-1.5">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              {restaurant.name} · Table {tableNumber}
+              {restaurant.name} · {locationLabel}
             </p>
           </div>
         </div>
@@ -95,7 +99,7 @@ export default function CartClient({ restaurant, tableNumber }: Props) {
               Ajoutez des plats depuis le menu.
             </p>
             <Link
-              href={`/r/${restaurant.slug}?table=${tableNumber}`}
+              href={`/r/${restaurant.slug}?${locationParam}`}
               className="inline-flex items-center gap-2 rounded-full bg-stone-900 text-white px-6 py-3 font-semibold hover:bg-stone-800 transition-colors"
             >
               ← Retour au menu

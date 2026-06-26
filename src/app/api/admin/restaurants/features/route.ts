@@ -39,6 +39,9 @@ export async function PUT(request: NextRequest) {
   if (typeof body.active === "boolean") {
     update.active = body.active;
   }
+  if (body.type && ["restaurant", "hotel", "both"].includes(body.type as string)) {
+    update.type = body.type;
+  }
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ ok: false, error: "Rien à mettre à jour" }, { status: 400 });

@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
   const { data: order } = await admin
     .from("orders")
-    .select("restaurant_id, table_number, total, assigned_to")
+    .select("restaurant_id, table_number, room_label, order_type, total, assigned_to")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -33,16 +33,24 @@ export async function POST(request: NextRequest) {
   }
 
   const total = (order.total as number).toLocaleString("fr-FR");
+  const location = order.room_label
+    ? `Chambre ${order.room_label}`
+    : `Table ${order.table_number}`;
+
+  const typeLabel = order.order_type === "service"
+    ? "Demande de service"
+    : order.order_type === "issue"
+    ? "Signalement"
+    : "Nouvelle commande";
 
   try {
     const payload = {
-      title: `Nouvelle commande · Table ${order.table_number}`,
-      body: `Total : ${total} FCFA`,
+      title: `${typeLabel} · ${location}`,
+      body: order.order_type === "food" ? `Total : ${total} FCFA` : "",
       url: "/dashboard/orders",
     };
 
     if (order.assigned_to) {
-      // Table assignée → notifier le serveur + owner(s)
       const { data: owners } = await admin
         .from("profiles")
         .select("id")
@@ -52,7 +60,7 @@ export async function POST(request: NextRequest) {
       const pushTasks = [
         sendPushToRestaurant(
           order.restaurant_id,
-          { ...payload, body: `Table ${order.table_number} · ${total} FCFA — Glissez pour voir` },
+          { ...payload, body: order.order_type === "food" ? `${location} · ${total} FCFA — Glissez pour voir` : `${location} — Glissez pour voir` },
           order.assigned_to,
         ),
         ...(owners ?? []).map((o) =>
@@ -61,7 +69,6 @@ export async function POST(request: NextRequest) {
       ];
       await Promise.allSettled(pushTasks);
     } else {
-      // Table non assignée → notifier tout le monde
       await sendPushToRestaurant(order.restaurant_id, payload);
     }
   } catch (e) {

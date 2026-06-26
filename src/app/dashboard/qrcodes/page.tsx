@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { FileDown, Printer, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { isHotelType } from "@/types";
+import HotelQrCodes from "./hotel-qrcodes";
 
 /* ── Thèmes couleur pour l'export PDF ───────────────────────── */
 const COLOR_THEMES = {
@@ -242,6 +244,10 @@ export default function QrCodesPage() {
         </div>
       </main>
     );
+  }
+
+  if (restaurant.type === "hotel") {
+    return <HotelQrCodes restaurant={restaurant} />;
   }
 
   return (
@@ -593,6 +599,12 @@ export default function QrCodesPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {restaurant.type === "both" && (
+        <div className="border-t-4 border-stone-200 mt-6">
+          <HotelQrCodes restaurant={restaurant} />
         </div>
       )}
 

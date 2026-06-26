@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, CheckCircle2, Lock, Printer, Volume2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { Order, OrderRow, OrderStatus, mapOrder } from "@/types";
+import { Order, OrderRow, OrderStatus, OrderType, isHotelType, mapOrder } from "@/types";
 import { formatFCFA } from "@/lib/format";
 import { playChime } from "../_components/order-sound-alert";
 import { toastSuccess } from "@/lib/swal";
@@ -59,6 +59,8 @@ export default function OrdersPage() {
   const { user, restaurant, role, loading, signOut } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
+  const [typeFilter, setTypeFilter] = useState<OrderType | "all">("all");
+  const isHotel = isHotelType(restaurant?.type);
   const knownIds = useRef<Set<string>>(new Set());
   const firstLoadDone = useRef(false);
   const [notifPerm, setNotifPerm] =
@@ -255,8 +257,9 @@ export default function OrdersPage() {
     ? orders.filter((o) => o.assignedTo === user?.id || escalatedIds.has(o.id) || !o.assignedTo)
     : orders;
 
+  const byType = typeFilter === "all" ? myOrders : myOrders.filter((o) => o.orderType === typeFilter);
   const filteredOrders =
-    filter === "all" ? myOrders : myOrders.filter((o) => o.status === filter);
+    filter === "all" ? byType : byType.filter((o) => o.status === filter);
 
   const acknowledge = async (orderId: string) => {
     const res = await fetch("/api/orders/acknowledge", {
@@ -394,6 +397,32 @@ export default function OrdersPage() {
           })}
         </div>
 
+        {isHotel && (
+          <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
+            {([
+              { key: "all", label: "Tous types" },
+              { key: "food", label: "Nourriture" },
+              { key: "service", label: "Service chambre" },
+              { key: "issue", label: "Problèmes" },
+            ] as const).map((f) => {
+              const active = typeFilter === f.key;
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => setTypeFilter(f.key as OrderType | "all")}
+                  className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                    active
+                      ? "bg-stone-900 text-white shadow-sm"
+                      : "bg-white text-stone-600 border border-stone-200 hover:bg-stone-100"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {filteredOrders.length === 0 ? (
           <div className="text-center py-24 animate-fade-in-up">
             <div className="w-20 h-20 rounded-2xl bg-stone-100 flex items-center justify-center mx-auto mb-5">
@@ -426,8 +455,17 @@ export default function OrdersPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <div className="text-2xl font-bold text-stone-900 tracking-tight">
-                            Table {order.tableNumber}
+                            {order.roomLabel ? `Chambre ${order.roomLabel}` : `Table ${order.tableNumber}`}
                           </div>
+                          {order.orderType !== "food" && (
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                              order.orderType === "service"
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-red-100 text-red-700"
+                            }`}>
+                              {order.orderType === "service" ? "Service" : "Problème"}
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs text-stone-500 mt-0.5 font-mono">
                           #{order.id.slice(0, 6).toUpperCase()} ·{" "}
@@ -450,32 +488,54 @@ export default function OrdersPage() {
                     </div>
 
                     <div className="space-y-1.5 text-sm mb-4">
-                      {order.items.map((item) => (
-                        <div
-                          key={item.productId}
-                          className="flex items-baseline justify-between gap-2"
-                        >
-                          <span className="flex-1 truncate text-stone-700">
-                            <span className="text-stone-400 font-mono text-xs mr-1.5">
-                              {item.quantity}×
+                      {order.orderType === "food" ? (
+                        order.items.map((item) => (
+                          <div
+                            key={item.productId}
+                            className="flex items-center justify-between gap-2"
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              {item.imageUrl ? (
+                                <img
+                                  src={item.imageUrl}
+                                  alt=""
+                                  className="w-8 h-8 rounded-lg object-cover flex-shrink-0 bg-stone-100"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-lg bg-stone-100 flex-shrink-0" />
+                              )}
+                              <span className="truncate text-stone-700">
+                                <span className="text-stone-400 font-mono text-xs mr-1.5">
+                                  {item.quantity}×
+                                </span>
+                                {item.name}
+                              </span>
+                            </div>
+                            <span className="text-stone-500 tabular-nums text-xs flex-shrink-0">
+                              {formatFCFA(item.total)}
                             </span>
-                            {item.name}
-                          </span>
-                          <span className="text-stone-500 tabular-nums text-xs">
-                            {formatFCFA(item.total)}
-                          </span>
-                        </div>
-                      ))}
+                          </div>
+                        ))
+                      ) : (
+                        (order.items as unknown as { id: string; label: string }[]).map((item) => (
+                          <div key={item.id} className="flex items-center gap-2 text-stone-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-stone-400 flex-shrink-0" />
+                            {item.label}
+                          </div>
+                        ))
+                      )}
                     </div>
 
-                    <div className="border-t border-stone-200 pt-3 mb-4 flex items-baseline justify-between">
-                      <span className="text-xs uppercase tracking-wider text-stone-500 font-medium">
-                        Total
-                      </span>
-                      <span className="text-lg font-bold text-stone-900 tabular-nums tracking-tight">
-                        {formatFCFA(order.total)}
-                      </span>
-                    </div>
+                    {order.orderType === "food" && (
+                      <div className="border-t border-stone-200 pt-3 mb-4 flex items-baseline justify-between">
+                        <span className="text-xs uppercase tracking-wider text-stone-500 font-medium">
+                          Total
+                        </span>
+                        <span className="text-lg font-bold text-stone-900 tabular-nums tracking-tight">
+                          {formatFCFA(order.total)}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Assignation & accusé de réception */}
                     {order.assignedTo && (

@@ -8,6 +8,18 @@ export type WeekKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
 export type OpeningHours = Record<WeekKey, DaySchedule>;
 
+export type RestaurantType = "restaurant" | "hotel" | "both";
+
+export function isHotelType(type: RestaurantType | undefined): boolean {
+  return type === "hotel" || type === "both";
+}
+export type OrderType = "food" | "service" | "issue";
+
+export type HotelService = {
+  id: string;
+  label: string;
+};
+
 export type Restaurant = {
   id: string;
   slug: string;
@@ -24,6 +36,10 @@ export type Restaurant = {
   planExpiresAt: string | null;
   featureOverrides: Record<string, unknown>;
   isPartner: boolean;
+  type: RestaurantType;
+  hotelRooms: string[];
+  hotelServices: HotelService[];
+  hotelIssues: HotelService[];
 };
 
 export type Category = {
@@ -56,12 +72,15 @@ export type OrderItem = {
   price: number;
   quantity: number;
   total: number;
+  imageUrl?: string | null;
 };
 
 export type Order = {
   id: string;
   restaurantId: string;
-  tableNumber: number;
+  tableNumber: number | null;
+  roomLabel: string | null;
+  orderType: OrderType;
   items: OrderItem[];
   total: number;
   status: OrderStatus;
@@ -77,6 +96,7 @@ export type StaffMember = {
   email: string;
   displayName: string;
   assignedTables: number[];
+  assignedRooms: string[];
   createdAt: string;
 };
 
@@ -157,6 +177,10 @@ export type RestaurantRow = {
   plan_expires_at?: string | null;
   feature_overrides?: Record<string, unknown>;
   is_partner?: boolean;
+  type?: string;
+  hotel_rooms?: string[];
+  hotel_services?: HotelService[];
+  hotel_issues?: HotelService[];
 };
 
 export type CategoryRow = {
@@ -186,7 +210,9 @@ export type ProductRow = {
 export type OrderRow = {
   id: string;
   restaurant_id: string;
-  table_number: number;
+  table_number: number | null;
+  room_label: string | null;
+  order_type: string;
   items: OrderItem[];
   total: number;
   status: OrderStatus;
@@ -250,6 +276,10 @@ export function mapRestaurant(r: RestaurantRow): Restaurant {
     planExpiresAt: r.plan_expires_at ?? null,
     featureOverrides: (r.feature_overrides as Record<string, unknown>) ?? {},
     isPartner: r.is_partner ?? false,
+    type: (r.type as RestaurantType) ?? "restaurant",
+    hotelRooms: r.hotel_rooms ?? [],
+    hotelServices: (r.hotel_services as HotelService[]) ?? [],
+    hotelIssues: (r.hotel_issues as HotelService[]) ?? [],
   };
 }
 
@@ -282,6 +312,8 @@ export function mapOrder(o: OrderRow & { assigned_name?: string | null }): Order
     id: o.id,
     restaurantId: o.restaurant_id,
     tableNumber: o.table_number,
+    roomLabel: o.room_label ?? null,
+    orderType: (o.order_type as OrderType) ?? "food",
     items: o.items,
     total: o.total,
     status: o.status,

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
   const { data: order } = await admin
     .from("orders")
-    .select("id, restaurant_id, table_number, total, assigned_to, acknowledged_at, created_at")
+    .select("id, restaurant_id, table_number, room_label, order_type, total, assigned_to, acknowledged_at, created_at")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -56,10 +56,15 @@ export async function POST(request: NextRequest) {
   }
 
   const total = (order.total as number).toLocaleString("fr-FR");
+  const location = order.room_label
+    ? `Chambre ${order.room_label}`
+    : `Table ${order.table_number}`;
 
   const payload = {
-    title: `Commande non prise en charge · Table ${order.table_number}`,
-    body: `${total} FCFA — Le serveur assigné n'a pas répondu`,
+    title: `Commande non prise en charge · ${location}`,
+    body: order.order_type === "food"
+      ? `${total} FCFA — Le serveur assigné n'a pas répondu`
+      : `${location} — Le staff assigné n'a pas répondu`,
     url: "/dashboard/orders",
   };
 

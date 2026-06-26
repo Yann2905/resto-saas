@@ -45,6 +45,7 @@ type Props = {
   restaurantSlug: string;
   orderId: string;
   tableNumber: number | null;
+  roomLabel?: string | null;
 };
 
 export default function OrderTracker({
@@ -52,7 +53,12 @@ export default function OrderTracker({
   restaurantSlug,
   orderId,
   tableNumber,
+  roomLabel,
 }: Props) {
+  const locationLabel = roomLabel ? `Chambre ${roomLabel}` : tableNumber ? `Table ${tableNumber}` : null;
+  const backParam = roomLabel
+    ? `room=${encodeURIComponent(roomLabel)}`
+    : `table=${tableNumber ?? ""}`;
   const [order, setOrder] = useState<OrderWithWaiter | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -125,10 +131,10 @@ export default function OrderTracker({
           <h1 className="text-xl font-bold text-stone-900 tracking-tight">
             {restaurantName}
           </h1>
-          {tableNumber && (
+          {locationLabel && (
             <p className="text-xs text-stone-500 flex items-center gap-1.5 mt-0.5">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Table {tableNumber}
+              {locationLabel}
             </p>
           )}
         </div>
@@ -201,17 +207,28 @@ export default function OrderTracker({
             {order.items.map((item) => (
               <div
                 key={item.productId}
-                className="flex items-baseline justify-between gap-3"
+                className="flex items-center justify-between gap-3"
               >
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-stone-900 truncate">
-                    {item.name}
-                  </div>
-                  <div className="text-xs text-stone-500">
-                    {formatFCFA(item.price)} × {item.quantity}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt=""
+                      className="w-10 h-10 rounded-xl object-cover flex-shrink-0 bg-stone-100"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-stone-100 flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-stone-900 truncate">
+                      {item.name}
+                    </div>
+                    <div className="text-xs text-stone-500">
+                      {formatFCFA(item.price)} × {item.quantity}
+                    </div>
                   </div>
                 </div>
-                <div className="font-semibold text-stone-900 tabular-nums">
+                <div className="font-semibold text-stone-900 tabular-nums flex-shrink-0">
                   {formatFCFA(item.total)}
                 </div>
               </div>
@@ -228,7 +245,7 @@ export default function OrderTracker({
         </div>
 
         <Link
-          href={`/r/${restaurantSlug}?table=${tableNumber ?? ""}`}
+          href={`/r/${restaurantSlug}?${backParam}`}
           className="block text-center text-sm text-stone-500 hover:text-stone-900 underline underline-offset-4 pt-2 transition-colors"
         >
           ← Retour au menu

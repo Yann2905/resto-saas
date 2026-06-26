@@ -17,7 +17,8 @@ import {
   Smartphone,
   Trash2,
 } from "lucide-react";
-import { Restaurant, RestaurantRow, mapRestaurant } from "@/types";
+import { Restaurant, RestaurantRow, RestaurantType, mapRestaurant } from "@/types";
+import { Hotel } from "lucide-react";
 
 type FeatureKey = "waiters" | "pushNotifications" | "fullStats" | "maxTables";
 
@@ -78,6 +79,7 @@ export default function RestaurantDetailPage() {
   const [isPartner, setIsPartner] = useState(false);
   const [active, setActive] = useState(true);
   const [expiry, setExpiry] = useState("");
+  const [restaurantType, setRestaurantType] = useState<RestaurantType>("restaurant");
   const [overrides, setOverrides] = useState<Record<string, boolean | number | undefined>>({});
 
   const fetchRestaurant = useCallback(async () => {
@@ -95,6 +97,7 @@ export default function RestaurantDetailPage() {
         : ""
     );
     setOverrides((found.featureOverrides as Record<string, boolean | number | undefined>) ?? {});
+    setRestaurantType(found.type ?? "restaurant");
     setLoading(false);
   }, [id]);
 
@@ -143,6 +146,7 @@ export default function RestaurantDetailPage() {
           active,
           planExpiresAt: expiry || null,
           featureOverrides: cleanOverrides,
+          type: restaurantType,
         }),
       });
       await fetchRestaurant();
@@ -197,7 +201,23 @@ export default function RestaurantDetailPage() {
         </div>
 
         {/* Plan + Status */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+          {/* Type */}
+          <div className="bg-white rounded-2xl border border-stone-200 p-4">
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 mb-2 block">
+              Type
+            </label>
+            <select
+              value={restaurantType}
+              onChange={(e) => setRestaurantType(e.target.value as RestaurantType)}
+              className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+            >
+              <option value="restaurant">Restaurant</option>
+              <option value="hotel">Hôtel</option>
+              <option value="both">Les deux</option>
+            </select>
+          </div>
+
           {/* Plan */}
           <div className="bg-white rounded-2xl border border-stone-200 p-4">
             <label className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 mb-2 block">

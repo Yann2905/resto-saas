@@ -3,8 +3,8 @@ import { requireUser } from "@/lib/server-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
 
 /**
- * PUT /api/staff/tables — Assigner des tables à un serveur
- * Body: { waiterId, tables: number[] }
+ * PUT /api/staff/tables — Assigner des tables (ou chambres) à un serveur
+ * Body: { waiterId, tables: number[] } ou { waiterId, rooms: string[] }
  */
 export async function PUT(request: NextRequest) {
   const auth = await requireUser();
@@ -22,6 +22,7 @@ export async function PUT(request: NextRequest) {
 
   const waiterId = typeof body.waiterId === "string" ? body.waiterId : "";
   const tables = Array.isArray(body.tables) ? body.tables.filter((t): t is number => typeof t === "number" && t > 0) : [];
+  const rooms = Array.isArray(body.rooms) ? body.rooms.filter((r): r is string => typeof r === "string" && r.trim().length > 0) : [];
 
   if (!waiterId) {
     return NextResponse.json({ ok: false, error: "waiterId requis" }, { status: 400 });
@@ -43,7 +44,44 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Accès refusé" }, { status: 403 });
   }
 
-  // Retirer ces tables des autres serveurs du même restaurant
+  const isRoomMode = rooms.length > 0 || (tables.length === 0 && Array.isArray(body.rooms));
+
+  if (isRoomMode) {
+    if (rooms.length > 0) {
+      const { data: otherWaiters } = await admin
+        .from("profiles")
+        .select("id, assigned_rooms")
+        .eq("restaurant_id", profile.restaurant_id)
+        .eq("role", "waiter")
+        .neq("id", waiterId);
+
+      if (otherWaiters) {
+        for (const other of otherWaiters) {
+          const currentRooms = (other.assigned_rooms as string[]) ?? [];
+          const cleaned = currentRooms.filter((r) => !rooms.includes(r));
+          if (cleaned.length !== currentRooms.length) {
+            await admin
+              .from("profiles")
+              .update({ assigned_rooms: cleaned })
+              .eq("id", other.id);
+          }
+        }
+      }
+    }
+
+    const { error } = await admin
+      .from("profiles")
+      .update({ assigned_rooms: rooms })
+      .eq("id", waiterId);
+
+    if (error) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true, rooms });
+  }
+
+  // Table mode (restaurants)
   if (tables.length > 0) {
     const { data: otherWaiters } = await admin
       .from("profiles")

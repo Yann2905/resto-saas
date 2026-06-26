@@ -1,6 +1,6 @@
 "use client";
 
-import type { OpeningHours } from "@/types";
+import type { OpeningHours, RestaurantType } from "@/types";
 
 // Client helpers : appellent les API routes (qui utilisent le service role).
 
@@ -12,6 +12,7 @@ export type CreateRestaurantInput = {
   ownerEmail: string;
   ownerPassword: string;
   subscriptionExpiresAt: Date | null;
+  type?: RestaurantType;
 };
 
 export type CreateRestaurantResult =
@@ -60,6 +61,9 @@ type UpdatePayload = {
   subscriptionExpiresAt?: string | null;
   openingHours?: OpeningHours | null;
   lowStockThreshold?: number;
+  hotelServices?: { id: string; label: string }[];
+  hotelIssues?: { id: string; label: string }[];
+  hotelRooms?: string[];
 };
 
 export async function updateRestaurant(payload: UpdatePayload): Promise<void> {

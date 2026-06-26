@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     ownerEmail?: unknown;
     ownerPassword?: unknown;
     subscriptionExpiresAt?: unknown;
+    type?: unknown;
   } | null;
 
   if (!body) {
@@ -81,6 +82,8 @@ export async function POST(req: NextRequest) {
   const phone = typeof body.phone === "string" ? body.phone.trim() : null;
   const subscriptionExpiresAt =
     (body.subscriptionExpiresAt as string | null | undefined) ?? null;
+  const validTypes = ["restaurant", "hotel", "both"];
+  const type = typeof body.type === "string" && validTypes.includes(body.type) ? body.type : "restaurant";
 
   const admin = createSupabaseAdminClient();
 
@@ -106,6 +109,7 @@ export async function POST(req: NextRequest) {
       phone: phone || null,
       active: true,
       subscription_expires_at: subscriptionExpiresAt,
+      type,
     })
     .select("id")
     .single();

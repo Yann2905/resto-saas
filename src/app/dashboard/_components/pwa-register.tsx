@@ -1,20 +1,52 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Download, X } from "lucide-react";
+import { Download, RefreshCw, X } from "lucide-react";
 
 export default function PwaRegister() {
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch((err) => {
-        console.warn("[sw] registration failed:", err);
-      });
-    }
+    if (!("serviceWorker" in navigator)) return;
 
-    // Effacer le badge quand l'utilisateur ouvre l'app
+    let reg: ServiceWorkerRegistration | null = null;
+
+    navigator.serviceWorker
+      .register("/sw.js", { updateViaCache: "none" })
+      .then((r) => {
+        reg = r;
+
+        r.addEventListener("updatefound", () => {
+          const newSw = r.installing;
+          if (!newSw) return;
+          newSw.addEventListener("statechange", () => {
+            if (newSw.state === "activated") {
+              setUpdating(true);
+              setTimeout(() => window.location.reload(), 1500);
+            }
+          });
+        });
+      })
+      .catch((err) => console.warn("[sw] registration failed:", err));
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      setUpdating(true);
+      setTimeout(() => window.location.reload(), 1500);
+    });
+
+    navigator.serviceWorker.addEventListener("message", (e) => {
+      if (e.data?.type === "SW_UPDATED") {
+        setUpdating(true);
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    });
+
+    const interval = setInterval(() => {
+      reg?.update().catch(() => {});
+    }, 60_000);
+
     if ("clearAppBadge" in navigator) {
       (navigator as unknown as { clearAppBadge: () => Promise<void> }).clearAppBadge().catch(() => {});
     }
@@ -24,7 +56,11 @@ export default function PwaRegister() {
       setInstallPrompt(e);
     };
     window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("beforeinstallprompt", handler);
+    };
   }, []);
 
   const handleInstall = async () => {
@@ -33,6 +69,22 @@ export default function PwaRegister() {
     await (installPrompt as any).prompt();
     setInstallPrompt(null);
   };
+
+  if (updating) {
+    return (
+      <div className="fixed bottom-20 md:bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-50 bg-emerald-900 text-white rounded-2xl p-4 shadow-2xl animate-fade-in-up">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-5 h-5 animate-spin flex-shrink-0" />
+          <div>
+            <div className="font-semibold text-sm">Mise à jour en cours</div>
+            <p className="text-xs text-emerald-300 mt-0.5">
+              Nouvelle version détectée, rechargement…
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!installPrompt || dismissed) return null;
 

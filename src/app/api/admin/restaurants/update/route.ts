@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
     openingHours?: unknown;
     logoUrl?: unknown;
     lowStockThreshold?: unknown;
+    hotelServices?: unknown;
+    hotelIssues?: unknown;
+    hotelRooms?: unknown;
   } | null;
 
   if (!body) {
@@ -108,6 +111,33 @@ export async function POST(req: NextRequest) {
       );
     }
     update.low_stock_threshold = val;
+  }
+  if (body.hotelServices !== undefined) {
+    if (!Array.isArray(body.hotelServices)) {
+      return NextResponse.json(
+        { ok: false, error: "Services hôtel invalides" },
+        { status: 400 }
+      );
+    }
+    update.hotel_services = body.hotelServices;
+  }
+  if (body.hotelIssues !== undefined) {
+    if (!Array.isArray(body.hotelIssues)) {
+      return NextResponse.json(
+        { ok: false, error: "Problèmes hôtel invalides" },
+        { status: 400 }
+      );
+    }
+    update.hotel_issues = body.hotelIssues;
+  }
+  if (body.hotelRooms !== undefined) {
+    if (!Array.isArray(body.hotelRooms)) {
+      return NextResponse.json(
+        { ok: false, error: "Chambres hôtel invalides" },
+        { status: 400 }
+      );
+    }
+    update.hotel_rooms = body.hotelRooms;
   }
 
   // Champs réservés au superadmin

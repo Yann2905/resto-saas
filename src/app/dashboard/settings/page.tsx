@@ -18,7 +18,7 @@ import {
   defaultOpeningHours,
 } from "@/lib/opening-hours";
 import { updateRestaurantHours, updateRestaurant } from "@/lib/admin";
-import type { DaySchedule, OpeningHours, WeekKey } from "@/types";
+import { isHotelType, type DaySchedule, type OpeningHours, type WeekKey } from "@/types";
 
 export default function SettingsPage() {
   const { user, restaurant, role, loading } = useAuth();
@@ -228,6 +228,11 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* ── Section Hôtel (si type=hotel) ────────────────────── */}
+        {isHotelType(restaurant.type) && (
+          <HotelSettingsSection restaurant={restaurant} setToast={setToast} />
+        )}
+
         {/* ── Section Code PIN ─────────────────────────────────── */}
         <PinSection restaurant={restaurant} setToast={setToast} />
 
@@ -252,7 +257,8 @@ export default function SettingsPage() {
 
 /* ── Composant Abonnement ───────────────────────────────────── */
 
-import type { Restaurant } from "@/types";
+import type { HotelService, Restaurant } from "@/types";
+import { Plus, X as XIcon } from "lucide-react";
 
 function SubscriptionSection({
   restaurant,
@@ -644,6 +650,167 @@ function PinSection({
           )}
         </div>
       )}
+    </section>
+  );
+}
+
+/* ── Composant Settings Hôtel ──────────────────────────────── */
+
+function HotelSettingsSection({
+  restaurant,
+  setToast,
+}: {
+  restaurant: Restaurant;
+  setToast: (v: string | null) => void;
+}) {
+  const [services, setServices] = useState<HotelService[]>(restaurant.hotelServices ?? []);
+  const [issues, setIssues] = useState<HotelService[]>(restaurant.hotelIssues ?? []);
+  const [newService, setNewService] = useState("");
+  const [newIssue, setNewIssue] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const addService = () => {
+    const label = newService.trim();
+    if (!label) return;
+    setServices((prev) => [...prev, { id: crypto.randomUUID(), label }]);
+    setNewService("");
+  };
+
+  const removeService = (id: string) => {
+    setServices((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const addIssue = () => {
+    const label = newIssue.trim();
+    if (!label) return;
+    setIssues((prev) => [...prev, { id: crypto.randomUUID(), label }]);
+    setNewIssue("");
+  };
+
+  const removeIssue = (id: string) => {
+    setIssues((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateRestaurant({
+        restaurantId: restaurant.id,
+        hotelServices: services,
+        hotelIssues: issues,
+      });
+      setToast("Configuration hôtel enregistrée");
+      setTimeout(() => setToast(null), 2500);
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : "Erreur");
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="bg-white rounded-2xl border border-stone-200 p-5 mt-6">
+      <div className="mb-4">
+        <h3 className="font-bold text-stone-900">Configuration hôtel</h3>
+        <p className="text-xs text-stone-500 mt-0.5">
+          Configurez les services de chambre et types de problèmes disponibles.
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        {/* Services de chambre */}
+        <div>
+          <h4 className="text-sm font-semibold text-stone-700 mb-2">
+            Services de chambre
+          </h4>
+          <div className="space-y-2 mb-3">
+            {services.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center justify-between gap-2 bg-stone-50 rounded-xl px-3 py-2"
+              >
+                <span className="text-sm text-stone-700">{s.label}</span>
+                <button
+                  onClick={() => removeService(s.id)}
+                  className="text-stone-400 hover:text-red-600 transition-colors"
+                  aria-label="Supprimer"
+                >
+                  <XIcon className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newService}
+              onChange={(e) => setNewService(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addService()}
+              placeholder="Ex: Serviettes supplémentaires"
+              className="flex-1 rounded-xl border border-stone-300 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+            />
+            <button
+              onClick={addService}
+              className="rounded-xl bg-stone-900 text-white px-3 py-2 hover:bg-stone-800 transition-colors"
+              aria-label="Ajouter"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Types de problèmes */}
+        <div>
+          <h4 className="text-sm font-semibold text-stone-700 mb-2">
+            Types de problèmes
+          </h4>
+          <div className="space-y-2 mb-3">
+            {issues.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center justify-between gap-2 bg-stone-50 rounded-xl px-3 py-2"
+              >
+                <span className="text-sm text-stone-700">{s.label}</span>
+                <button
+                  onClick={() => removeIssue(s.id)}
+                  className="text-stone-400 hover:text-red-600 transition-colors"
+                  aria-label="Supprimer"
+                >
+                  <XIcon className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newIssue}
+              onChange={(e) => setNewIssue(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addIssue()}
+              placeholder="Ex: Climatisation défaillante"
+              className="flex-1 rounded-xl border border-stone-300 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+            />
+            <button
+              onClick={addIssue}
+              className="rounded-xl bg-stone-900 text-white px-3 py-2 hover:bg-stone-800 transition-colors"
+              aria-label="Ajouter"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors disabled:bg-stone-400"
+        >
+          {saving ? "Enregistrement..." : "Enregistrer"}
+        </button>
+      </div>
     </section>
   );
 }

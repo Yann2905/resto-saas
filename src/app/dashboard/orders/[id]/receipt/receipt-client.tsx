@@ -89,7 +89,10 @@ export default function ReceiptClient({
           <Row label="Reçu N°" value={`#${receiptNo}`} bold />
           <Row label="Date" value={fmtDate(created)} />
           <Row label="Heure" value={fmtTime(created)} />
-          <Row label="Table" value={String(order.tableNumber)} />
+          <Row label={order.roomLabel ? "Chambre" : "Table"} value={order.roomLabel ?? String(order.tableNumber)} />
+          {order.orderType !== "food" && (
+            <Row label="Type" value={order.orderType === "service" ? "SERVICE" : "PROBLÈME"} />
+          )}
           <Row label="Statut" value={STATUS_LABELS[order.status]} />
         </div>
 
@@ -97,37 +100,51 @@ export default function ReceiptClient({
 
         {/* Items */}
         <div className="space-y-2 my-2">
-          {order.items.map((it) => (
-            <div key={it.productId}>
-              <div className="flex justify-between gap-2">
-                <span className="flex-1 truncate uppercase">{it.name}</span>
-                <span className="tabular-nums">{formatFCFA(it.total)}</span>
+          {order.orderType === "food" ? (
+            order.items.map((it) => (
+              <div key={it.productId}>
+                <div className="flex justify-between gap-2">
+                  <span className="flex-1 truncate uppercase">{it.name}</span>
+                  <span className="tabular-nums">{formatFCFA(it.total)}</span>
+                </div>
+                <div className="text-[11px] text-stone-600 flex justify-between">
+                  <span>
+                    {it.quantity} x {formatFCFA(it.price)}
+                  </span>
+                </div>
               </div>
-              <div className="text-[11px] text-stone-600 flex justify-between">
-                <span>
-                  {it.quantity} x {formatFCFA(it.price)}
-                </span>
+            ))
+          ) : (
+            order.items.map((it, i) => (
+              <div key={i} className="uppercase">
+                - {it.name}
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         <Divider />
 
         {/* Totals */}
-        <div className="space-y-0.5 my-1">
-          <Row
-            label={`Articles (${itemsCount})`}
-            value={formatFCFA(order.total)}
-          />
-          <div className="flex justify-between gap-2 font-bold text-[14px] mt-1.5 pt-1.5 border-t border-stone-900">
-            <span>TOTAL</span>
-            <span className="tabular-nums">{formatFCFA(order.total)}</span>
+        {order.orderType === "food" ? (
+          <div className="space-y-0.5 my-1">
+            <Row
+              label={`Articles (${itemsCount})`}
+              value={formatFCFA(order.total)}
+            />
+            <div className="flex justify-between gap-2 font-bold text-[14px] mt-1.5 pt-1.5 border-t border-stone-900">
+              <span>TOTAL</span>
+              <span className="tabular-nums">{formatFCFA(order.total)}</span>
+            </div>
+            <p className="text-[10px] text-stone-500 text-center mt-1">
+              TVA incluse
+            </p>
           </div>
-          <p className="text-[10px] text-stone-500 text-center mt-1">
-            TVA incluse
-          </p>
-        </div>
+        ) : (
+          <div className="text-center my-1 text-[11px] text-stone-600">
+            {order.items.length} élément{order.items.length > 1 ? "s" : ""} signalé{order.items.length > 1 ? "s" : ""}
+          </div>
+        )}
 
         <Divider />
 
