@@ -32,7 +32,15 @@ export async function createOrder(
   });
 
   if (error) {
-    return { ok: false, error: error.message };
+    const msg = error.message;
+    const stockMatch = msg.match(/Stock insuffisant pour (.+?) \(demandé: (\d+), disponible: (\d+)\)/);
+    if (stockMatch) {
+      return { ok: false, error: `Stock insuffisant pour ${stockMatch[1]}. Il n'en reste que ${stockMatch[3]}, vous en avez demandé ${stockMatch[2]}.` };
+    }
+    if (msg.toLowerCase().includes("stock")) {
+      return { ok: false, error: `Stock insuffisant pour un ou plusieurs produits. Réduisez les quantités et réessayez.` };
+    }
+    return { ok: false, error: msg };
   }
   return { ok: true, orderId: data as string };
 }

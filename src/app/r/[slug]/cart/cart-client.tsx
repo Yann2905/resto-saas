@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ShoppingCart } from "lucide-react";
+import { AlertTriangle, Check, Loader2, ShoppingCart } from "lucide-react";
 import { CartItem } from "@/types";
 import {
   cartTotal,
@@ -13,7 +13,6 @@ import {
 } from "@/lib/cart";
 import { formatFCFA } from "@/lib/format";
 import { createOrder } from "@/lib/orders";
-import SwipeConfirm from "../_components/swipe-confirm";
 
 type Props = {
   restaurant: { id: string; name: string; slug: string };
@@ -31,6 +30,7 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
   const [items, setItems] = useState<CartItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     setItems(getCart(restaurant.id, tableKey));
@@ -48,6 +48,7 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
     setError(null);
     const res = await createOrder(restaurant.id, tableNumber, items, roomLabel);
     setSubmitting(false);
+    setShowConfirm(false);
     if (!res.ok) {
       setError(res.error);
       return;
@@ -166,10 +167,60 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
                 {formatFCFA(total)}
               </span>
             </div>
-            <SwipeConfirm
-              onConfirm={handleSubmit}
-              label={`Valider · ${formatFCFA(total)}`}
-            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm(true)}
+              disabled={submitting}
+              className="w-full rounded-2xl bg-[#722F37] text-white font-bold text-base py-4 hover:bg-[#5a2530] active:scale-[0.98] transition-all shadow-lg shadow-[#722F37]/30"
+            >
+              Commander · {formatFCFA(total)}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => !submitting && setShowConfirm(false)}
+          />
+          <div className="relative bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-sm mx-auto p-6 pb-8 animate-fade-in-up">
+            <h2 className="text-lg font-bold text-stone-900 text-center mb-1">
+              Confirmer votre commande ?
+            </h2>
+            <p className="text-sm text-stone-500 text-center mb-5">
+              {locationLabel} · {items.reduce((s, i) => s + i.quantity, 0)} article{items.length > 1 ? "s" : ""}
+            </p>
+            <div className="text-center text-3xl font-bold text-stone-900 mb-6">
+              {formatFCFA(total)}
+            </div>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full rounded-2xl bg-[#722F37] text-white font-bold text-base py-4 hover:bg-[#5a2530] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Envoi en cours…
+                </>
+              ) : (
+                <>
+                  <Check className="w-5 h-5" />
+                  Confirmer
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowConfirm(false)}
+              disabled={submitting}
+              className="w-full mt-3 rounded-2xl bg-stone-100 text-stone-700 font-medium text-sm py-3 hover:bg-stone-200 transition-colors"
+            >
+              Annuler
+            </button>
           </div>
         </div>
       )}
