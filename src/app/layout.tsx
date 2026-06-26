@@ -24,8 +24,34 @@ const supabaseHost = (() => {
 })();
 
 export const metadata: Metadata = {
-  title: "Resto SaaS",
-  description: "Commande digitale par QR code",
+  title: "Resto SaaS — Commande digitale par QR code",
+  description:
+    "Vos clients scannent le QR code, commandent depuis leur téléphone. Vous recevez la commande en temps réel avec notification sonore. Menu digital, gestion de stock, statistiques. Conçu pour les restaurants en Afrique.",
+  metadataBase: new URL("https://resto-saas.com"),
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/icon-192.png",
+  },
+  openGraph: {
+    title: "Resto SaaS — Commande digitale par QR code",
+    description:
+      "QR code sur chaque table, menu digital, commandes en temps réel. La solution tout-en-un pour digitaliser votre restaurant.",
+    url: "https://resto-saas.com",
+    siteName: "Resto SaaS",
+    images: [{ url: "/icon-512.png", width: 512, height: 512, alt: "Resto SaaS" }],
+    locale: "fr_FR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Resto SaaS — Commande digitale par QR code",
+    description:
+      "QR code sur chaque table, menu digital, commandes en temps réel.",
+    images: ["/icon-512.png"],
+  },
 };
 
 export const viewport: Viewport = {
