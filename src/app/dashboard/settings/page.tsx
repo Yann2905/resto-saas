@@ -154,7 +154,7 @@ export default function SettingsPage() {
                     value={day.open}
                     disabled={day.closed}
                     onChange={(e) => updateDay(k, { open: e.target.value })}
-                    className="rounded-lg border border-stone-300 px-2 py-1.5 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 disabled:bg-stone-100 disabled:text-stone-400"
+                    className="rounded-lg border border-stone-300 px-2 py-1.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 disabled:bg-stone-100 disabled:text-stone-400"
                   />
                   <span className="text-stone-400 text-sm">→</span>
                   <input
@@ -162,7 +162,7 @@ export default function SettingsPage() {
                     value={day.close}
                     disabled={day.closed}
                     onChange={(e) => updateDay(k, { close: e.target.value })}
-                    className="rounded-lg border border-stone-300 px-2 py-1.5 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 disabled:bg-stone-100 disabled:text-stone-400"
+                    className="rounded-lg border border-stone-300 px-2 py-1.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 disabled:bg-stone-100 disabled:text-stone-400"
                   />
                 </div>
               );
@@ -172,7 +172,7 @@ export default function SettingsPage() {
           <div className="mt-5 flex justify-end">
             <button
               onClick={handleSave}
-              className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors"
+              className="rounded-full bg-[#722F37] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors"
             >
               Enregistrer
             </button>
@@ -189,7 +189,7 @@ export default function SettingsPage() {
         <section className="bg-white rounded-2xl border border-stone-200 p-5 mt-6">
           <div className="mb-4">
             <h3 className="font-bold text-stone-900 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-[#C8963E] animate-pulse" />
               Alertes de stock bas
             </h3>
             <p className="text-xs text-stone-500 mt-0.5">
@@ -212,7 +212,7 @@ export default function SettingsPage() {
                 min={0}
                 value={lowStockThreshold}
                 onChange={(e) => setLowStockThreshold(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900 font-bold focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+                className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900 font-bold focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
               />
             </div>
           </div>
@@ -221,7 +221,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSaveThreshold}
               disabled={savingThreshold}
-              className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors disabled:bg-stone-400"
+              className="rounded-full bg-[#722F37] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors disabled:bg-stone-400"
             >
               {savingThreshold ? "Enregistrement..." : "Enregistrer le seuil"}
             </button>
@@ -354,8 +354,8 @@ function SubscriptionSection({
         onClick={handlePayNow}
         className={`w-full rounded-full px-5 py-3 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
           isExpired
-            ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-md"
-            : "bg-stone-900 text-white hover:bg-stone-800"
+            ? "bg-gradient-to-r from-[#C8963E] to-[#a07832] text-white hover:from-[#a07832] hover:to-[#8a6828] shadow-md"
+            : "bg-[#722F37] text-white hover:bg-[#5a2530]"
         }`}
       >
         <ExternalLink className="w-4 h-4" />
@@ -527,10 +527,10 @@ function PinSection({
 
   if (loadingPin) return null;
 
-  const pinInputClasses = `w-11 h-12 text-center text-xl font-bold rounded-xl border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-900/10 ${
+  const pinInputClasses = `w-11 h-12 text-center text-xl font-bold rounded-xl border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 ${
     error
       ? "border-red-400 bg-red-50 text-red-700"
-      : "border-stone-300 bg-stone-50 text-stone-900 focus:border-stone-900"
+      : "border-stone-300 bg-stone-50 text-stone-900 focus:border-[#722F37]"
   }`;
 
   const modeLabels: Record<PinMode, { title: string; desc: string }> = {
@@ -580,7 +580,7 @@ function PinSection({
           <div className="flex gap-2">
             <button
               onClick={() => { setMode("verify_to_change"); resetInputs(); }}
-              className="flex-1 rounded-full bg-stone-900 text-white px-4 py-2 text-sm font-semibold hover:bg-stone-800 transition-colors"
+              className="flex-1 rounded-full bg-[#722F37] text-white px-4 py-2 text-sm font-semibold hover:bg-[#5a2530] transition-colors"
             >
               Modifier le PIN
             </button>
@@ -602,7 +602,7 @@ function PinSection({
           </p>
           <button
             onClick={() => { setMode("set_new"); resetInputs(); }}
-            className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors"
+            className="rounded-full bg-[#722F37] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors"
           >
             Définir un code PIN
           </button>
@@ -748,11 +748,11 @@ function HotelSettingsSection({
               onChange={(e) => setNewService(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addService()}
               placeholder="Ex: Serviettes supplémentaires"
-              className="flex-1 rounded-xl border border-stone-300 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+              className="flex-1 rounded-xl border border-stone-300 px-3 py-2 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
             />
             <button
               onClick={addService}
-              className="rounded-xl bg-stone-900 text-white px-3 py-2 hover:bg-stone-800 transition-colors"
+              className="rounded-xl bg-[#722F37] text-white px-3 py-2 hover:bg-[#5a2530] transition-colors"
               aria-label="Ajouter"
             >
               <Plus className="w-4 h-4" />
@@ -789,11 +789,11 @@ function HotelSettingsSection({
               onChange={(e) => setNewIssue(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addIssue()}
               placeholder="Ex: Climatisation défaillante"
-              className="flex-1 rounded-xl border border-stone-300 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+              className="flex-1 rounded-xl border border-stone-300 px-3 py-2 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
             />
             <button
               onClick={addIssue}
-              className="rounded-xl bg-stone-900 text-white px-3 py-2 hover:bg-stone-800 transition-colors"
+              className="rounded-xl bg-[#722F37] text-white px-3 py-2 hover:bg-[#5a2530] transition-colors"
               aria-label="Ajouter"
             >
               <Plus className="w-4 h-4" />
@@ -806,7 +806,7 @@ function HotelSettingsSection({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors disabled:bg-stone-400"
+          className="rounded-full bg-[#722F37] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors disabled:bg-stone-400"
         >
           {saving ? "Enregistrement..." : "Enregistrer"}
         </button>

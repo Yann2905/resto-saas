@@ -29,11 +29,11 @@ const STATUS_STYLES: Record<
   { ring: string; badge: string; dot: string; accent: string; card: string; dotPulse: boolean }
 > = {
   pending: {
-    ring: "ring-amber-300",
-    badge: "bg-amber-100 text-amber-900 border-amber-300",
-    dot: "bg-amber-500",
-    accent: "from-amber-400/20 to-amber-100/5",
-    card: "border-amber-300 shadow-amber-100/50 shadow-md",
+    ring: "ring-[#d4a94e]",
+    badge: "bg-[#C8963E]/10 text-[#722F37] border-[#d4a94e]",
+    dot: "bg-[#C8963E]",
+    accent: "from-[#C8963E]/20 to-[#f5ede3]/5",
+    card: "border-[#d4a94e] shadow-[#C8963E]/20/50 shadow-md",
     dotPulse: true,
   },
   preparing: {
@@ -367,7 +367,7 @@ export default function OrdersPage() {
             {notifPerm !== "granted" && (
               <button
                 onClick={requestNotif}
-                className="rounded-full bg-amber-100 text-amber-800 hover:bg-amber-200 px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5"
+                className="rounded-full bg-[#C8963E]/10 text-[#6e5a20] hover:bg-[#e0c07a] px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5"
                 title="Notifications système même onglet en arrière-plan"
               >
                 <Bell className="w-3.5 h-3.5" /> Activer notifications
@@ -376,7 +376,7 @@ export default function OrdersPage() {
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-          <StatCard label="En attente" value={counts.pending} color="amber" />
+          <StatCard label="En attente" value={counts.pending} color="gold" />
           <StatCard
             label="En préparation"
             value={counts.preparing}
@@ -409,7 +409,7 @@ export default function OrdersPage() {
                 onClick={() => setFilter(f.key as OrderStatus | "all")}
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all ${
                   active
-                    ? "bg-stone-900 text-white shadow-sm"
+                    ? "bg-[#722F37] text-white shadow-sm"
                     : "bg-white text-stone-600 border border-stone-200 hover:bg-stone-100"
                 }`}
               >
@@ -434,7 +434,7 @@ export default function OrdersPage() {
                   onClick={() => setTypeFilter(f.key as OrderType | "all")}
                   className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all ${
                     active
-                      ? "bg-stone-900 text-white shadow-sm"
+                      ? "bg-[#722F37] text-white shadow-sm"
                       : "bg-white text-stone-600 border border-stone-200 hover:bg-stone-100"
                   }`}
                 >
@@ -567,11 +567,11 @@ export default function OrdersPage() {
 
                     {/* Assignation & accusé de réception */}
                     {order.assignedTo && (
-                      <div className={`flex items-center gap-2 mb-3 text-xs ${order.acknowledgedAt ? "text-emerald-700" : "text-amber-700"}`}>
+                      <div className={`flex items-center gap-2 mb-3 text-xs ${order.acknowledgedAt ? "text-emerald-700" : "text-[#8a6828]"}`}>
                         {order.acknowledgedAt ? (
                           <CheckCircle2 className="w-3.5 h-3.5" />
                         ) : (
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#C8963E] animate-pulse" />
                         )}
                         <span>
                           {order.acknowledgedAt
@@ -601,7 +601,7 @@ export default function OrdersPage() {
                       {NEXT_STATUS[order.status] && (
                         <button
                           onClick={() => advance(order)}
-                          className={`flex-1 bg-stone-900 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors flex items-center justify-center gap-1.5`}
+                          className={`flex-1 bg-[#722F37] text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors flex items-center justify-center gap-1.5`}
                         >
                           {STATUS_LABELS[NEXT_STATUS[order.status]!]}
                         </button>
@@ -640,11 +640,11 @@ function StatCard({
 }: {
   label: string;
   value: number | string;
-  color: "amber" | "blue" | "emerald" | "stone";
+  color: "gold" | "blue" | "emerald" | "stone";
   isText?: boolean;
 }) {
   const colorMap = {
-    amber: "text-amber-600 bg-amber-50",
+    gold: "text-[#a07832] bg-[#C8963E]/5",
     blue: "text-blue-600 bg-blue-50",
     emerald: "text-emerald-600 bg-emerald-50",
     stone: "text-stone-700 bg-stone-100",

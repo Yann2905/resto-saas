@@ -266,13 +266,13 @@ export default function QrCodesPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowExport(true)}
-              className="rounded-full bg-amber-500 text-white px-5 py-2.5 text-sm font-semibold hover:bg-amber-600 transition-colors flex items-center gap-1.5"
+              className="rounded-full bg-[#C8963E] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#a07832] transition-colors flex items-center gap-1.5"
             >
               <FileDown className="w-4 h-4" aria-hidden /> Imprimer / Exporter PDF
             </button>
             <button
               onClick={handlePrint}
-              className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors flex items-center gap-1.5"
+              className="rounded-full bg-[#722F37] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors flex items-center gap-1.5"
             >
               <Printer className="w-4 h-4" aria-hidden /> Imprimer tout
             </button>
@@ -305,7 +305,7 @@ export default function QrCodesPage() {
                       Math.max(1, Math.min(200, parseInt(e.target.value) || 1))
                     )
                   }
-                  className="w-24 text-center rounded-lg border border-stone-300 px-3 py-2 text-lg font-semibold focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-24 text-center rounded-lg border border-stone-300 px-3 py-2 text-lg font-semibold focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button
                   onClick={() => setTableCount((n) => Math.min(200, n + 1))}
@@ -317,8 +317,8 @@ export default function QrCodesPage() {
               </div>
             </label>
             {!canChange && (
-              <div className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 flex items-start gap-2">
-                <span className="text-amber-500 text-base leading-none">🔒</span>
+              <div className="text-xs text-[#a07832] bg-[#C8963E]/5 rounded-lg px-3 py-2 flex items-start gap-2">
+                <span className="text-[#C8963E] text-base leading-none">🔒</span>
                 <span>
                   Votre plan Starter est limité à {maxTables} tables fixes.
                   Passez au plan Pro ou Business pour ajuster le nombre de tables.
@@ -334,7 +334,7 @@ export default function QrCodesPage() {
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 placeholder="https://votre-domaine.com"
-                className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+                className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
               />
               <span className="text-[11px] text-stone-500 mt-1 block">
                 Ex : <code className="font-mono">https://monresto.com</code> en
@@ -359,7 +359,7 @@ export default function QrCodesPage() {
           {tables.map((t) => (
             <div
               key={t}
-              className="group bg-white rounded-2xl border border-stone-200 p-4 flex flex-col items-center text-center print:border-2 print:border-stone-900 print:break-inside-avoid"
+              className="group bg-white rounded-2xl border border-stone-200 p-4 flex flex-col items-center text-center print:border-2 print:border-[#722F37] print:break-inside-avoid"
             >
               <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500 mb-2">
                 {restaurant.name}
@@ -432,7 +432,7 @@ export default function QrCodesPage() {
                             onClick={() => setTheme(key)}
                             className={`px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all ${
                               theme === key
-                                ? "ring-2 ring-offset-1 ring-stone-900"
+                                ? "ring-2 ring-offset-1 ring-[#722F37]"
                                 : "hover:opacity-80"
                             }`}
                             style={{ backgroundColor: t.bg, color: t.text, borderColor: t.border }}
@@ -454,7 +454,7 @@ export default function QrCodesPage() {
                         onClick={() => setPrintFormat("full")}
                         className={`flex-1 rounded-xl border-2 p-3 text-left transition-all ${
                           printFormat === "full"
-                            ? "border-stone-900 bg-stone-50"
+                            ? "border-[#722F37] bg-stone-50"
                             : "border-stone-200 hover:border-stone-300"
                         }`}
                       >
@@ -465,7 +465,7 @@ export default function QrCodesPage() {
                         onClick={() => setPrintFormat("grid")}
                         className={`flex-1 rounded-xl border-2 p-3 text-left transition-all ${
                           printFormat === "grid"
-                            ? "border-stone-900 bg-stone-50"
+                            ? "border-[#722F37] bg-stone-50"
                             : "border-stone-200 hover:border-stone-300"
                         }`}
                       >
@@ -488,7 +488,7 @@ export default function QrCodesPage() {
                       </span>
                       <button
                         onClick={() => setSelectedTables(new Set(tables))}
-                        className="text-xs font-semibold text-amber-600 hover:text-amber-700"
+                        className="text-xs font-semibold text-[#a07832] hover:text-[#8a6828]"
                       >
                         Tout
                       </button>
@@ -507,7 +507,7 @@ export default function QrCodesPage() {
                         onClick={() => toggleTable(t)}
                         className={`w-10 h-10 rounded-lg text-sm font-bold transition-all ${
                           selectedTables.has(t)
-                            ? "bg-stone-900 text-white"
+                            ? "bg-[#722F37] text-white"
                             : "bg-stone-100 text-stone-400 hover:bg-stone-200 hover:text-stone-600"
                         }`}
                       >
@@ -593,7 +593,7 @@ export default function QrCodesPage() {
               <button
                 onClick={handleExportPrint}
                 disabled={Object.keys(themedCodes).length === 0}
-                className="rounded-full bg-amber-500 text-white px-5 py-2.5 text-sm font-semibold hover:bg-amber-600 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-full bg-[#C8963E] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#a07832] transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Printer className="w-4 h-4" aria-hidden /> Lancer l&apos;impression
               </button>

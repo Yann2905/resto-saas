@@ -91,7 +91,7 @@ export default function AdminOverview() {
     return (
       <main className="min-h-screen flex items-center justify-center bg-stone-50">
         <div className="flex items-center gap-3 text-stone-500">
-          <span className="w-5 h-5 border-2 border-stone-300 border-t-amber-500 rounded-full animate-spin" />
+          <span className="w-5 h-5 border-2 border-stone-300 border-t-[#C8963E] rounded-full animate-spin" />
           Chargement…
         </div>
       </main>
@@ -112,7 +112,7 @@ export default function AdminOverview() {
           </div>
           <Link
             href="/admin/restaurants"
-            className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-all hover:scale-105 flex items-center gap-2"
+            className="rounded-full bg-[#722F37] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-all hover:scale-105 flex items-center gap-2"
           >
             Gérer les restaurants <ArrowRight className="w-4 h-4" aria-hidden />
           </Link>
@@ -139,7 +139,7 @@ export default function AdminOverview() {
             label="Expirations proches"
             value={stats.expiringSoon}
             sub="< 7 jours"
-            color="amber"
+            color="gold"
             Icon={Clock}
             delay={100}
           />
@@ -174,7 +174,7 @@ export default function AdminOverview() {
                 label="Expiration proche"
                 value={stats.expiringSoon}
                 total={stats.total || 1}
-                color="bg-amber-500"
+                color="bg-[#C8963E]"
               />
               <Bar
                 label="Expirés / inactifs"
@@ -203,7 +203,7 @@ export default function AdminOverview() {
                     className="flex items-center gap-3 rounded-xl hover:bg-stone-50 p-2 transition-colors animate-fade-in-up"
                     style={{ animationDelay: `${i * 40}ms` }}
                   >
-                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-stone-950 text-sm flex-shrink-0">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-stone-950 text-sm flex-shrink-0">
                       {r.name.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -229,10 +229,10 @@ export default function AdminOverview() {
         </div>
 
         <div className="mt-6 rounded-2xl border border-stone-800 bg-gradient-to-br from-stone-900 to-stone-800 text-white p-6 sm:p-8 animate-fade-in-up overflow-hidden relative">
-          <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-amber-500/10 blur-3xl" />
+          <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-[#C8963E]/10 blur-3xl" />
           <div className="relative">
-            <div className="inline-flex items-center gap-2 rounded-full border border-stone-700 bg-stone-900/60 px-3 py-1 text-[11px] font-medium text-stone-300 mb-3">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-stone-700 bg-[#722F37]/60 px-3 py-1 text-[11px] font-medium text-stone-300 mb-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C8963E] animate-pulse" />
               Console super-administrateur
             </div>
             <h3 className="text-xl sm:text-2xl font-bold tracking-tight mb-2">
@@ -244,7 +244,7 @@ export default function AdminOverview() {
             </p>
             <Link
               href="/admin/restaurants"
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-b from-amber-400 to-amber-600 text-stone-950 font-semibold px-5 py-2.5 text-sm shadow-lg shadow-amber-900/30 hover:from-amber-300 hover:to-amber-500 transition-all"
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-b from-[#C8963E] to-[#a07832] text-white font-semibold px-5 py-2.5 text-sm shadow-lg shadow-[#722F37]/30 hover:from-[#d4a94e] hover:to-[#C8963E] transition-all"
             >
               Ouvrir la gestion <span aria-hidden>→</span>
             </Link>
@@ -266,14 +266,14 @@ function HeroStat({
   label: string;
   value: number | string;
   sub: string;
-  color: "stone" | "emerald" | "amber" | "red";
+  color: "stone" | "emerald" | "gold" | "red";
   Icon: LucideIcon;
   delay?: number;
 }) {
   const colorMap = {
     stone: "bg-stone-100 text-stone-700",
     emerald: "bg-emerald-50 text-emerald-700",
-    amber: "bg-amber-50 text-amber-700",
+    gold: "bg-[#C8963E]/5 text-[#8a6828]",
     red: "bg-red-50 text-red-700",
   };
   return (

@@ -100,7 +100,7 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
             </p>
             <Link
               href={`/r/${restaurant.slug}?${locationParam}`}
-              className="inline-flex items-center gap-2 rounded-full bg-stone-900 text-white px-6 py-3 font-semibold hover:bg-stone-800 transition-colors"
+              className="inline-flex items-center gap-2 rounded-full bg-[#722F37] text-white px-6 py-3 font-semibold hover:bg-[#5a2530] transition-colors"
             >
               ← Retour au menu
             </Link>
@@ -136,7 +136,7 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
                   </span>
                   <button
                     onClick={() => changeQty(item.productId, item.quantity + 1)}
-                    className="w-8 h-8 rounded-full bg-stone-900 text-white hover:bg-stone-800 transition-colors flex items-center justify-center"
+                    className="w-8 h-8 rounded-full bg-[#722F37] text-white hover:bg-[#5a2530] transition-colors flex items-center justify-center"
                     aria-label="Augmenter"
                   >
                     +

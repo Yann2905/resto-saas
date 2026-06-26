@@ -157,13 +157,13 @@ export default function Home() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-stone-950 text-stone-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(217,119,6,0.2),_transparent_60%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(245,158,11,0.1),_transparent_50%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(114,47,55,0.25),_transparent_60%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(200,150,62,0.15),_transparent_50%)]" />
 
       {/* ── Nav ─────────────────────────────────────────── */}
       <nav className="relative z-10 max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-stone-950 shadow-lg shadow-amber-900/30">
+          <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-white shadow-lg shadow-[#722F37]/30">
             R
             <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-stone-950" />
           </div>
@@ -202,14 +202,14 @@ export default function Home() {
       {/* ── Hero ────────────────────────────────────────── */}
       <section className="relative z-10 max-w-6xl mx-auto px-6 pt-16 pb-20 md:pt-28 md:pb-32">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-stone-800 bg-stone-900/60 px-4 py-1.5 text-xs font-medium text-stone-300 backdrop-blur mb-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-stone-800 bg-[#722F37]/60 px-4 py-1.5 text-xs font-medium text-stone-300 backdrop-blur mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             Utilisé par des restaurants en Côte d&apos;Ivoire
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-[1.05]">
             Vos clients scannent.
             <br />
-            <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#d4a94e] via-[#C8963E] to-[#722F37] bg-clip-text text-transparent">
               Vous servez plus vite.
             </span>
           </h1>
@@ -224,14 +224,14 @@ export default function Home() {
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-amber-400 to-amber-600 text-stone-950 font-semibold px-7 py-4 shadow-lg shadow-amber-900/40 hover:from-amber-300 hover:to-amber-500 transition-all text-base"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#C8963E] to-[#a07832] text-white font-semibold px-7 py-4 shadow-lg shadow-[#722F37]/40 hover:from-[#d4a94e] hover:to-[#C8963E] transition-all text-base"
             >
               Démarrer maintenant
               <ChevronRight className="w-5 h-5" />
             </a>
             <a
               href="#fonctionnement"
-              className="inline-flex items-center justify-center rounded-full border border-stone-700 bg-stone-900/40 backdrop-blur px-7 py-4 font-medium text-stone-200 hover:bg-stone-800 transition-colors"
+              className="inline-flex items-center justify-center rounded-full border border-stone-700 bg-[#722F37]/40 backdrop-blur px-7 py-4 font-medium text-stone-200 hover:bg-[#5a2530] transition-colors"
             >
               Voir comment ça marche
             </a>
@@ -255,13 +255,13 @@ export default function Home() {
       </section>
 
       {/* ── Social proof ────────────────────────────────── */}
-      <section className="relative z-10 border-t border-stone-900/50 py-14">
+      <section className="relative z-10 border-t border-[#722F37]/50 py-14">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <div className="flex justify-center gap-1 mb-4">
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
-                className="w-5 h-5 fill-amber-400 text-amber-400"
+                className="w-5 h-5 fill-[#C8963E] text-[#C8963E]"
               />
             ))}
           </div>
@@ -277,11 +277,11 @@ export default function Home() {
       {/* ── Comment ça marche ───────────────────────────── */}
       <section
         id="fonctionnement"
-        className="relative z-10 border-t border-stone-900/50 py-20 md:py-28"
+        className="relative z-10 border-t border-[#722F37]/50 py-20 md:py-28"
       >
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
-            <p className="text-amber-400 font-semibold text-sm tracking-wide uppercase mb-3">
+            <p className="text-[#C8963E] font-semibold text-sm tracking-wide uppercase mb-3">
               Simple et rapide
             </p>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
@@ -312,7 +312,7 @@ export default function Home() {
               },
             ].map((s) => (
               <div key={s.step} className="relative">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-stone-950 text-2xl mb-5 shadow-lg shadow-amber-900/20">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-white text-2xl mb-5 shadow-lg shadow-[#722F37]/20">
                   {s.step}
                 </div>
                 <h3 className="font-bold text-xl mb-2">{s.title}</h3>
@@ -326,11 +326,11 @@ export default function Home() {
       {/* ── Fonctionnalités ─────────────────────────────── */}
       <section
         id="fonctionnalites"
-        className="relative z-10 border-t border-stone-900/50 py-20 md:py-28"
+        className="relative z-10 border-t border-[#722F37]/50 py-20 md:py-28"
       >
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
-            <p className="text-amber-400 font-semibold text-sm tracking-wide uppercase mb-3">
+            <p className="text-[#C8963E] font-semibold text-sm tracking-wide uppercase mb-3">
               Fonctionnalités
             </p>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
@@ -346,9 +346,9 @@ export default function Home() {
             {FEATURES.map((f) => (
               <div
                 key={f.title}
-                className="group rounded-2xl border border-stone-800 bg-stone-900/40 backdrop-blur p-6 hover:border-amber-600/40 hover:bg-stone-900/70 transition-all"
+                className="group rounded-2xl border border-stone-800 bg-[#722F37]/40 backdrop-blur p-6 hover:border-[#a07832]/40 hover:bg-[#722F37]/70 transition-all"
               >
-                <f.Icon className="w-8 h-8 mb-4 text-amber-400" />
+                <f.Icon className="w-8 h-8 mb-4 text-[#C8963E]" />
                 <h3 className="font-semibold text-lg mb-2">{f.title}</h3>
                 <p className="text-sm text-stone-400 leading-relaxed">
                   {f.desc}
@@ -362,11 +362,11 @@ export default function Home() {
       {/* ── Tarifs — Installation ───────────────────────── */}
       <section
         id="tarifs"
-        className="relative z-10 border-t border-stone-900/50 py-20 md:py-28"
+        className="relative z-10 border-t border-[#722F37]/50 py-20 md:py-28"
       >
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
-            <p className="text-amber-400 font-semibold text-sm tracking-wide uppercase mb-3">
+            <p className="text-[#C8963E] font-semibold text-sm tracking-wide uppercase mb-3">
               Tarifs
             </p>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
@@ -385,7 +385,7 @@ export default function Home() {
               <span className="text-stone-500 font-normal">(une seule fois)</span>
             </h3>
             <div className="max-w-md mx-auto">
-              <div className="rounded-2xl border border-stone-800 bg-stone-900/40 p-6">
+              <div className="rounded-2xl border border-stone-800 bg-[#722F37]/40 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h4 className="font-bold text-lg">Installation</h4>
@@ -427,12 +427,12 @@ export default function Home() {
                 key={plan.name}
                 className={`relative rounded-2xl p-6 flex flex-col ${
                   plan.popular
-                    ? "border-2 border-amber-500 bg-stone-900/80 shadow-xl shadow-amber-900/20"
-                    : "border border-stone-800 bg-stone-900/40"
+                    ? "border-2 border-[#C8963E] bg-[#722F37]/80 shadow-xl shadow-[#722F37]/20"
+                    : "border border-stone-800 bg-[#722F37]/40"
                 }`}
               >
                 {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 to-amber-600 text-stone-950 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full flex items-center gap-1">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#C8963E] to-[#a07832] text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full flex items-center gap-1">
                     <Sparkles className="w-3 h-3" /> Populaire
                   </div>
                 )}
@@ -479,8 +479,8 @@ export default function Home() {
                   rel="noopener noreferrer"
                   className={`mt-6 inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition-all ${
                     plan.popular
-                      ? "bg-gradient-to-b from-amber-400 to-amber-600 text-stone-950 shadow-lg shadow-amber-900/30 hover:from-amber-300 hover:to-amber-500"
-                      : "border border-stone-700 text-stone-200 hover:bg-stone-800"
+                      ? "bg-gradient-to-b from-[#C8963E] to-[#a07832] text-white shadow-lg shadow-[#722F37]/30 hover:from-[#d4a94e] hover:to-[#C8963E]"
+                      : "border border-stone-700 text-stone-200 hover:bg-[#5a2530]"
                   }`}
                 >
                   {plan.cta}
@@ -492,10 +492,10 @@ export default function Home() {
       </section>
 
       {/* ── FAQ rapide ──────────────────────────────────── */}
-      <section className="relative z-10 border-t border-stone-900/50 py-20 md:py-28">
+      <section className="relative z-10 border-t border-[#722F37]/50 py-20 md:py-28">
         <div className="max-w-3xl mx-auto px-6">
           <div className="text-center mb-14">
-            <p className="text-amber-400 font-semibold text-sm tracking-wide uppercase mb-3">
+            <p className="text-[#C8963E] font-semibold text-sm tracking-wide uppercase mb-3">
               Questions fréquentes
             </p>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
@@ -528,7 +528,7 @@ export default function Home() {
             ].map((faq) => (
               <div
                 key={faq.q}
-                className="rounded-2xl border border-stone-800 bg-stone-900/40 p-6"
+                className="rounded-2xl border border-stone-800 bg-[#722F37]/40 p-6"
               >
                 <h4 className="font-semibold text-base mb-2">{faq.q}</h4>
                 <p className="text-sm text-stone-400 leading-relaxed">
@@ -541,7 +541,7 @@ export default function Home() {
       </section>
 
       {/* ── CTA final ───────────────────────────────────── */}
-      <section className="relative z-10 border-t border-stone-900/50 py-20 md:py-28">
+      <section className="relative z-10 border-t border-[#722F37]/50 py-20 md:py-28">
         <div className="max-w-2xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
             Prêt à digitaliser votre restaurant ?
@@ -572,12 +572,12 @@ export default function Home() {
       </section>
 
       {/* ── Footer ──────────────────────────────────────── */}
-      <footer className="relative z-10 border-t border-stone-900 py-10">
+      <footer className="relative z-10 border-t border-[#722F37] py-10">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-stone-950 text-sm">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-white text-sm">
                   R
                 </div>
                 <span className="font-semibold text-sm">Resto SaaS</span>
@@ -640,7 +640,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-          <div className="border-t border-stone-900 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="border-t border-[#722F37] pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
             <span className="text-xs text-stone-600">
               © {new Date().getFullYear()} Resto SaaS — Daloa, Côte d&apos;Ivoire
             </span>

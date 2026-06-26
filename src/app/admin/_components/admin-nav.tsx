@@ -43,25 +43,25 @@ export default function AdminNav() {
             href="/admin"
             className="flex items-center gap-2.5 sm:gap-3 min-w-0 group"
           >
-            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-stone-950 text-base sm:text-lg flex-shrink-0 shadow-lg shadow-amber-900/40 group-hover:scale-105 transition-transform">
+            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-stone-950 text-base sm:text-lg flex-shrink-0 shadow-lg shadow-[#722F37]/40 group-hover:scale-105 transition-transform">
               R
               <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-stone-950" />
             </div>
             <div className="min-w-0">
               <h1 className="text-sm sm:text-base font-bold tracking-tight leading-tight truncate flex items-center gap-2">
                 Resto SaaS
-                <span className="hidden sm:inline-flex items-center rounded-md bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-300">
+                <span className="hidden sm:inline-flex items-center rounded-md bg-[#C8963E]/20 border border-[#C8963E]/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#d4a94e]">
                   Admin
                 </span>
               </h1>
               <p className="text-[10px] sm:text-[11px] text-stone-400 flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#C8963E] animate-pulse" />
                 Super-administration
               </p>
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1 bg-stone-900 border border-stone-800 rounded-full p-1">
+          <nav className="hidden md:flex items-center gap-1 bg-[#722F37] border border-stone-800 rounded-full p-1">
             {TABS.map((tab) => {
               const active = isActive(tab);
               const Icon = tab.Icon;
@@ -71,7 +71,7 @@ export default function AdminNav() {
                   href={tab.href}
                   className={`relative rounded-full px-4 py-2 text-sm font-medium transition-all flex items-center gap-1.5 ${
                     active
-                      ? "bg-gradient-to-b from-amber-400 to-amber-600 text-stone-950 shadow-md shadow-amber-900/30"
+                      ? "bg-gradient-to-b from-[#C8963E] to-[#a07832] text-white shadow-md shadow-[#722F37]/30"
                       : "text-stone-300 hover:text-white"
                   }`}
                 >
@@ -85,7 +85,7 @@ export default function AdminNav() {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex-shrink-0 flex items-center gap-1.5 text-sm text-stone-300 hover:text-white hover:bg-stone-900 rounded-full px-3 sm:px-4 py-2 transition-colors"
+            className="flex-shrink-0 flex items-center gap-1.5 text-sm text-stone-300 hover:text-white hover:bg-[#722F37] rounded-full px-3 sm:px-4 py-2 transition-colors"
             aria-label="Déconnexion"
           >
             <LogOut className="w-4 h-4" aria-hidden />
@@ -104,11 +104,11 @@ export default function AdminNav() {
                 key={tab.href}
                 href={tab.href}
                 className={`relative flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors ${
-                  active ? "text-amber-400" : "text-stone-400 hover:text-white"
+                  active ? "text-[#C8963E]" : "text-stone-400 hover:text-white"
                 }`}
               >
                 {active && (
-                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 rounded-full bg-amber-400" />
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 rounded-full bg-[#C8963E]" />
                 )}
                 <Icon className="w-5 h-5" aria-hidden />
                 <span>{tab.label}</span>

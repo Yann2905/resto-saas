@@ -17,7 +17,7 @@ import MenuClient from "./menu-client";
 type HotelView = "landing" | "menu" | "services" | "issues";
 
 type Props = {
-  restaurant: { id: string; name: string; slug: string };
+  restaurant: { id: string; name: string; slug: string; logoUrl?: string | null };
   categories: Category[];
   products: Product[];
   roomLabel: string;
@@ -81,13 +81,24 @@ export default function HotelLandingClient({
     <main className="min-h-screen bg-gradient-to-b from-stone-50 to-white">
       <header className="bg-white/90 backdrop-blur-md border-b border-stone-200">
         <div className="max-w-2xl mx-auto px-5 py-5">
-          <h1 className="text-xl font-bold text-stone-900 tracking-tight">
-            {restaurant.name}
-          </h1>
-          <p className="text-xs text-stone-500 flex items-center gap-1.5 mt-1">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            Chambre {roomLabel}
-          </p>
+          <div className="flex items-center gap-2.5">
+            {restaurant.logoUrl ? (
+              <img src={restaurant.logoUrl} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-white text-lg flex-shrink-0">
+                {restaurant.name.charAt(0)}
+              </div>
+            )}
+            <div>
+              <h1 className="text-xl font-bold text-stone-900 tracking-tight">
+                {restaurant.name}
+              </h1>
+              <p className="text-xs text-stone-500 flex items-center gap-1.5 mt-0.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Chambre {roomLabel}
+              </p>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -100,8 +111,8 @@ export default function HotelLandingClient({
           onClick={() => setView("menu")}
           className="w-full bg-white rounded-2xl border border-stone-200 p-6 flex items-center gap-5 hover:border-stone-400 hover:shadow-lg hover:shadow-stone-900/5 transition-all active:scale-[0.98] group"
         >
-          <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-200 transition-colors">
-            <UtensilsCrossed className="w-7 h-7 text-amber-700" />
+          <div className="w-14 h-14 rounded-2xl bg-[#C8963E]/10 flex items-center justify-center flex-shrink-0 group-hover:bg-[#e0c07a] transition-colors">
+            <UtensilsCrossed className="w-7 h-7 text-[#8a6828]" />
           </div>
           <div className="text-left">
             <div className="font-bold text-stone-900 text-lg">
@@ -257,7 +268,7 @@ function HotelRequestView({
                     onClick={() => toggle(item.id)}
                     className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${
                       isSelected
-                        ? "bg-stone-900 text-white border-stone-900"
+                        ? "bg-[#722F37] text-white border-[#722F37]"
                         : "bg-white text-stone-900 border-stone-200 hover:border-stone-400"
                     }`}
                   >
@@ -294,7 +305,7 @@ function HotelRequestView({
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="w-full py-4 rounded-2xl bg-stone-900 text-white font-bold text-base hover:bg-stone-800 disabled:opacity-50 transition-colors"
+              className="w-full py-4 rounded-2xl bg-[#722F37] text-white font-bold text-base hover:bg-[#5a2530] disabled:opacity-50 transition-colors"
             >
               {submitting
                 ? "Envoi en cours..."

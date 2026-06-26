@@ -39,9 +39,9 @@ const PLAN_LABELS: Record<string, string> = {
 };
 
 const FILTER_TABS: { key: Filter; label: string; color: string }[] = [
-  { key: "all", label: "Tous", color: "bg-stone-900 text-white" },
+  { key: "all", label: "Tous", color: "bg-[#722F37] text-white" },
   { key: "success", label: "Payés", color: "bg-emerald-600 text-white" },
-  { key: "pending", label: "En attente", color: "bg-amber-500 text-white" },
+  { key: "pending", label: "En attente", color: "bg-[#C8963E] text-white" },
   { key: "failed", label: "Échoués", color: "bg-red-600 text-white" },
 ];
 
@@ -121,7 +121,7 @@ export default function AdminPaymentsPage() {
               setLoading(true);
               fetchPayments();
             }}
-            className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-all flex items-center gap-1.5 shadow-lg shadow-stone-900/10"
+            className="rounded-full bg-[#722F37] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-all flex items-center gap-1.5 shadow-lg shadow-stone-900/10"
           >
             <RefreshCw className="w-4 h-4" /> Actualiser
           </button>
@@ -131,7 +131,7 @@ export default function AdminPaymentsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
           <KpiCard label="Total reçu" value={formatFCFA(totalRevenue)} color="emerald" />
           <KpiCard label="Payés" value={String(counts.success)} color="emerald" />
-          <KpiCard label="En attente" value={String(counts.pending)} color="amber" />
+          <KpiCard label="En attente" value={String(counts.pending)} color="gold" />
           <KpiCard label="Échoués" value={String(counts.failed)} color="red" />
         </div>
 
@@ -163,7 +163,7 @@ export default function AdminPaymentsPage() {
         {/* Content */}
         {loading ? (
           <div className="flex items-center justify-center py-16 gap-3 text-stone-500">
-            <span className="w-5 h-5 border-2 border-stone-300 border-t-amber-500 rounded-full animate-spin" />
+            <span className="w-5 h-5 border-2 border-stone-300 border-t-[#C8963E] rounded-full animate-spin" />
             Chargement...
           </div>
         ) : filtered.length === 0 ? (
@@ -202,7 +202,7 @@ function PaymentCard({ payment: p, index }: { payment: PaymentRow; index: number
         p.status === "success"
           ? "border-emerald-200"
           : p.status === "pending"
-            ? "border-amber-300 shadow-sm shadow-amber-50"
+            ? "border-[#d4a94e] shadow-sm shadow-[#C8963E]/10"
             : "border-red-200"
       }`}
       style={{ animationDelay: `${index * 30}ms` }}
@@ -215,7 +215,7 @@ function PaymentCard({ payment: p, index }: { payment: PaymentRow; index: number
                 p.status === "success"
                   ? "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white"
                   : p.status === "pending"
-                    ? "bg-gradient-to-br from-amber-400 to-amber-600 text-stone-950"
+                    ? "bg-gradient-to-br from-[#C8963E] to-[#a07832] text-white"
                     : "bg-gradient-to-br from-red-400 to-red-600 text-white"
               }`}
             >
@@ -266,7 +266,7 @@ function StatusBadge({ status }: { status: string }) {
   }
   if (status === "pending") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-800">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e0c07a] bg-[#C8963E]/5 px-2.5 py-1 text-[10px] font-semibold text-[#6e5a20]">
         <Clock className="w-3 h-3" /> En attente
       </span>
     );
@@ -285,11 +285,11 @@ function KpiCard({
 }: {
   label: string;
   value: string;
-  color: "emerald" | "amber" | "red";
+  color: "emerald" | "gold" | "red";
 }) {
   const styles = {
     emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    amber: "bg-amber-50 text-amber-700 border-amber-200",
+    gold: "bg-[#C8963E]/5 text-[#8a6828] border-[#e0c07a]",
     red: "bg-red-50 text-red-700 border-red-200",
   };
   return (

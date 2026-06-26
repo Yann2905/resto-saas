@@ -17,14 +17,14 @@ export default function LegalLayout({
           Retour à l&apos;accueil
         </Link>
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-stone-950 text-sm">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-stone-950 text-sm">
             R
           </div>
           <span className="font-semibold tracking-tight">Resto SaaS</span>
         </div>
       </nav>
       <article className="max-w-4xl mx-auto px-6 pb-20">{children}</article>
-      <footer className="border-t border-stone-900 py-8">
+      <footer className="border-t border-[#722F37] py-8">
         <div className="max-w-4xl mx-auto px-6 flex flex-wrap items-center justify-center gap-6 text-xs text-stone-600">
           <Link href="/cgu" className="hover:text-stone-300 transition-colors">
             CGU

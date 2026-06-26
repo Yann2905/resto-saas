@@ -28,7 +28,7 @@ export default async function RestaurantMenuPage({
     return (
       <main className="min-h-screen flex items-center justify-center p-6 bg-stone-50">
         <div className="max-w-sm text-center">
-          <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-[#C8963E]/10 flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">🍽️</span>
           </div>
           <h1 className="text-xl font-bold text-stone-900 mb-2">
@@ -39,7 +39,7 @@ export default async function RestaurantMenuPage({
             <span className="font-semibold">{restaurant.name}</span>{" "}
             est temporairement suspendu.
           </p>
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <div className="rounded-xl border border-[#e0c07a] bg-[#C8963E]/5 p-4 text-sm text-[#6e5a20]">
             Veuillez appeler un serveur pour passer votre commande. Merci de votre compréhension.
           </div>
         </div>
@@ -82,6 +82,7 @@ export default async function RestaurantMenuPage({
           id: restaurant.id,
           name: restaurant.name,
           slug: restaurant.slug,
+          logoUrl: restaurant.logoUrl ?? null,
         }}
         categories={categories}
         products={products}
@@ -94,7 +95,7 @@ export default async function RestaurantMenuPage({
 
   return (
     <MenuClient
-      restaurant={{ id: restaurant.id, name: restaurant.name, slug: restaurant.slug }}
+      restaurant={{ id: restaurant.id, name: restaurant.name, slug: restaurant.slug, logoUrl: restaurant.logoUrl ?? null }}
       categories={categories}
       products={products}
       tableNumber={tableNumber}

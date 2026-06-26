@@ -17,35 +17,35 @@ export default function Contact() {
           href="https://wa.me/2250575343846?text=Bonjour%2C%20je%20souhaite%20avoir%20des%20informations%20sur%20Resto%20SaaS."
           target="_blank"
           rel="noopener noreferrer"
-          className="group rounded-2xl border border-stone-800 bg-stone-900/40 p-6 hover:border-emerald-600/40 hover:bg-stone-900/70 transition-all"
+          className="group rounded-2xl border border-stone-800 bg-[#722F37]/40 p-6 hover:border-emerald-600/40 hover:bg-[#722F37]/70 transition-all"
         >
           <MessageCircle className="w-8 h-8 mb-4 text-emerald-400" />
           <h3 className="font-semibold text-lg mb-1">WhatsApp</h3>
           <p className="text-sm text-stone-400 mb-3">
             Le moyen le plus rapide de nous joindre
           </p>
-          <span className="text-amber-400 font-medium text-sm group-hover:text-amber-300">
+          <span className="text-[#C8963E] font-medium text-sm group-hover:text-[#d4a94e]">
             +225 05 75 34 38 46
           </span>
         </a>
 
         <a
           href="mailto:contact@resto-saas.com"
-          className="group rounded-2xl border border-stone-800 bg-stone-900/40 p-6 hover:border-amber-600/40 hover:bg-stone-900/70 transition-all"
+          className="group rounded-2xl border border-stone-800 bg-[#722F37]/40 p-6 hover:border-[#a07832]/40 hover:bg-[#722F37]/70 transition-all"
         >
-          <Mail className="w-8 h-8 mb-4 text-amber-400" />
+          <Mail className="w-8 h-8 mb-4 text-[#C8963E]" />
           <h3 className="font-semibold text-lg mb-1">Email</h3>
           <p className="text-sm text-stone-400 mb-3">
             Pour les demandes détaillées
           </p>
-          <span className="text-amber-400 font-medium text-sm group-hover:text-amber-300">
+          <span className="text-[#C8963E] font-medium text-sm group-hover:text-[#d4a94e]">
             contact@resto-saas.com
           </span>
         </a>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4 mb-12">
-        <div className="rounded-2xl border border-stone-800 bg-stone-900/40 p-6">
+        <div className="rounded-2xl border border-stone-800 bg-[#722F37]/40 p-6">
           <Clock className="w-6 h-6 mb-3 text-stone-500" />
           <h3 className="font-semibold mb-1">Horaires</h3>
           <p className="text-sm text-stone-400">
@@ -55,7 +55,7 @@ export default function Contact() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-stone-800 bg-stone-900/40 p-6">
+        <div className="rounded-2xl border border-stone-800 bg-[#722F37]/40 p-6">
           <MapPin className="w-6 h-6 mb-3 text-stone-500" />
           <h3 className="font-semibold mb-1">Localisation</h3>
           <p className="text-sm text-stone-400">
@@ -66,7 +66,7 @@ export default function Contact() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-stone-800 bg-stone-900/40 p-8 text-center">
+      <div className="rounded-2xl border border-stone-800 bg-[#722F37]/40 p-8 text-center">
         <h3 className="font-semibold text-xl mb-2">
           Vous êtes restaurateur ?
         </h3>

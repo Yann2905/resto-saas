@@ -66,7 +66,7 @@ export default function TeamPage() {
             href="https://wa.me/2250575343846?text=Bonjour%2C%20je%20souhaite%20passer%20au%20plan%20Pro."
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-stone-900 text-white rounded-full px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors"
+            className="inline-flex items-center gap-2 bg-[#722F37] text-white rounded-full px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors"
           >
             Passer au plan Pro
           </a>
@@ -184,7 +184,7 @@ export default function TeamPage() {
           </div>
           <button
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 bg-stone-900 text-white rounded-full px-4 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors shadow-sm"
+            className="flex items-center gap-2 bg-[#722F37] text-white rounded-full px-4 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Ajouter
@@ -208,7 +208,7 @@ export default function TeamPage() {
                   value={form.displayName}
                   onChange={(e) => setForm({ ...form, displayName: e.target.value })}
                   placeholder="Awa Koné"
-                  className="mt-1 w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+                  className="mt-1 w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
                 />
               </div>
               <div>
@@ -218,7 +218,7 @@ export default function TeamPage() {
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="awa@restaurant.com"
-                  className="mt-1 w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+                  className="mt-1 w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
                 />
               </div>
               <div>
@@ -228,13 +228,13 @@ export default function TeamPage() {
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   placeholder="Min. 6 caractères"
-                  className="mt-1 w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+                  className="mt-1 w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
                 />
               </div>
               <button
                 onClick={handleCreate}
                 disabled={creating || !form.displayName || !form.email || !form.password}
-                className="w-full bg-stone-900 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-[#722F37] text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {creating && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                 Créer le compte
@@ -260,7 +260,7 @@ export default function TeamPage() {
               <div key={w.id} className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm animate-fade-in-up">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-stone-950 font-bold text-lg">
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center text-stone-950 font-bold text-lg">
                       {w.displayName.charAt(0).toUpperCase()}
                     </div>
                     <div>
@@ -303,11 +303,11 @@ export default function TeamPage() {
                           value={tablesInput}
                           onChange={(e) => setTablesInput(e.target.value)}
                           placeholder="1, 2, 3, 4, 5"
-                          className="flex-1 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+                          className="flex-1 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
                         />
                         <button
                           onClick={() => handleSaveTables(w.id)}
-                          className="bg-stone-900 text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-stone-800 transition-colors"
+                          className="bg-[#722F37] text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-[#5a2530] transition-colors"
                         >
                           OK
                         </button>
@@ -363,11 +363,11 @@ export default function TeamPage() {
                           value={roomsInput}
                           onChange={(e) => setRoomsInput(e.target.value)}
                           placeholder="101, Suite Royale, Cocotier"
-                          className="flex-1 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+                          className="flex-1 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
                         />
                         <button
                           onClick={() => handleSaveRooms(w.id)}
-                          className="bg-stone-900 text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-stone-800 transition-colors"
+                          className="bg-[#722F37] text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-[#5a2530] transition-colors"
                         >
                           OK
                         </button>

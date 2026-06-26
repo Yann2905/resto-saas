@@ -158,7 +158,7 @@ export default function RestaurantDetailPage() {
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-stone-50">
-        <span className="w-6 h-6 border-2 border-stone-300 border-t-amber-500 rounded-full animate-spin" />
+        <span className="w-6 h-6 border-2 border-stone-300 border-t-[#C8963E] rounded-full animate-spin" />
       </main>
     );
   }
@@ -193,7 +193,7 @@ export default function RestaurantDetailPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 bg-stone-900 text-white rounded-full px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 bg-[#722F37] text-white rounded-full px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {saving ? "Enregistrement…" : "Enregistrer"}
@@ -210,7 +210,7 @@ export default function RestaurantDetailPage() {
             <select
               value={restaurantType}
               onChange={(e) => setRestaurantType(e.target.value as RestaurantType)}
-              className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+              className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
             >
               <option value="restaurant">Restaurant</option>
               <option value="hotel">Hôtel</option>
@@ -226,7 +226,7 @@ export default function RestaurantDetailPage() {
             <select
               value={plan}
               onChange={(e) => setPlan(e.target.value)}
-              className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+              className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
             >
               <option value="starter">Starter</option>
               <option value="pro">Pro</option>
@@ -243,11 +243,11 @@ export default function RestaurantDetailPage() {
               onClick={() => setIsPartner(!isPartner)}
               className={`flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                 isPartner
-                  ? "bg-amber-50 text-amber-800 border border-amber-200"
+                  ? "bg-[#C8963E]/5 text-[#6e5a20] border border-[#e0c07a]"
                   : "bg-stone-50 text-stone-500 border border-stone-200"
               }`}
             >
-              <Crown className={`w-4 h-4 ${isPartner ? "text-amber-500" : "text-stone-400"}`} />
+              <Crown className={`w-4 h-4 ${isPartner ? "text-[#C8963E]" : "text-stone-400"}`} />
               {isPartner ? "Partenaire VIP" : "Client normal"}
             </button>
           </div>
@@ -283,17 +283,17 @@ export default function RestaurantDetailPage() {
               type="date"
               value={expiry}
               onChange={(e) => setExpiry(e.target.value)}
-              className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+              className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
             />
           </div>
         </div>
 
         {isPartner && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex items-start gap-3">
-            <Crown className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div className="bg-[#C8963E]/5 border border-[#e0c07a] rounded-2xl p-4 mb-6 flex items-start gap-3">
+            <Crown className="w-5 h-5 text-[#C8963E] flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-amber-800">Mode partenaire activé</p>
-              <p className="text-xs text-amber-700 mt-0.5">
+              <p className="text-sm font-semibold text-[#6e5a20]">Mode partenaire activé</p>
+              <p className="text-xs text-[#8a6828] mt-0.5">
                 Toutes les fonctionnalités sont débloquées, indépendamment du plan. Les overrides ci-dessous sont ignorés.
               </p>
             </div>
@@ -368,7 +368,7 @@ export default function RestaurantDetailPage() {
                           setOverrideValue(feat.key, Math.max(1, parseInt(e.target.value) || 1))
                         }
                         disabled={isPartner}
-                        className="w-20 rounded-lg border border-stone-200 px-2 py-1.5 text-sm text-center font-semibold focus:outline-none focus:ring-2 focus:ring-stone-900/10 disabled:opacity-30"
+                        className="w-20 rounded-lg border border-stone-200 px-2 py-1.5 text-sm text-center font-semibold focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 disabled:opacity-30"
                       />
                     )}
                     {overridden && !isPartner && (

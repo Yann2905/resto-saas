@@ -9,7 +9,7 @@ import { addToCart, cartCount, cartTotal, getCart } from "@/lib/cart";
 import SwipeConfirm from "./_components/swipe-confirm";
 
 type Props = {
-  restaurant: { id: string; name: string; slug: string };
+  restaurant: { id: string; name: string; slug: string; logoUrl?: string | null };
   categories: Category[];
   products: Product[];
   tableNumber: number | null;
@@ -94,8 +94,8 @@ export default function MenuClient({
     return (
       <main className="min-h-screen flex items-center justify-center p-6 bg-stone-50">
         <div className="max-w-sm text-center">
-          <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-5">
-            <QrCode className="w-8 h-8 text-amber-700" aria-hidden />
+          <div className="w-16 h-16 rounded-2xl bg-[#C8963E]/10 flex items-center justify-center mx-auto mb-5">
+            <QrCode className="w-8 h-8 text-[#8a6828]" aria-hidden />
           </div>
           <h1 className="text-2xl font-bold mb-2 text-stone-900">
             Table non identifiée
@@ -117,15 +117,24 @@ export default function MenuClient({
     <main className="min-h-screen bg-stone-50 pb-32">
       <header className="bg-white/90 backdrop-blur-md border-b border-stone-200 sticky top-0 z-20">
         <div className="max-w-2xl mx-auto px-5 py-4">
-          <div className="flex items-baseline justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-stone-900 tracking-tight">
-                {restaurant.name}
-              </h1>
-              <p className="text-xs text-stone-500 mt-0.5 flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                {locationLabel} · En service
-              </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {restaurant.logoUrl ? (
+                <img src={restaurant.logoUrl} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-white text-lg flex-shrink-0">
+                  {restaurant.name.charAt(0)}
+                </div>
+              )}
+              <div className="min-w-0">
+                <h1 className="text-xl font-bold text-stone-900 tracking-tight truncate">
+                  {restaurant.name}
+                </h1>
+                <p className="text-xs text-stone-500 mt-0.5 flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  {locationLabel} · En service
+                </p>
+              </div>
             </div>
           </div>
 
@@ -136,7 +145,7 @@ export default function MenuClient({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher un plat…"
-              className="w-full rounded-xl border border-stone-200 bg-stone-50 pl-9 pr-9 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:bg-white focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 transition-colors"
+              className="w-full rounded-xl border border-stone-200 bg-stone-50 pl-9 pr-9 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:bg-white focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 transition-colors"
             />
             {search && (
               <button
@@ -160,7 +169,7 @@ export default function MenuClient({
                       onClick={() => setActiveParent(p.id)}
                       className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all ${
                         active
-                          ? "bg-stone-900 text-white shadow-sm"
+                          ? "bg-[#722F37] text-white shadow-sm"
                           : "bg-stone-100 text-stone-700 hover:bg-stone-200"
                       }`}
                     >
@@ -301,8 +310,8 @@ function ProductCard({
           {formatFCFA(product.price)}
         </div>
         {!disabled && product.stockQuantity > 0 && product.stockQuantity <= 5 && (
-          <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-amber-700">
-            <span className="w-1 h-1 rounded-full bg-amber-500" />
+          <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-[#8a6828]">
+            <span className="w-1 h-1 rounded-full bg-[#C8963E]" />
             Plus que {product.stockQuantity}
           </div>
         )}
@@ -313,7 +322,7 @@ function ProductCard({
         className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-semibold transition-all shadow-sm disabled:bg-stone-200 disabled:text-stone-400 disabled:shadow-none ${
           justAdded
             ? "bg-emerald-500 text-white scale-110"
-            : "bg-stone-900 text-white hover:bg-stone-800 active:scale-95"
+            : "bg-[#722F37] text-white hover:bg-[#5a2530] active:scale-95"
         }`}
         aria-label="Ajouter au panier"
       >

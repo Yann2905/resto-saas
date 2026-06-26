@@ -3,7 +3,7 @@
 import Swal, { SweetAlertResult } from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 
-// Préréglages cohérents avec le design (stone/amber).
+// Préréglages cohérents avec le design (stone/bordeaux/gold).
 // Toutes les fonctions sont safe-by-default : si le user annule, on renvoie false.
 
 const baseClasses = {
@@ -59,7 +59,7 @@ export async function confirmAction(opts: {
     buttonsStyling: false,
     customClass: {
       ...baseClasses,
-      confirmButton: `${baseClasses.confirmButton} !bg-stone-900 hover:!bg-stone-800 !text-white`,
+      confirmButton: `${baseClasses.confirmButton} !bg-[#722F37] hover:!bg-stone-800 !text-white`,
     },
   });
   return result.isConfirmed;
@@ -103,14 +103,14 @@ export async function alertLowStock(productName: string, quantity: number): Prom
   await Swal.fire({
     icon: "warning",
     title: "Stock presque épuisé !",
-    html: `Le produit <strong class="text-stone-900 font-bold">${productName}</strong> n'a plus que <span class="text-amber-600 font-extrabold">${quantity}</span> unités en stock.`,
+    html: `Le produit <strong class="text-stone-900 font-bold">${productName}</strong> n'a plus que <span class="text-[#a07832] font-extrabold">${quantity}</span> unités en stock.`,
     confirmButtonText: "Compris",
     buttonsStyling: false,
     customClass: {
       popup: "!rounded-3xl !p-6 !shadow-2xl",
       title: "!text-stone-900 !font-bold !text-xl !tracking-tight",
       htmlContainer: "!text-stone-600 !text-sm !mt-2",
-      confirmButton: "!rounded-full !px-6 !py-2.5 !text-sm !font-semibold !bg-amber-500 hover:!bg-amber-600 !text-stone-950 !shadow-md",
+      confirmButton: "!rounded-full !px-6 !py-2.5 !text-sm !font-semibold !bg-[#C8963E] hover:!bg-[#a07832] !text-stone-950 !shadow-md",
     },
   });
 }

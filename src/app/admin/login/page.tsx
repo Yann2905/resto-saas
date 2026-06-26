@@ -151,7 +151,7 @@ export default function AdminLoginPage() {
 
       <div className="relative z-10 w-full max-w-sm animate-fade-in-up">
         <div className="flex items-center gap-2 mb-8 justify-center">
-          <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-stone-950 shadow-lg shadow-amber-900/40">
+          <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-stone-950 shadow-lg shadow-[#722F37]/40">
             R
             <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-stone-950" />
           </div>
@@ -159,7 +159,7 @@ export default function AdminLoginPage() {
             <span className="font-semibold tracking-tight block leading-tight">
               Resto SaaS
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#C8963E]">
               Super-admin
             </span>
           </div>
@@ -167,12 +167,12 @@ export default function AdminLoginPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="rounded-3xl border border-stone-800 bg-stone-900/70 backdrop-blur p-7 shadow-2xl shadow-black/40 space-y-5"
+          className="rounded-3xl border border-stone-800 bg-[#722F37]/70 backdrop-blur p-7 shadow-2xl shadow-black/40 space-y-5"
         >
           <div>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               Zone restreinte
-              <Lock className="w-5 h-5 text-amber-400" aria-hidden />
+              <Lock className="w-5 h-5 text-[#C8963E]" aria-hidden />
             </h1>
             <p className="text-sm text-stone-400 mt-1">
               Accès réservé aux administrateurs de la plateforme.
@@ -190,7 +190,7 @@ export default function AdminLoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="admin@restosaas.com"
               autoComplete="email"
-              className="w-full rounded-xl border border-stone-700 bg-stone-950/60 px-4 py-3 text-stone-100 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-colors"
+              className="w-full rounded-xl border border-stone-700 bg-stone-950/60 px-4 py-3 text-stone-100 placeholder:text-stone-600 focus:border-[#C8963E] focus:outline-none focus:ring-2 focus:ring-[#C8963E]/20 transition-colors"
             />
           </div>
 
@@ -206,7 +206,7 @@ export default function AdminLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 autoComplete="current-password"
-                className="w-full rounded-xl border border-stone-700 bg-stone-950/60 px-4 py-3 pr-12 text-stone-100 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-colors"
+                className="w-full rounded-xl border border-stone-700 bg-stone-950/60 px-4 py-3 pr-12 text-stone-100 placeholder:text-stone-600 focus:border-[#C8963E] focus:outline-none focus:ring-2 focus:ring-[#C8963E]/20 transition-colors"
               />
               <button
                 type="button"
@@ -216,7 +216,7 @@ export default function AdminLoginPage() {
                     ? "Masquer le mot de passe"
                     : "Afficher le mot de passe"
                 }
-                className="absolute inset-y-0 right-0 flex items-center justify-center w-11 text-stone-400 hover:text-amber-400 active:text-amber-500 transition-colors"
+                className="absolute inset-y-0 right-0 flex items-center justify-center w-11 text-stone-400 hover:text-[#C8963E] active:text-[#C8963E] transition-colors"
               >
                 {showPassword ? (
                   <EyeOff className="w-5 h-5" aria-hidden />
@@ -239,7 +239,7 @@ export default function AdminLoginPage() {
 
           <button
             type="submit"
-            className="w-full rounded-xl bg-gradient-to-b from-amber-400 to-amber-600 text-stone-950 font-semibold py-3.5 shadow-lg shadow-amber-900/30 hover:from-amber-300 hover:to-amber-500 transition-all flex items-center justify-center gap-2"
+            className="w-full rounded-xl bg-gradient-to-b from-[#C8963E] to-[#a07832] text-white font-semibold py-3.5 shadow-lg shadow-[#722F37]/30 hover:from-[#d4a94e] hover:to-[#C8963E] transition-all flex items-center justify-center gap-2"
           >
             Accéder à la console{" "}
             <ArrowRight className="w-4 h-4" aria-hidden />

@@ -183,7 +183,7 @@ export default function HotelQrCodes({ restaurant }: Props) {
             {rooms.length > 0 && (
               <button
                 onClick={() => setShowExport(true)}
-                className="rounded-full bg-amber-500 text-white px-5 py-2.5 text-sm font-semibold hover:bg-amber-600 transition-colors flex items-center gap-1.5"
+                className="rounded-full bg-[#C8963E] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#a07832] transition-colors flex items-center gap-1.5"
               >
                 <FileDown className="w-4 h-4" /> Exporter PDF
               </button>
@@ -203,11 +203,11 @@ export default function HotelQrCodes({ restaurant }: Props) {
               onChange={(e) => setNewRoom(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addRoom()}
               placeholder="Ex: 101, Suite Royale, Cocotier..."
-              className="flex-1 rounded-xl border border-stone-300 px-3 py-2.5 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+              className="flex-1 rounded-xl border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
             />
             <button
               onClick={addRoom}
-              className="rounded-xl bg-stone-900 text-white px-4 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors flex items-center gap-1.5"
+              className="rounded-xl bg-[#722F37] text-white px-4 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4" /> Ajouter
             </button>
@@ -311,7 +311,7 @@ export default function HotelQrCodes({ restaurant }: Props) {
                         key={key}
                         onClick={() => setTheme(key)}
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all ${
-                          theme === key ? "ring-2 ring-offset-1 ring-stone-900" : "hover:opacity-80"
+                          theme === key ? "ring-2 ring-offset-1 ring-[#722F37]" : "hover:opacity-80"
                         }`}
                         style={{ backgroundColor: t.bg, color: t.text, borderColor: t.border }}
                       >
@@ -374,7 +374,7 @@ export default function HotelQrCodes({ restaurant }: Props) {
               <button
                 onClick={handleExportPrint}
                 disabled={Object.keys(themedCodes).length === 0}
-                className="rounded-full bg-amber-500 text-white px-5 py-2.5 text-sm font-semibold hover:bg-amber-600 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                className="rounded-full bg-[#C8963E] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#a07832] transition-colors flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Printer className="w-4 h-4" /> Lancer l&apos;impression
               </button>

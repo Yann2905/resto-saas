@@ -226,7 +226,7 @@ export default function LoginPage() {
 
       <div className="relative z-10 w-full max-w-sm animate-fade-in-up">
         <div className="flex items-center gap-2 mb-8 justify-center">
-          <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-stone-950 shadow-lg shadow-amber-900/20">
+          <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-stone-950 shadow-lg shadow-[#722F37]/20">
             R
             <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-stone-50" />
           </div>
@@ -234,7 +234,7 @@ export default function LoginPage() {
             <span className="font-semibold tracking-tight block leading-tight text-stone-900">
               Resto SaaS
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#a07832]">
               Espace restaurant
             </span>
           </div>
@@ -264,7 +264,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="owner@restaurant.com"
               autoComplete="email"
-              className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-stone-900 placeholder:text-stone-400 focus:bg-white focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 transition-colors"
+              className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-stone-900 placeholder:text-stone-400 focus:bg-white focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 transition-colors"
             />
           </div>
 
@@ -280,7 +280,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 autoComplete="current-password"
-                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 pr-12 text-stone-900 placeholder:text-stone-400 focus:bg-white focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 transition-colors"
+                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 pr-12 text-stone-900 placeholder:text-stone-400 focus:bg-white focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 transition-colors"
               />
               <button
                 type="button"
@@ -314,7 +314,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-xl bg-stone-900 text-white font-semibold py-3.5 shadow-lg shadow-stone-900/10 hover:bg-stone-800 disabled:bg-stone-400 transition-all flex items-center justify-center gap-2"
+            className="w-full rounded-xl bg-[#722F37] text-white font-semibold py-3.5 shadow-lg shadow-stone-900/10 hover:bg-[#5a2530] disabled:bg-stone-400 transition-all flex items-center justify-center gap-2"
           >
             {submitting ? (
               <>

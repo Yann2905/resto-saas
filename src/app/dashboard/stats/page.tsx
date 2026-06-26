@@ -222,7 +222,7 @@ export default function StatsPage() {
                     }}
                     className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
                       active
-                        ? "bg-stone-900 text-white"
+                        ? "bg-[#722F37] text-white"
                         : "text-stone-600 hover:bg-stone-100"
                     }`}
                   >
@@ -244,7 +244,7 @@ export default function StatsPage() {
                 }}
                 className={`rounded-full pl-9 pr-3 py-2 text-xs font-semibold border transition-all cursor-pointer ${
                   specificDay
-                    ? "bg-stone-900 text-white border-stone-900"
+                    ? "bg-[#722F37] text-white border-[#722F37]"
                     : "bg-white text-stone-700 border-stone-200 hover:bg-stone-50"
                 }`}
               />
@@ -266,7 +266,7 @@ export default function StatsPage() {
                 }}
                 className={`appearance-none rounded-full pl-9 pr-9 py-2 text-xs font-semibold border transition-all cursor-pointer ${
                   month
-                    ? "bg-stone-900 text-white border-stone-900"
+                    ? "bg-[#722F37] text-white border-[#722F37]"
                     : "bg-white text-stone-700 border-stone-200 hover:bg-stone-50"
                 }`}
               >
@@ -328,7 +328,7 @@ export default function StatsPage() {
             value={formatFCFA(Math.round(summary?.avgTicket ?? 0))}
             currentValue={summary?.avgTicket}
             previousValue={previousSummary?.avgTicket}
-            color="amber"
+            color="gold"
             Icon={Target}
           />
           <KPI
@@ -402,13 +402,13 @@ function KPI({
   currentValue?: number;
   previousValue?: number;
   subtitle?: string;
-  color: "emerald" | "blue" | "amber" | "purple";
+  color: "emerald" | "blue" | "gold" | "purple";
   Icon: typeof Wallet;
 }) {
   const map = {
     emerald: "bg-emerald-50 text-emerald-700",
     blue: "bg-blue-50 text-blue-700",
-    amber: "bg-amber-50 text-amber-700",
+    gold: "bg-[#C8963E]/5 text-[#8a6828]",
     purple: "bg-purple-50 text-purple-700",
   };
 
@@ -656,7 +656,7 @@ function TopProductsList({ items }: { items: TopProduct[] }) {
           <div key={p.productId}>
             <div className="flex items-baseline justify-between text-sm mb-1.5">
               <span className="text-stone-800 font-medium flex items-center gap-2 min-w-0">
-                <span className="w-5 h-5 rounded-full bg-stone-900 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                <span className="w-5 h-5 rounded-full bg-[#722F37] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
                   {i + 1}
                 </span>
                 <span className="truncate">{p.productName}</span>
@@ -668,7 +668,7 @@ function TopProductsList({ items }: { items: TopProduct[] }) {
             </div>
             <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-700"
+                className="h-full bg-gradient-to-r from-[#C8963E] to-[#C8963E] rounded-full transition-all duration-700"
                 style={{ width: `${pct}%` }}
               />
             </div>

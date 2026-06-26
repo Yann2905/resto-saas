@@ -18,8 +18,8 @@ export default function APropos() {
         {/* Mission */}
         <section>
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-              <Target className="w-5 h-5 text-amber-400" />
+            <div className="w-10 h-10 rounded-xl bg-[#C8963E]/10 flex items-center justify-center">
+              <Target className="w-5 h-5 text-[#C8963E]" />
             </div>
             <h2 className="text-xl font-semibold">Notre mission</h2>
           </div>
@@ -36,8 +36,8 @@ export default function APropos() {
         {/* Comment ça a commencé */}
         <section>
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-              <Heart className="w-5 h-5 text-amber-400" />
+            <div className="w-10 h-10 rounded-xl bg-[#C8963E]/10 flex items-center justify-center">
+              <Heart className="w-5 h-5 text-[#C8963E]" />
             </div>
             <h2 className="text-xl font-semibold">Notre histoire</h2>
           </div>
@@ -59,8 +59,8 @@ export default function APropos() {
         {/* Ce qui nous différencie */}
         <section>
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-              <Users className="w-5 h-5 text-amber-400" />
+            <div className="w-10 h-10 rounded-xl bg-[#C8963E]/10 flex items-center justify-center">
+              <Users className="w-5 h-5 text-[#C8963E]" />
             </div>
             <h2 className="text-xl font-semibold">
               Ce qui nous différencie
@@ -87,7 +87,7 @@ export default function APropos() {
             ].map((item) => (
               <div
                 key={item.title}
-                className="rounded-2xl border border-stone-800 bg-stone-900/40 p-5"
+                className="rounded-2xl border border-stone-800 bg-[#722F37]/40 p-5"
               >
                 <h3 className="font-semibold text-white mb-2">{item.title}</h3>
                 <p className="text-sm text-stone-400 leading-relaxed">
@@ -101,8 +101,8 @@ export default function APropos() {
         {/* Localisation */}
         <section>
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-amber-400" />
+            <div className="w-10 h-10 rounded-xl bg-[#C8963E]/10 flex items-center justify-center">
+              <MapPin className="w-5 h-5 text-[#C8963E]" />
             </div>
             <h2 className="text-xl font-semibold">Où nous trouver</h2>
           </div>
@@ -111,13 +111,13 @@ export default function APropos() {
             des restaurants dans toute la Côte d&apos;Ivoire — Daloa, Abidjan,
             Yamoussoukro, Bouaké et au-delà.
           </p>
-          <div className="mt-6 rounded-2xl border border-stone-800 bg-stone-900/40 p-6">
+          <div className="mt-6 rounded-2xl border border-stone-800 bg-[#722F37]/40 p-6">
             <p className="text-stone-300 text-sm space-y-1">
               <span className="block">
                 <strong className="text-white">WhatsApp :</strong>{" "}
                 <a
                   href="https://wa.me/2250575343846"
-                  className="text-amber-400 hover:text-amber-300"
+                  className="text-[#C8963E] hover:text-[#d4a94e]"
                 >
                   +225 05 75 34 38 46
                 </a>
@@ -126,7 +126,7 @@ export default function APropos() {
                 <strong className="text-white">Email :</strong>{" "}
                 <a
                   href="mailto:contact@resto-saas.com"
-                  className="text-amber-400 hover:text-amber-300"
+                  className="text-[#C8963E] hover:text-[#d4a94e]"
                 >
                   contact@resto-saas.com
                 </a>

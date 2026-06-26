@@ -70,7 +70,7 @@ export default function DashboardNav() {
             {restaurant.logoUrl ? (
               <img src={restaurant.logoUrl} alt="" className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover flex-shrink-0" />
             ) : (
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-stone-950 text-base sm:text-lg flex-shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-white text-base sm:text-lg flex-shrink-0">
                 {restaurant.name.charAt(0)}
               </div>
             )}
@@ -132,7 +132,7 @@ export default function DashboardNav() {
                 }`}
               >
                 {active && (
-                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 rounded-full bg-amber-500" />
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 rounded-full bg-[#722F37]" />
                 )}
                 <Icon className="w-5 h-5" aria-hidden />
                 <span>{label}</span>

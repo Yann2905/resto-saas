@@ -198,7 +198,7 @@ export default function CGU() {
               WhatsApp :{" "}
               <a
                 href="https://wa.me/2250575343846"
-                className="text-amber-400 hover:text-amber-300"
+                className="text-[#C8963E] hover:text-[#d4a94e]"
               >
                 +225 05 75 34 38 46
               </a>
@@ -207,7 +207,7 @@ export default function CGU() {
               Email :{" "}
               <a
                 href="mailto:contact@resto-saas.com"
-                className="text-amber-400 hover:text-amber-300"
+                className="text-[#C8963E] hover:text-[#d4a94e]"
               >
                 contact@resto-saas.com
               </a>

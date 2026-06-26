@@ -135,10 +135,10 @@ export default function PinGuard({ children }: { children: React.ReactNode }) {
                 onKeyDown={(e) => handleKeyDown(i, e)}
                 autoFocus={i === 0}
                 disabled={checking}
-                className={`w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-900/10 disabled:opacity-50 ${
+                className={`w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 disabled:opacity-50 ${
                   error
                     ? "border-red-400 bg-red-50 text-red-700"
-                    : "border-stone-300 bg-stone-50 text-stone-900 focus:border-stone-900"
+                    : "border-stone-300 bg-stone-50 text-stone-900 focus:border-[#722F37]"
                 }`}
               />
             ))}

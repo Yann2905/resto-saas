@@ -349,7 +349,7 @@ export default function MenuAdminPage() {
                 setShowAddCategory((v) => !v);
                 setEditingCategoryId(null);
               }}
-              className="rounded-full bg-stone-900 text-white px-4 py-2 text-sm font-semibold hover:bg-stone-800 transition-colors"
+              className="rounded-full bg-[#722F37] text-white px-4 py-2 text-sm font-semibold hover:bg-[#5a2530] transition-colors"
             >
               {showAddCategory ? "Annuler" : "+ Catégorie"}
             </button>
@@ -434,14 +434,14 @@ export default function MenuAdminPage() {
                 setEditingProductId(null);
               }}
               disabled={leafCategories.length === 0}
-              className="rounded-full bg-stone-900 text-white px-4 py-2 text-sm font-semibold hover:bg-stone-800 disabled:bg-stone-300 transition-colors"
+              className="rounded-full bg-[#722F37] text-white px-4 py-2 text-sm font-semibold hover:bg-[#5a2530] disabled:bg-stone-300 transition-colors"
             >
               {showAddProduct ? "Annuler" : "+ Produit"}
             </button>
           </div>
 
           {leafCategories.length === 0 && (
-            <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800 mb-4">
+            <div className="rounded-xl bg-[#C8963E]/5 border border-[#e0c07a] p-3 text-sm text-[#6e5a20] mb-4">
               Créez au moins une catégorie avant d'ajouter un produit.
             </div>
           )}
@@ -463,7 +463,7 @@ export default function MenuAdminPage() {
                 onClick={() => setFilterCat("all")}
                 className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                   filterCat === "all"
-                    ? "bg-stone-900 text-white"
+                    ? "bg-[#722F37] text-white"
                     : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                 }`}
               >
@@ -478,7 +478,7 @@ export default function MenuAdminPage() {
                     onClick={() => setFilterCat(cat.id)}
                     className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                       filterCat === cat.id
-                        ? "bg-stone-900 text-white"
+                        ? "bg-[#722F37] text-white"
                         : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                     }`}
                   >
@@ -678,7 +678,7 @@ function ProductFormInline({
   return (
     <form
       onSubmit={submit}
-      className="rounded-2xl border-2 border-stone-900 bg-white p-4 sm:p-5 mb-3 animate-fade-in-up"
+      className="rounded-2xl border-2 border-[#722F37] bg-white p-4 sm:p-5 mb-3 animate-fade-in-up"
     >
       <div className="grid grid-cols-1 sm:grid-cols-[9rem_1fr] gap-4 sm:gap-5">
         <div className="flex flex-col items-center">
@@ -736,7 +736,7 @@ function ProductFormInline({
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="Ex : Ndolé"
-              className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+              className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
             />
           </Field>
           <Field label="Catégorie" className="sm:col-span-2">
@@ -744,7 +744,7 @@ function ProductFormInline({
               required
               value={form.categoryId}
               onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-              className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 bg-white"
+              className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 bg-white"
             >
               <option value="">— Choisir —</option>
               {leafCategories.map((c) => (
@@ -763,7 +763,7 @@ function ProductFormInline({
               value={form.price}
               onChange={(e) => setForm({ ...form, price: e.target.value })}
               placeholder="2500"
-              className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+              className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
             />
           </Field>
           <Field label="Stock">
@@ -777,7 +777,7 @@ function ProductFormInline({
                 setForm({ ...form, stockQuantity: e.target.value })
               }
               placeholder="20"
-              className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+              className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
             />
           </Field>
           <label className="sm:col-span-2 flex items-center gap-2 text-sm text-stone-700 mt-1">
@@ -804,7 +804,7 @@ function ProductFormInline({
         </button>
         <button
           type="submit"
-          className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors"
+          className="rounded-full bg-[#722F37] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors"
         >
           Enregistrer
         </button>
@@ -910,7 +910,7 @@ function CategoryFormInline({
   return (
     <form
       onSubmit={submit}
-      className="rounded-xl border-2 border-stone-900 bg-white p-4 my-2 animate-fade-in-up"
+      className="rounded-xl border-2 border-[#722F37] bg-white p-4 my-2 animate-fade-in-up"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Field label="Nom">
@@ -920,14 +920,14 @@ function CategoryFormInline({
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="Ex : Boissons"
-            className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+            className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
           />
         </Field>
         <Field label="Parent (optionnel)">
           <select
             value={form.parentId}
             onChange={(e) => setForm({ ...form, parentId: e.target.value })}
-            className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10 bg-white"
+            className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 bg-white"
           >
             <option value="">— Catégorie principale —</option>
             {parentOptions.map((p) => (
@@ -948,7 +948,7 @@ function CategoryFormInline({
         </button>
         <button
           type="submit"
-          className="rounded-full bg-stone-900 text-white px-5 py-2 text-sm font-semibold hover:bg-stone-800 transition-colors"
+          className="rounded-full bg-[#722F37] text-white px-5 py-2 text-sm font-semibold hover:bg-[#5a2530] transition-colors"
         >
           Enregistrer
         </button>

@@ -19,6 +19,7 @@ export default async function OrderPage({
       restaurantId={restaurant.id}
       restaurantName={restaurant.name}
       restaurantSlug={restaurant.slug}
+      restaurantLogoUrl={restaurant.logoUrl ?? null}
       orderId={id}
       tableNumber={table ? parseInt(table, 10) : null}
       roomLabel={room ? decodeURIComponent(room) : null}

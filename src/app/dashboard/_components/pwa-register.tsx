@@ -89,9 +89,9 @@ export default function PwaRegister() {
   if (!installPrompt || dismissed) return null;
 
   return (
-    <div className="fixed bottom-20 md:bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-40 bg-stone-900 text-white rounded-2xl p-4 shadow-2xl animate-fade-in-up">
+    <div className="fixed bottom-20 md:bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-40 bg-[#722F37] text-white rounded-2xl p-4 shadow-2xl animate-fade-in-up">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-[#C8963E] flex items-center justify-center flex-shrink-0">
           <Download className="w-5 h-5 text-stone-950" />
         </div>
         <div className="flex-1 min-w-0">
@@ -102,7 +102,7 @@ export default function PwaRegister() {
           <div className="flex gap-2 mt-3">
             <button
               onClick={handleInstall}
-              className="bg-amber-500 text-stone-950 rounded-full px-4 py-1.5 text-xs font-semibold hover:bg-amber-400 transition-colors"
+              className="bg-[#C8963E] text-white rounded-full px-4 py-1.5 text-xs font-semibold hover:bg-[#C8963E] transition-colors"
             >
               Installer
             </button>

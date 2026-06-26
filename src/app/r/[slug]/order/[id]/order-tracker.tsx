@@ -43,6 +43,7 @@ type Props = {
   restaurantId: string;
   restaurantName: string;
   restaurantSlug: string;
+  restaurantLogoUrl?: string | null;
   orderId: string;
   tableNumber: number | null;
   roomLabel?: string | null;
@@ -51,6 +52,7 @@ type Props = {
 export default function OrderTracker({
   restaurantName,
   restaurantSlug,
+  restaurantLogoUrl,
   orderId,
   tableNumber,
   roomLabel,
@@ -128,15 +130,26 @@ export default function OrderTracker({
     <main className="min-h-screen bg-stone-50">
       <header className="bg-white/90 backdrop-blur-md border-b border-stone-200">
         <div className="max-w-2xl mx-auto px-5 py-4">
-          <h1 className="text-xl font-bold text-stone-900 tracking-tight">
-            {restaurantName}
-          </h1>
-          {locationLabel && (
-            <p className="text-xs text-stone-500 flex items-center gap-1.5 mt-0.5">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              {locationLabel}
-            </p>
-          )}
+          <div className="flex items-center gap-2.5">
+            {restaurantLogoUrl ? (
+              <img src={restaurantLogoUrl} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-white text-lg flex-shrink-0">
+                {restaurantName.charAt(0)}
+              </div>
+            )}
+            <div>
+              <h1 className="text-xl font-bold text-stone-900 tracking-tight">
+                {restaurantName}
+              </h1>
+              {locationLabel && (
+                <p className="text-xs text-stone-500 flex items-center gap-1.5 mt-0.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  {locationLabel}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </header>
 
@@ -147,7 +160,7 @@ export default function OrderTracker({
               const Icon = STATUS_ICON[order.status];
               return (
                 <div
-                  className={`w-14 h-14 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center ${
+                  className={`w-14 h-14 rounded-2xl bg-[#C8963E] text-white flex items-center justify-center ${
                     order.status !== "served" ? "animate-pulse-ring" : ""
                   }`}
                 >
@@ -183,7 +196,7 @@ export default function OrderTracker({
                 key={s}
                 className={`h-1.5 flex-1 rounded-full transition-all ${
                   i <= currentStep
-                    ? "bg-gradient-to-r from-amber-400 to-amber-500"
+                    ? "bg-gradient-to-r from-[#C8963E] to-[#C8963E]"
                     : "bg-stone-700"
                 }`}
               />

@@ -44,9 +44,9 @@ const STATUS_STYLES: Record<
   },
   expiring: {
     label: "Expire bientôt",
-    bg: "bg-amber-50 border-amber-200",
-    text: "text-amber-800",
-    dot: "bg-amber-500",
+    bg: "bg-[#C8963E]/5 border-[#e0c07a]",
+    text: "text-[#6e5a20]",
+    dot: "bg-[#C8963E]",
   },
   expired: {
     label: "Expiré",
@@ -218,7 +218,7 @@ export default function AdminRestaurantsPage() {
               setShowCreate((v) => !v);
               setEditingId(null);
             }}
-            className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-all hover:scale-105 flex items-center gap-1.5 shadow-lg shadow-stone-900/10"
+            className="rounded-full bg-[#722F37] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-all hover:scale-105 flex items-center gap-1.5 shadow-lg shadow-stone-900/10"
           >
             <Plus className="w-4 h-4" aria-hidden /> Nouvel établissement
           </button>
@@ -238,7 +238,7 @@ export default function AdminRestaurantsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher par nom ou slug…"
-              className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-sm focus:border-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+              className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
             />
           </div>
           <div className="flex gap-1 overflow-x-auto">
@@ -255,7 +255,7 @@ export default function AdminRestaurantsPage() {
                 onClick={() => setFilter(f.key)}
                 className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                   filter === f.key
-                    ? "bg-stone-900 text-white"
+                    ? "bg-[#722F37] text-white"
                     : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                 }`}
               >
@@ -267,7 +267,7 @@ export default function AdminRestaurantsPage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-16 gap-3 text-stone-500">
-            <span className="w-5 h-5 border-2 border-stone-300 border-t-amber-500 rounded-full animate-spin" />
+            <span className="w-5 h-5 border-2 border-stone-300 border-t-[#C8963E] rounded-full animate-spin" />
             Chargement…
           </div>
         ) : filtered.length === 0 ? (
@@ -364,7 +364,7 @@ function RestaurantRowView({
   return (
     <div className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:items-center">
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-stone-950 text-lg flex-shrink-0 shadow-sm">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-stone-950 text-lg flex-shrink-0 shadow-sm">
           {restaurant.name.charAt(0)}
         </div>
         <div className="flex-1 min-w-0">
@@ -397,7 +397,7 @@ function RestaurantRowView({
             </span>
             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
               restaurant.plan === "business"
-                ? "bg-amber-100 text-amber-800"
+                ? "bg-[#C8963E]/10 text-[#6e5a20]"
                 : restaurant.plan === "pro"
                 ? "bg-blue-100 text-blue-800"
                 : "bg-stone-100 text-stone-600"
@@ -429,7 +429,7 @@ function RestaurantRowView({
         </button>
         <Link
           href={`/admin/restaurants/${restaurant.id}`}
-          className="rounded-lg px-3 py-2 text-xs font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
+          className="rounded-lg px-3 py-2 text-xs font-semibold bg-[#C8963E]/5 text-[#8a6828] hover:bg-[#C8963E]/10 transition-colors"
         >
           Gérer
         </Link>
@@ -485,7 +485,7 @@ function EditForm({
   };
 
   return (
-    <form onSubmit={submit} className="p-4 sm:p-5 border-l-4 border-stone-900">
+    <form onSubmit={submit} className="p-4 sm:p-5 border-l-4 border-[#722F37]">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Nom">
           <input
@@ -550,7 +550,7 @@ function EditForm({
         </button>
         <button
           type="submit"
-          className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors"
+          className="rounded-full bg-[#722F37] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors"
         >
           Enregistrer
         </button>
@@ -626,7 +626,7 @@ function CreateForm({
   return (
     <form
       onSubmit={submit}
-      className="mb-5 rounded-2xl border-2 border-stone-900 bg-white overflow-hidden animate-fade-in-up"
+      className="mb-5 rounded-2xl border-2 border-[#722F37] bg-white overflow-hidden animate-fade-in-up"
     >
       <div className="bg-gradient-to-r from-stone-900 to-stone-800 text-white px-5 py-3">
         <h3 className="font-bold tracking-tight">Nouvel établissement</h3>
@@ -665,7 +665,7 @@ function CreateForm({
                 onClick={() => setForm({ ...form, type: opt.value })}
                 className={`rounded-xl border-2 p-3 text-left transition-all ${
                   form.type === opt.value
-                    ? "border-stone-900 bg-stone-50"
+                    ? "border-[#722F37] bg-stone-50"
                     : "border-stone-200 hover:border-stone-300"
                 }`}
               >
@@ -780,7 +780,7 @@ function CreateForm({
         </button>
         <button
           type="submit"
-          className="rounded-full bg-stone-900 text-white px-5 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors flex items-center justify-center gap-2"
+          className="rounded-full bg-[#722F37] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors flex items-center justify-center gap-2"
         >
           Créer l&apos;établissement
         </button>

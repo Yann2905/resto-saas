@@ -47,7 +47,7 @@ export default function ReceiptClient({
         </Link>
         <button
           onClick={() => window.print()}
-          className="rounded-full bg-stone-900 text-white px-5 py-2 text-sm font-semibold hover:bg-stone-800 transition-colors shadow-sm flex items-center gap-1.5"
+          className="rounded-full bg-[#722F37] text-white px-5 py-2 text-sm font-semibold hover:bg-[#5a2530] transition-colors shadow-sm flex items-center gap-1.5"
         >
           <Printer className="w-4 h-4" aria-hidden />
           Imprimer
@@ -132,7 +132,7 @@ export default function ReceiptClient({
               label={`Articles (${itemsCount})`}
               value={formatFCFA(order.total)}
             />
-            <div className="flex justify-between gap-2 font-bold text-[14px] mt-1.5 pt-1.5 border-t border-stone-900">
+            <div className="flex justify-between gap-2 font-bold text-[14px] mt-1.5 pt-1.5 border-t border-[#722F37]">
               <span>TOTAL</span>
               <span className="tabular-nums">{formatFCFA(order.total)}</span>
             </div>

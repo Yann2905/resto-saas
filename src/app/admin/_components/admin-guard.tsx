@@ -35,7 +35,7 @@ export default function AdminGuard({
     return (
       <main className="min-h-screen flex items-center justify-center bg-stone-950 text-stone-100">
         <div className="flex items-center gap-3 text-stone-400">
-          <span className="w-5 h-5 border-2 border-stone-700 border-t-amber-400 rounded-full animate-spin" />
+          <span className="w-5 h-5 border-2 border-stone-700 border-t-[#C8963E] rounded-full animate-spin" />
           Vérification des droits…
         </div>
       </main>
@@ -45,7 +45,7 @@ export default function AdminGuard({
   return (
     <main className="min-h-screen flex items-center justify-center bg-stone-950 text-stone-100 p-6 text-center">
       <div>
-        <Lock className="w-12 h-12 mx-auto mb-3 text-amber-400" aria-hidden />
+        <Lock className="w-12 h-12 mx-auto mb-3 text-[#C8963E]" aria-hidden />
         <p className="font-semibold">Accès réservé</p>
         <p className="text-sm text-stone-400 mt-1">
           Redirection vers la page de connexion…

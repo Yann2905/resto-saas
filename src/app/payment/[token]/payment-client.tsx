@@ -92,10 +92,10 @@ export default function PaymentClient({
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-stone-50 via-white to-amber-50/30 pb-20">
+    <main className="min-h-screen bg-gradient-to-br from-stone-50 via-white to-[#faf6ef]/30 pb-20">
       <header className="bg-white/80 backdrop-blur-md border-b border-stone-200 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white font-bold text-lg">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center text-white font-bold text-lg">
             {restaurantName[0]?.toUpperCase()}
           </div>
           <div>
@@ -157,12 +157,12 @@ export default function PaymentClient({
                     key={plan.key}
                     className={`relative bg-white rounded-2xl border p-5 transition-all ${
                       plan.popular
-                        ? "border-amber-400 shadow-md shadow-amber-100"
+                        ? "border-[#C8963E] shadow-md shadow-[#C8963E]/20"
                         : "border-stone-200 hover:border-stone-400"
                     }`}
                   >
                     {plan.popular && (
-                      <div className="absolute -top-3 left-5 bg-gradient-to-r from-amber-400 to-amber-600 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full flex items-center gap-1">
+                      <div className="absolute -top-3 left-5 bg-gradient-to-r from-[#C8963E] to-[#a07832] text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full flex items-center gap-1">
                         <Sparkles className="w-3 h-3" /> Populaire
                       </div>
                     )}
@@ -192,8 +192,8 @@ export default function PaymentClient({
                         onClick={() => handlePay(plan)}
                         className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-colors ${
                           plan.popular
-                            ? "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 shadow-md"
-                            : "bg-stone-900 hover:bg-stone-800"
+                            ? "bg-gradient-to-r from-[#C8963E] to-[#a07832] hover:from-[#a07832] hover:to-[#8a6828] shadow-md"
+                            : "bg-[#722F37] hover:bg-[#5a2530]"
                         }`}
                       >
                         Payer
@@ -209,7 +209,7 @@ export default function PaymentClient({
         {/* ── Redirection vers Genius Pay ──────────────────────── */}
         {step === "processing" && (
           <section className="animate-fade-in-up text-center py-16">
-            <span className="w-12 h-12 border-4 border-amber-200 border-t-amber-500 rounded-full animate-spin mx-auto mb-4 block" />
+            <span className="w-12 h-12 border-4 border-[#e0c07a] border-t-[#C8963E] rounded-full animate-spin mx-auto mb-4 block" />
             <h2 className="text-lg font-bold text-stone-900 mb-1">
               Redirection vers le paiement...
             </h2>
@@ -269,7 +269,7 @@ export default function PaymentClient({
             <p className="text-sm text-red-600 mb-4">{error}</p>
             <button
               onClick={() => setStep("plan")}
-              className="rounded-full bg-stone-900 text-white px-6 py-2.5 text-sm font-semibold hover:bg-stone-800 transition-colors"
+              className="rounded-full bg-[#722F37] text-white px-6 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors"
             >
               Réessayer
             </button>
