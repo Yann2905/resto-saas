@@ -55,6 +55,12 @@ const STATUS_STYLES: Record<
 };
 
 
+function clearBadge() {
+  if ("clearAppBadge" in navigator) {
+    (navigator as unknown as { clearAppBadge: () => Promise<void> }).clearAppBadge().catch(() => {});
+  }
+}
+
 export default function OrdersPage() {
   const { user, restaurant, role, loading, signOut } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -80,6 +86,13 @@ export default function OrdersPage() {
   // Stable ID pour éviter des re-runs inutiles quand l'objet restaurant
   // change de référence (refresh auth context) mais pas d'id.
   const restaurantId = restaurant?.id ?? null;
+
+  useEffect(() => {
+    clearBadge();
+    const onVisible = () => { if (document.visibilityState === "visible") clearBadge(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   useEffect(() => {
     if (!restaurantId) return;
@@ -166,6 +179,7 @@ export default function OrdersPage() {
   const advance = (order: Order) => {
     const next = NEXT_STATUS[order.status];
     if (!next) return;
+    clearBadge();
     const previousStatus = order.status;
     // Optimistic — UI change instantanément
     setOrders((prev) =>

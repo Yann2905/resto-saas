@@ -35,7 +35,9 @@ export async function POST(request: NextRequest) {
   const total = (order.total as number).toLocaleString("fr-FR");
   const location = order.room_label
     ? `Chambre ${order.room_label}`
-    : `Table ${order.table_number}`;
+    : order.table_number
+    ? `Table ${order.table_number}`
+    : "Nouvelle";
 
   const typeLabel = order.order_type === "service"
     ? "Demande de service"
