@@ -17,9 +17,7 @@ export default function LegalLayout({
           Retour à l&apos;accueil
         </Link>
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-stone-950 text-sm">
-            R
-          </div>
+          <img src="/icon-192.png" alt="Resto SaaS" className="w-8 h-8 rounded-xl" />
           <span className="font-semibold tracking-tight">Resto SaaS</span>
         </div>
       </nav>

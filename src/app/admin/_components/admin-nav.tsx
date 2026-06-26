@@ -43,8 +43,8 @@ export default function AdminNav() {
             href="/admin"
             className="flex items-center gap-2.5 sm:gap-3 min-w-0 group"
           >
-            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-stone-950 text-base sm:text-lg flex-shrink-0 shadow-lg shadow-[#722F37]/40 group-hover:scale-105 transition-transform">
-              R
+            <div className="relative flex-shrink-0 group-hover:scale-105 transition-transform">
+              <img src="/icon-192.png" alt="Resto SaaS" className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl shadow-lg shadow-[#722F37]/40" />
               <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-stone-950" />
             </div>
             <div className="min-w-0">

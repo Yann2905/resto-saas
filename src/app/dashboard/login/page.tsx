@@ -226,8 +226,8 @@ export default function LoginPage() {
 
       <div className="relative z-10 w-full max-w-sm animate-fade-in-up">
         <div className="flex items-center gap-2 mb-8 justify-center">
-          <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-stone-950 shadow-lg shadow-[#722F37]/20">
-            R
+          <div className="relative">
+            <img src="/icon-192.png" alt="Resto SaaS" className="w-10 h-10 rounded-xl shadow-lg shadow-[#722F37]/20" />
             <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-stone-50" />
           </div>
           <div>

@@ -163,8 +163,8 @@ export default function Home() {
       {/* ── Nav ─────────────────────────────────────────── */}
       <nav className="relative z-10 max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-white shadow-lg shadow-[#722F37]/30">
-            R
+          <div className="relative">
+            <img src="/icon-192.png" alt="Resto SaaS" className="w-9 h-9 rounded-xl shadow-lg shadow-[#722F37]/30" />
             <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-stone-950" />
           </div>
           <span className="font-semibold tracking-tight text-lg">
@@ -577,9 +577,7 @@ export default function Home() {
           <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-white text-sm">
-                  R
-                </div>
+                <img src="/icon-192.png" alt="Resto SaaS" className="w-7 h-7 rounded-lg" />
                 <span className="font-semibold text-sm">Resto SaaS</span>
               </div>
               <p className="text-xs text-stone-500 max-w-xs">
