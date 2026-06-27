@@ -119,7 +119,10 @@ self.addEventListener("notificationclick", (event) => {
       navigator.clearAppBadge ? navigator.clearAppBadge() : Promise.resolve(),
       self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
         for (const client of clients) {
-          if (client.url.includes("/dashboard") && "focus" in client) return client.focus();
+          if (client.url.includes("/dashboard") && "focus" in client) {
+            client.postMessage({ type: "REFRESH_ORDERS" });
+            return client.focus();
+          }
         }
         return self.clients.openWindow(url);
       }),

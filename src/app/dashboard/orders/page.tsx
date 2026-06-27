@@ -69,6 +69,12 @@ function clearBadge() {
   }
 }
 
+function setBadge(count: number) {
+  if ("setAppBadge" in navigator && count > 0) {
+    (navigator as unknown as { setAppBadge: (n: number) => Promise<void> }).setAppBadge(count).catch(() => {});
+  }
+}
+
 export default function OrdersPage() {
   const { user, restaurant, role, loading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -122,6 +128,16 @@ export default function OrdersPage() {
 
     fetchOrders();
 
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchOrders();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    const onSWMessage = (e: MessageEvent) => {
+      if (e.data?.type === "REFRESH_ORDERS") fetchOrders();
+    };
+    navigator.serviceWorker?.addEventListener("message", onSWMessage);
+
     const channel = supabase
       .channel(`orders-${restaurantId}`)
       .on(
@@ -136,7 +152,14 @@ export default function OrdersPage() {
           const newOrder = mapOrder(payload.new as OrderRow);
           if (knownIds.current.has(newOrder.id)) return;
           knownIds.current.add(newOrder.id);
-          setOrders((prev) => [newOrder, ...prev]);
+          setOrders((prev) => {
+            const next = [newOrder, ...prev];
+            if (document.visibilityState === "hidden") {
+              const pending = next.filter((o) => o.status === "pending").length;
+              setBadge(pending);
+            }
+            return next;
+          });
         }
       )
       .on(
@@ -149,12 +172,19 @@ export default function OrdersPage() {
         },
         (payload) => {
           const updated = mapOrder(payload.new as OrderRow);
+          const statusRank: Record<string, number> = { pending: 0, preparing: 1, ready: 2, served: 3 };
           setOrders((prev) => {
             const exists = prev.some((o) => o.id === updated.id);
             if (!exists) {
               return [updated, ...prev];
             }
-            return prev.map((o) => (o.id === updated.id ? updated : o));
+            return prev.map((o) => {
+              if (o.id !== updated.id) return o;
+              if ((statusRank[o.status] ?? 0) > (statusRank[updated.status] ?? 0)) {
+                return { ...updated, status: o.status };
+              }
+              return updated;
+            });
           });
         }
       )
@@ -181,6 +211,8 @@ export default function OrdersPage() {
     return () => {
       cancelled = true;
       supabase.removeChannel(channel);
+      document.removeEventListener("visibilitychange", onVisible);
+      navigator.serviceWorker?.removeEventListener("message", onSWMessage);
     };
   }, [restaurantId]);
 
