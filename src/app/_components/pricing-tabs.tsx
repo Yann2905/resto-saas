@@ -311,16 +311,21 @@ export default function PricingTabs() {
             </ul>
           </div>
           <p className="text-center text-xs text-stone-600 mt-3">
-            QR codes physiques (autocollants, chevalets) disponibles en option
+            Nous fournissons les QR codes en fichier PDF. L&apos;impression (autocollants, chevalets, plastification) est à votre charge.
           </p>
         </div>
       </div>
 
       {/* Plans */}
       <h3 className="text-center text-xl font-bold mb-3">Abonnement</h3>
-      <p className="text-center text-sm text-emerald-400 font-semibold mb-8">
-        1er mois offert pour toutes les formules
-      </p>
+      <div className="flex justify-center mb-8">
+        <div className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 border border-emerald-400/30 px-5 py-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-sm text-emerald-400 font-semibold">
+            1er mois offert pour toutes les formules, quel que soit le plan
+          </span>
+        </div>
+      </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
         {tab.plans.map((plan) => (
           <div
@@ -384,6 +389,41 @@ export default function PricingTabs() {
             </a>
           </div>
         ))}
+      </div>
+
+      {/* Récap — ce qu'ils paient */}
+      <div className="max-w-2xl mx-auto mt-16">
+        <div className="rounded-2xl border border-stone-800 bg-stone-900/60 p-6">
+          <h3 className="font-bold text-lg text-center mb-5">En résumé, vous payez :</h3>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <span className="flex items-center justify-center w-7 h-7 rounded-full bg-[#C8963E]/20 text-[#C8963E] font-bold text-sm shrink-0">1</span>
+              <div>
+                <p className="font-semibold text-stone-200">Frais d&apos;installation <span className="text-stone-500 font-normal">(une seule fois)</span></p>
+                <p className="text-sm text-stone-400">On configure tout pour vous : menu, comptes, QR codes en PDF.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-400/20 text-emerald-400 font-bold text-sm shrink-0">2</span>
+              <div>
+                <p className="font-semibold text-stone-200">1er mois offert <span className="text-emerald-400 font-normal">(gratuit)</span></p>
+                <p className="text-sm text-stone-400">Vous testez la plateforme pendant 1 mois sans rien payer.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="flex items-center justify-center w-7 h-7 rounded-full bg-[#C8963E]/20 text-[#C8963E] font-bold text-sm shrink-0">3</span>
+              <div>
+                <p className="font-semibold text-stone-200">Abonnement <span className="text-stone-500 font-normal">(à partir du 2e mois)</span></p>
+                <p className="text-sm text-stone-400">Mensuel, semestriel ou annuel selon la formule choisie. Paiement Mobile Money.</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 pt-4 border-t border-stone-800">
+            <p className="text-xs text-stone-500 text-center">
+              L&apos;impression des QR codes (autocollants, chevalets, plastification) reste à votre charge. Nous vous fournissons les fichiers PDF prêts à imprimer.
+            </p>
+          </div>
+        </div>
       </div>
     </>
   );
