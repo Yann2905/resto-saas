@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
 
 export default function LegalLayout({
@@ -17,7 +18,7 @@ export default function LegalLayout({
           Retour à l&apos;accueil
         </Link>
         <div className="flex items-center gap-2.5">
-          <img src="/icon-192.png" alt="Resto SaaS" className="w-8 h-8 rounded-xl" />
+          <Image src="/icon-192.png" alt="Resto SaaS" width={32} height={32} className="rounded-xl" />
           <span className="font-semibold tracking-tight">Resto SaaS</span>
         </div>
       </nav>

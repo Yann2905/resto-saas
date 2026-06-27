@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { AlertTriangle, ArrowRight, Eye, EyeOff, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -152,7 +153,7 @@ export default function AdminLoginPage() {
       <div className="relative z-10 w-full max-w-sm animate-fade-in-up">
         <div className="flex items-center gap-2 mb-8 justify-center">
           <div className="relative">
-            <img src="/icon-192.png" alt="Resto SaaS" className="w-10 h-10 rounded-xl shadow-lg shadow-[#722F37]/40" />
+            <Image src="/icon-192.png" alt="Resto SaaS" width={40} height={40} className="rounded-xl shadow-lg shadow-[#722F37]/40" priority />
             <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-stone-950" />
           </div>
           <div>

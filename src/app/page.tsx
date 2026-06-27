@@ -1,6 +1,7 @@
 export const dynamic = "force-static";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
   QrCode,
   Zap,
@@ -164,7 +165,7 @@ export default function Home() {
       <nav className="relative z-10 max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="relative">
-            <img src="/icon-192.png" alt="Resto SaaS" className="w-9 h-9 rounded-xl shadow-lg shadow-[#722F37]/30" />
+            <Image src="/icon-192.png" alt="Resto SaaS" width={36} height={36} className="rounded-xl shadow-lg shadow-[#722F37]/30" priority />
             <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-stone-950" />
           </div>
           <span className="font-semibold tracking-tight text-lg">
@@ -388,7 +389,7 @@ export default function Home() {
               <div className="rounded-2xl border border-stone-800 bg-[#722F37]/40 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h4 className="font-bold text-lg">Installation</h4>
+                    <h3 className="font-bold text-lg">Installation</h3>
                     <p className="text-sm text-stone-500 mt-1">On s&apos;occupe de tout, vous n&apos;avez rien à faire</p>
                   </div>
                   <div className="text-right">
@@ -436,7 +437,7 @@ export default function Home() {
                     <Sparkles className="w-3 h-3" /> Populaire
                   </div>
                 )}
-                <h4 className="font-bold text-xl">{plan.name}</h4>
+                <h3 className="font-bold text-xl">{plan.name}</h3>
                 <p className="text-sm text-stone-500 mt-1">{plan.desc}</p>
                 <p className="text-sm text-stone-500 mt-1 mb-4">
                   Jusqu&apos;à {plan.tables} tables
@@ -530,7 +531,7 @@ export default function Home() {
                 key={faq.q}
                 className="rounded-2xl border border-stone-800 bg-[#722F37]/40 p-6"
               >
-                <h4 className="font-semibold text-base mb-2">{faq.q}</h4>
+                <h3 className="font-semibold text-base mb-2">{faq.q}</h3>
                 <p className="text-sm text-stone-400 leading-relaxed">
                   {faq.a}
                 </p>
@@ -577,7 +578,7 @@ export default function Home() {
           <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <img src="/icon-192.png" alt="Resto SaaS" className="w-7 h-7 rounded-lg" />
+                <Image src="/icon-192.png" alt="Resto SaaS" width={28} height={28} className="rounded-lg" loading="lazy" />
                 <span className="font-semibold text-sm">Resto SaaS</span>
               </div>
               <p className="text-xs text-stone-500 max-w-xs">
@@ -587,7 +588,7 @@ export default function Home() {
             </div>
             <div className="flex flex-wrap gap-x-10 gap-y-4 text-sm">
               <div>
-                <h4 className="font-semibold text-stone-300 mb-2">Produit</h4>
+                <h3 className="font-semibold text-stone-300 mb-2 text-sm">Produit</h3>
                 <ul className="space-y-1.5 text-stone-500">
                   <li>
                     <a href="#fonctionnalites" className="hover:text-stone-300 transition-colors">
@@ -607,7 +608,7 @@ export default function Home() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-stone-300 mb-2">Entreprise</h4>
+                <h3 className="font-semibold text-stone-300 mb-2 text-sm">Entreprise</h3>
                 <ul className="space-y-1.5 text-stone-500">
                   <li>
                     <Link href="/a-propos" className="hover:text-stone-300 transition-colors">
@@ -622,7 +623,7 @@ export default function Home() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-stone-300 mb-2">Légal</h4>
+                <h3 className="font-semibold text-stone-300 mb-2 text-sm">Légal</h3>
                 <ul className="space-y-1.5 text-stone-500">
                   <li>
                     <Link href="/cgu" className="hover:text-stone-300 transition-colors">

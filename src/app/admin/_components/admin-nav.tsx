@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { BarChart3, CreditCard, Store, LogOut, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -44,7 +45,7 @@ export default function AdminNav() {
             className="flex items-center gap-2.5 sm:gap-3 min-w-0 group"
           >
             <div className="relative flex-shrink-0 group-hover:scale-105 transition-transform">
-              <img src="/icon-192.png" alt="Resto SaaS" className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl shadow-lg shadow-[#722F37]/40" />
+              <Image src="/icon-192.png" alt="Resto SaaS" width={40} height={40} className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl shadow-lg shadow-[#722F37]/40" />
               <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-stone-950" />
             </div>
             <div className="min-w-0">
