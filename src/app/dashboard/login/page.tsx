@@ -93,12 +93,16 @@ export default function LoginPage() {
     try {
       try {
         localStorage.removeItem("resto-saas:auth-v1");
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith("sb-") && k.endsWith("-auth-token")) {
+            localStorage.removeItem(k);
+          }
+        }
       } catch {
         /* ignore */
       }
 
-      // Nettoyer toute session Supabase résiduelle — avec timeout court
-      // pour ne pas bloquer si le client interne est verrouillé.
       try {
         await Promise.race([
           supabase.auth.signOut({ scope: "local" }),

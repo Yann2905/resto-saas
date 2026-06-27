@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { BarChart3, CreditCard, Store, LogOut, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import { confirmAction } from "@/lib/swal";
 
 type Tab = { href: string; label: string; Icon: LucideIcon; exact?: boolean };
@@ -18,9 +19,8 @@ export default function AdminNav() {
   const pathname = usePathname();
   const { user, role, signOut } = useAuth();
 
-  if (pathname === "/admin/login" || !user || role !== "superadmin") {
-    return null;
-  }
+  if (pathname === "/admin/login") return null;
+  if (!user && role !== "superadmin") return null;
 
   const handleLogout = async () => {
     const ok = await confirmAction({
@@ -29,7 +29,8 @@ export default function AdminNav() {
       confirmText: "Se déconnecter",
     });
     if (!ok) return;
-    await signOut();
+    try { localStorage.removeItem("resto-saas:auth-v1"); } catch { /* */ }
+    try { await supabase.auth.signOut({ scope: "local" }); } catch { /* */ }
     window.location.href = "/admin/login";
   };
 
