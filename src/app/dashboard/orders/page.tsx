@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { ArrowRight, Bell, CheckCircle2, Lock, Printer, Volume2 } from "lucide-react";
+import { ArrowRight, Bell, CheckCircle2, Printer, Volume2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { Order, OrderRow, OrderStatus, OrderType, isHotelType, mapOrder } from "@/types";
@@ -70,7 +70,7 @@ function clearBadge() {
 }
 
 export default function OrdersPage() {
-  const { user, restaurant, role, loading, signOut } = useAuth();
+  const { user, restaurant, role, loading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
   const [typeFilter, setTypeFilter] = useState<OrderType | "all">("all");
@@ -220,11 +220,6 @@ export default function OrdersPage() {
       });
   };
 
-  const handleLogout = async () => {
-    await signOut();
-    window.location.href = "/dashboard/login";
-  };
-
   const requestNotif = async () => {
     if (!("Notification" in window)) return;
     const perm = await Notification.requestPermission();
@@ -314,24 +309,14 @@ export default function OrdersPage() {
   }
 
   if (!restaurant) {
+    if (typeof window !== "undefined") {
+      window.location.replace("/dashboard/login");
+    }
     return (
-      <main className="min-h-screen flex items-center justify-center p-4 bg-stone-50">
-        <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-8 h-8 text-red-700" aria-hidden />
-          </div>
-          <p className="font-semibold text-stone-900 mb-1">
-            Aucun restaurant associé
-          </p>
-          <p className="text-sm text-stone-500 mb-6">
-            Ce compte n'est lié à aucun établissement.
-          </p>
-          <button
-            onClick={handleLogout}
-            className="text-sm text-stone-700 underline underline-offset-4"
-          >
-            Se déconnecter
-          </button>
+      <main className="min-h-screen flex items-center justify-center bg-stone-50">
+        <div className="flex items-center gap-3 text-stone-500">
+          <span className="w-5 h-5 border-2 border-stone-300 border-t-stone-900 rounded-full animate-spin" />
+          Redirection…
         </div>
       </main>
     );

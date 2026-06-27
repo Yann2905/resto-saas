@@ -207,7 +207,7 @@ export default function LoginPage() {
 
       // Profile null ou pas valide
       await supabase.auth.signOut({ scope: "local" }).catch(() => {});
-      throw new Error("Aucun restaurant n'est associé à ce compte.");
+      throw new Error("Aucun établissement n'est associé à ce compte.");
     } catch (err) {
       clearTimeout(safetyTimer);
       console.error("[dashboard-login]", err);
@@ -236,7 +236,7 @@ export default function LoginPage() {
               Resto SaaS
             </span>
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#a07832]">
-              Espace restaurant
+              Espace gestion
             </span>
           </div>
         </div>
@@ -250,7 +250,7 @@ export default function LoginPage() {
               Bon retour
             </h1>
             <p className="text-sm text-stone-500 mt-1">
-              Connectez-vous pour gérer votre restaurant.
+              Connectez-vous pour gérer votre établissement.
             </p>
           </div>
 

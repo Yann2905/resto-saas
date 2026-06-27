@@ -99,7 +99,7 @@ export default function SettingsPage() {
             Réglages
           </h2>
           <p className="text-sm text-stone-500 mt-0.5">
-            Horaires d'ouverture · gérez quand votre restaurant accepte des
+            Horaires d'ouverture · gérez quand votre établissement accepte des
             commandes.
           </p>
         </div>

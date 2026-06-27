@@ -417,18 +417,37 @@ export default function Home() {
 
           {/* Prix partenaire */}
           <div className="mt-8 rounded-2xl border border-stone-800 bg-stone-900/60 p-6">
-            <h3 className="font-bold text-center mb-4">Prix partenaire (-50%)</h3>
-            <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto">
+            <h3 className="font-bold text-center mb-5">Prix partenaire (-50%)</h3>
+            <div className="space-y-4">
               {[
-                { plan: "Starter", normal: "10 000", partner: "5 000" },
-                { plan: "Pro", normal: "15 000", partner: "7 500" },
-                { plan: "Business", normal: "30 000", partner: "15 000" },
-              ].map((p) => (
-                <div key={p.plan} className="text-center rounded-xl bg-stone-800/50 p-3">
-                  <div className="text-xs text-stone-500 mb-1">{p.plan}</div>
-                  <div className="text-sm text-stone-500 line-through">{p.normal}</div>
-                  <div className="text-lg font-bold text-[#C8963E]">{p.partner}</div>
-                  <div className="text-[10px] text-stone-500">FCFA / mois</div>
+                { cat: "Restaurant", plans: [
+                  { plan: "Starter", normal: "10 000", partner: "5 000" },
+                  { plan: "Pro", normal: "15 000", partner: "7 500" },
+                  { plan: "Business", normal: "30 000", partner: "15 000" },
+                ]},
+                { cat: "Hôtel", plans: [
+                  { plan: "Starter", normal: "15 000", partner: "7 500" },
+                  { plan: "Pro", normal: "25 000", partner: "12 500" },
+                  { plan: "Business", normal: "45 000", partner: "22 500" },
+                ]},
+                { cat: "Restaurant + Hôtel", plans: [
+                  { plan: "Starter", normal: "20 000", partner: "10 000" },
+                  { plan: "Pro", normal: "35 000", partner: "17 500" },
+                  { plan: "Business", normal: "60 000", partner: "30 000" },
+                ]},
+              ].map((cat) => (
+                <div key={cat.cat}>
+                  <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2 text-center">{cat.cat}</p>
+                  <div className="grid grid-cols-3 gap-2 max-w-lg mx-auto">
+                    {cat.plans.map((p) => (
+                      <div key={p.plan} className="text-center rounded-xl bg-stone-800/50 p-2.5">
+                        <div className="text-xs text-stone-500 mb-1">{p.plan}</div>
+                        <div className="text-xs text-stone-500 line-through">{p.normal}</div>
+                        <div className="text-base font-bold text-[#C8963E]">{p.partner}</div>
+                        <div className="text-[10px] text-stone-500">FCFA / mois</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
