@@ -39,6 +39,9 @@ export async function PUT(request: NextRequest) {
   if (typeof body.active === "boolean") {
     update.active = body.active;
   }
+  if (body.logoUrl !== undefined) {
+    update.logo_url = body.logoUrl || null;
+  }
   const typeValue = body.type && ["restaurant", "hotel", "both"].includes(body.type as string)
     ? (body.type as string)
     : null;

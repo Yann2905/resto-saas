@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
+  Camera,
   Crown,
   Save,
   ToggleLeft,
@@ -16,9 +17,9 @@ import {
   Shield,
   Smartphone,
   Trash2,
+  X,
 } from "lucide-react";
 import { Restaurant, RestaurantRow, RestaurantType, mapRestaurant } from "@/types";
-import { Hotel } from "lucide-react";
 
 type FeatureKey = "waiters" | "pushNotifications" | "fullStats" | "maxTables";
 
@@ -80,6 +81,8 @@ export default function RestaurantDetailPage() {
   const [active, setActive] = useState(true);
   const [expiry, setExpiry] = useState("");
   const [restaurantType, setRestaurantType] = useState<RestaurantType>("restaurant");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [overrides, setOverrides] = useState<Record<string, boolean | number | undefined>>({});
 
   const fetchRestaurant = useCallback(async () => {
@@ -98,6 +101,7 @@ export default function RestaurantDetailPage() {
     );
     setOverrides((found.featureOverrides as Record<string, boolean | number | undefined>) ?? {});
     setRestaurantType(found.type ?? "restaurant");
+    setLogoUrl(found.logoUrl ?? "");
     setLoading(false);
   }, [id]);
 
@@ -147,6 +151,7 @@ export default function RestaurantDetailPage() {
           planExpiresAt: expiry || null,
           featureOverrides: cleanOverrides,
           type: restaurantType,
+          logoUrl: logoUrl || null,
         }),
       });
       await fetchRestaurant();
@@ -182,6 +187,53 @@ export default function RestaurantDetailPage() {
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
+          <div className="relative group">
+            {logoUrl ? (
+              <div className="relative">
+                <img src={logoUrl} alt="" className="w-12 h-12 rounded-xl object-cover border border-stone-200" />
+                <button
+                  type="button"
+                  onClick={() => setLogoUrl("")}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-white text-lg">
+                {restaurant.name.charAt(0)}
+              </div>
+            )}
+            <label className={`absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ${uploadingLogo ? "opacity-100" : ""}`}>
+              {uploadingLogo ? (
+                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Camera className="w-5 h-5 text-white" />
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploadingLogo}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setUploadingLogo(true);
+                  try {
+                    const fd = new FormData();
+                    fd.append("file", file);
+                    fd.append("folder", "logos");
+                    const res = await fetch("/api/upload", { method: "POST", body: fd });
+                    const json = await res.json();
+                    if (json.ok) setLogoUrl(json.url);
+                  } finally {
+                    setUploadingLogo(false);
+                    e.target.value = "";
+                  }
+                }}
+              />
+            </label>
+          </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold text-stone-900 truncate">
               {restaurant.name}
@@ -391,7 +443,7 @@ export default function RestaurantDetailPage() {
         <div className="mt-6 bg-white rounded-2xl border border-stone-200 p-5">
           <h3 className="font-bold text-stone-900 mb-3 flex items-center gap-2">
             <Shield className="w-4 h-4 text-stone-500" />
-            Informations du restaurant
+            Informations
           </h3>
           <div className="grid sm:grid-cols-2 gap-3 text-sm">
             <div>
