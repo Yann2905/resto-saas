@@ -355,6 +355,99 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Devenir Partenaire ──────────────────────────── */}
+      <section className="relative z-10 border-t border-[#722F37]/50 py-20 md:py-28">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="text-center mb-14">
+            <p className="text-[#C8963E] font-semibold text-sm tracking-wide uppercase mb-3">
+              Partenariat
+            </p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+              Devenez partenaire Resto SaaS
+            </h2>
+            <p className="mt-3 text-stone-400 max-w-xl mx-auto">
+              Vous faites notre promotion, on vous fait un prix exclusif.
+              Gagnant-gagnant.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Ce que vous faites */}
+            <div className="rounded-2xl border border-stone-800 bg-[#722F37]/40 p-6">
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-[#C8963E]/20 text-[#C8963E] flex items-center justify-center text-sm font-bold">1</span>
+                Ce que vous faites
+              </h3>
+              <ul className="space-y-3">
+                {[
+                  "Afficher le logo Resto SaaS dans votre établissement",
+                  "Publier sur vos réseaux sociaux (1x/mois minimum)",
+                  "Nous autoriser à utiliser votre nom comme référence",
+                  "Recommander Resto SaaS aux établissements que vous connaissez",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-stone-300">
+                    <Check className="w-4 h-4 text-[#C8963E] shrink-0 mt-0.5" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Ce que vous gagnez */}
+            <div className="rounded-2xl border-2 border-[#C8963E] bg-[#722F37]/60 p-6">
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-[#C8963E]/20 text-[#C8963E] flex items-center justify-center text-sm font-bold">2</span>
+                Ce que vous gagnez
+              </h3>
+              <ul className="space-y-3">
+                {[
+                  "Installation 100% gratuite (0 FCFA)",
+                  "-50% sur votre abonnement à vie",
+                  "Support WhatsApp prioritaire",
+                  "QR codes aux couleurs Resto SaaS (votre pub = notre pub)",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-stone-300">
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Prix partenaire */}
+          <div className="mt-8 rounded-2xl border border-stone-800 bg-stone-900/60 p-6">
+            <h3 className="font-bold text-center mb-4">Prix partenaire (-50%)</h3>
+            <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto">
+              {[
+                { plan: "Starter", normal: "10 000", partner: "5 000" },
+                { plan: "Pro", normal: "15 000", partner: "7 500" },
+                { plan: "Business", normal: "30 000", partner: "15 000" },
+              ].map((p) => (
+                <div key={p.plan} className="text-center rounded-xl bg-stone-800/50 p-3">
+                  <div className="text-xs text-stone-500 mb-1">{p.plan}</div>
+                  <div className="text-sm text-stone-500 line-through">{p.normal}</div>
+                  <div className="text-lg font-bold text-[#C8963E]">{p.partner}</div>
+                  <div className="text-[10px] text-stone-500">FCFA / mois</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-center mt-8">
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#C8963E] to-[#a07832] text-white font-semibold px-7 py-4 shadow-lg shadow-[#722F37]/40 hover:from-[#d4a94e] hover:to-[#C8963E] transition-all text-base"
+            >
+              Devenir partenaire
+              <ChevronRight className="w-5 h-5" />
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA final ───────────────────────────────────── */}
       <section className="relative z-10 border-t border-[#722F37]/50 py-20 md:py-28">
         <div className="max-w-2xl mx-auto px-6 text-center">

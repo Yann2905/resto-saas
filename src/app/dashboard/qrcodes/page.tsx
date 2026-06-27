@@ -20,8 +20,12 @@ const COLOR_THEMES = {
 } as const;
 type ThemeKey = keyof typeof COLOR_THEMES;
 
+const PARTNER_THEME: ThemeColors = {
+  bg: "#722F37", border: "#5a2530", text: "#ffffff", qrDark: "#C8963E", qrLight: "#ffffff", label: "Partenaire",
+};
 
-type ThemeColors = (typeof COLOR_THEMES)[ThemeKey];
+
+type ThemeColors = { bg: string; border: string; text: string; qrDark: string; qrLight: string; label: string };
 
 const PRINT_HEAD = `<meta charset="utf-8"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -30,17 +34,25 @@ const PRINT_HEAD = `<meta charset="utf-8"/>
 
 const PRINT_SCRIPT = `<script>window.addEventListener('load',function(){setTimeout(function(){window.print()},300)});</script>`;
 
-function buildFullHtml(name: string, th: ThemeColors, tables: number[], codes: Record<number, string>): string {
+function partnerHeader(logoUrl: string): string {
+  return `<div class="partner-brand">
+    <img src="${logoUrl}" alt="" class="partner-logo" />
+    <span class="partner-name" style="color:#C8963E">esto SaaS</span>
+  </div>`;
+}
+
+function buildFullHtml(name: string, th: ThemeColors, tables: number[], codes: Record<number, string>, isPartner = false, logoUrl = ""): string {
+  const header = isPartner ? partnerHeader(logoUrl) : `<div class="resto" style="color:${th.text}">${name}</div>`;
   const pages = tables
     .map((t) => {
       const src = codes[t];
       if (!src) return "";
       return `<div class="page" style="background:${th.bg}">
         <div class="card">
-          <div class="resto" style="color:${th.text}">${name}</div>
-          <div class="table-num" style="color:${th.text}">Table ${t}</div>
+          ${header}
+          <div class="table-num" style="color:${th.text}">TABLE ${t}</div>
           <img src="${src}" alt="QR table ${t}" />
-          <div class="scan" style="color:${th.text}">Scannez pour commander</div>
+          <div class="scan" style="color:${th.text}">Scanner pour commander</div>
         </div>
       </div>`;
     })
@@ -58,11 +70,18 @@ body{font-family:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto
 .table-num{font-size:48px;font-weight:700;letter-spacing:-0.025em;margin-bottom:20px}
 img{width:100%;max-width:320px;aspect-ratio:1/1;border-radius:16px}
 .scan{font-size:14px;margin-top:16px;opacity:0.7;font-weight:500}
+.partner-brand{display:flex;align-items:center;gap:4px;margin-bottom:12px}
+.partner-logo{width:48px;height:48px;border-radius:12px}
+.partner-name{font-size:32px;font-weight:700;letter-spacing:-0.02em}
 @media print{body{padding:0}@page{margin:0;size:auto}.page{height:100vh}}
 </style></head><body>${pages}${PRINT_SCRIPT}</body></html>`;
 }
 
-function buildGridHtml(name: string, th: ThemeColors, tables: number[], codes: Record<number, string>): string {
+function buildGridHtml(name: string, th: ThemeColors, tables: number[], codes: Record<number, string>, isPartner = false, logoUrl = ""): string {
+  const header = isPartner ? `<div class="partner-brand">
+    <img src="${logoUrl}" alt="" class="partner-logo" />
+    <span class="partner-name" style="color:#C8963E">esto SaaS</span>
+  </div>` : `<div class="resto" style="color:${th.text}">${name}</div>`;
   const chunks: number[][] = [];
   for (let i = 0; i < tables.length; i += 4) {
     chunks.push(tables.slice(i, i + 4));
@@ -75,10 +94,10 @@ function buildGridHtml(name: string, th: ThemeColors, tables: number[], codes: R
           const src = codes[t];
           if (!src) return `<div class="cell"></div>`;
           return `<div class="cell" style="background:${th.bg};border:2px solid ${th.border}">
-            <div class="resto" style="color:${th.text}">${name}</div>
-            <div class="table-num" style="color:${th.text}">Table ${t}</div>
+            ${header}
+            <div class="table-num" style="color:${th.text}">TABLE ${t}</div>
             <img src="${src}" alt="QR table ${t}" />
-            <div class="scan" style="color:${th.text}">Scannez pour commander</div>
+            <div class="scan" style="color:${th.text}">Scanner pour commander</div>
           </div>`;
         })
         .join("\n");
@@ -99,6 +118,9 @@ body{font-family:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto
 .table-num{font-size:32px;font-weight:700;letter-spacing:-0.025em;margin-bottom:10px}
 img{width:100%;max-width:200px;aspect-ratio:1/1;border-radius:12px}
 .scan{font-size:10px;margin-top:8px;opacity:0.7;font-weight:500}
+.partner-brand{display:flex;align-items:center;gap:3px;margin-bottom:6px}
+.partner-logo{width:28px;height:28px;border-radius:8px}
+.partner-name{font-size:18px;font-weight:700;letter-spacing:-0.02em}
 @media print{body{padding:0}@page{margin:0;size:A4}.page{height:100vh;padding:10mm}}
 </style></head><body>${pages}${PRINT_SCRIPT}</body></html>`;
 }
@@ -138,11 +160,13 @@ export default function QrCodesPage() {
     let cancelled = false;
     (async () => {
       const entries: Record<number, string> = {};
+      const qrDark = isPartner ? PARTNER_THEME.qrDark : "#0c0a09";
+      const qrLight = isPartner ? PARTNER_THEME.qrLight : "#ffffff";
       for (const t of tables) {
         entries[t] = await QRCode.toDataURL(urlFor(t), {
           width: 512,
           margin: 2,
-          color: { dark: "#0c0a09", light: "#ffffff" },
+          color: { dark: qrDark, light: qrLight },
           errorCorrectionLevel: "M",
         });
       }
@@ -168,6 +192,7 @@ export default function QrCodesPage() {
   };
 
   /* ── État de la modale export PDF ──────────────────────────── */
+  const isPartner = restaurant?.isPartner ?? false;
   const [showExport, setShowExport] = useState(false);
   const [theme, setTheme] = useState<ThemeKey>("blanc");
   const [printFormat, setPrintFormat] = useState<"full" | "grid">("full");
@@ -201,10 +226,10 @@ export default function QrCodesPage() {
   const generateThemedCodes = useCallback(async () => {
     if (!restaurant || !baseUrl) return;
     const id = ++genId.current;
-    const t = COLOR_THEMES[theme];
+    const t = isPartner ? PARTNER_THEME : COLOR_THEMES[theme];
     const entries: Record<number, string> = {};
     for (const n of previewTables) {
-      if (id !== genId.current) return;         // annulé
+      if (id !== genId.current) return;
       entries[n] = await QRCode.toDataURL(urlFor(n), {
         width: 512,
         margin: 2,
@@ -213,7 +238,7 @@ export default function QrCodesPage() {
       });
     }
     if (id === genId.current) setThemedCodes(entries);
-  }, [restaurant, baseUrl, theme, previewTables]);  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [restaurant, baseUrl, theme, previewTables, isPartner]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (showExport) generateThemedCodes();
@@ -222,11 +247,12 @@ export default function QrCodesPage() {
   /* ── Impression via nouvelle fenêtre ───────────────────────── */
   const handleExportPrint = () => {
     if (!restaurant || previewTables.length === 0) return;
-    const th = COLOR_THEMES[theme];
+    const th = isPartner ? PARTNER_THEME : COLOR_THEMES[theme];
+    const logoUrl = `${baseUrl}/icon-192.png`;
 
     const html = printFormat === "grid"
-      ? buildGridHtml(restaurant.name, th, previewTables, themedCodes)
-      : buildFullHtml(restaurant.name, th, previewTables, themedCodes);
+      ? buildGridHtml(restaurant.name, th, previewTables, themedCodes, isPartner, logoUrl)
+      : buildFullHtml(restaurant.name, th, previewTables, themedCodes, isPartner, logoUrl);
 
     const w = window.open("", "_blank");
     if (w) {
@@ -361,11 +387,19 @@ export default function QrCodesPage() {
               key={t}
               className="group bg-white rounded-2xl border border-stone-200 p-4 flex flex-col items-center text-center print:border-2 print:border-[#722F37] print:break-inside-avoid"
             >
-              <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500 mb-2">
-                {restaurant.name}
-              </div>
+              {isPartner ? (
+                <div className="flex items-center gap-1 mb-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/icon-192.png" alt="" className="w-7 h-7 rounded-lg" />
+                  <span className="text-base font-bold text-[#C8963E]">esto SaaS</span>
+                </div>
+              ) : (
+                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500 mb-2">
+                  {restaurant.name}
+                </div>
+              )}
               <div className="text-3xl font-bold text-stone-900 tracking-tight mb-2">
-                Table {t}
+                TABLE {t}
               </div>
               {codes[t] ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -423,6 +457,14 @@ export default function QrCodesPage() {
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 mb-2 block">
                       Couleur du thème
                     </span>
+                    {isPartner ? (
+                      <div className="flex items-center gap-2 rounded-xl bg-[#722F37]/10 border border-[#722F37]/30 px-4 py-3">
+                        <div className="w-6 h-6 rounded-full bg-[#722F37] border-2 border-[#C8963E]" />
+                        <span className="text-sm text-[#722F37] font-medium">
+                          Partenaire — couleurs Resto SaaS (bordeaux &amp; or)
+                        </span>
+                      </div>
+                    ) : (
                     <div className="flex flex-wrap gap-2">
                       {(Object.keys(COLOR_THEMES) as ThemeKey[]).map((key) => {
                         const t = COLOR_THEMES[key];
@@ -442,6 +484,7 @@ export default function QrCodesPage() {
                         );
                       })}
                     </div>
+                    )}
                   </div>
 
                   {/* Format */}
@@ -525,13 +568,13 @@ export default function QrCodesPage() {
                 </span>
                 <div
                   className="rounded-xl border border-stone-200 p-4 overflow-y-auto max-h-[50vh]"
-                  style={{ backgroundColor: COLOR_THEMES[theme].bg }}
+                  style={{ backgroundColor: isPartner ? PARTNER_THEME.bg : COLOR_THEMES[theme].bg }}
                 >
                   <div
                     className="grid grid-cols-2 sm:grid-cols-3 gap-4"
                   >
                     {previewTables.map((t) => {
-                      const th = COLOR_THEMES[theme];
+                      const th = isPartner ? PARTNER_THEME : COLOR_THEMES[theme];
                       return (
                         <div
                           key={t}
@@ -541,17 +584,25 @@ export default function QrCodesPage() {
                             border: `2px solid ${th.border}`,
                           }}
                         >
-                          <div
-                            className="text-[9px] font-semibold uppercase tracking-[0.2em] mb-1"
-                            style={{ color: th.text, opacity: 0.7 }}
-                          >
-                            {restaurant.name}
-                          </div>
+                          {isPartner ? (
+                            <div className="flex items-center gap-1 mb-1.5">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src="/icon-192.png" alt="" className="w-6 h-6 rounded-md" />
+                              <span className="text-sm font-bold text-[#C8963E]">esto SaaS</span>
+                            </div>
+                          ) : (
+                            <div
+                              className="text-[9px] font-semibold uppercase tracking-[0.2em] mb-1"
+                              style={{ color: th.text, opacity: 0.7 }}
+                            >
+                              {restaurant.name}
+                            </div>
+                          )}
                           <div
                             className="text-xl font-bold tracking-tight mb-1.5"
                             style={{ color: th.text }}
                           >
-                            Table {t}
+                            TABLE {t}
                           </div>
                           {themedCodes[t] ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -572,7 +623,7 @@ export default function QrCodesPage() {
                             className="text-[9px] mt-1.5"
                             style={{ color: th.text, opacity: 0.6 }}
                           >
-                            Scannez pour commander
+                            Scanner pour commander
                           </div>
                         </div>
                       );
