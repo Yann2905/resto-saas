@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Check, Hotel, Plus, Search, Store, UtensilsCrossed, X } from "lucide-react";
+import { AlertTriangle, Camera, Check, Hotel, Plus, Search, Store, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { Restaurant, RestaurantRow, RestaurantType, mapRestaurant } from "@/types";
 import {
   createRestaurantWithOwner,
@@ -146,7 +146,7 @@ export default function AdminRestaurantsPage() {
 
   const handleSaveEdit = async (
     r: Restaurant,
-    payload: { name: string; address: string; phone: string; expiry: string; plan: string; type: RestaurantType }
+    payload: { name: string; address: string; phone: string; expiry: string; plan: string; type: RestaurantType; logoUrl: string }
   ) => {
 
     try {
@@ -154,6 +154,7 @@ export default function AdminRestaurantsPage() {
         name: payload.name,
         address: payload.address,
         phone: payload.phone,
+        logoUrl: payload.logoUrl || null,
       });
       await setRestaurantSubscription(
         r.id,
@@ -465,6 +466,7 @@ function EditForm({
     expiry: string;
     plan: string;
     type: RestaurantType;
+    logoUrl: string;
   }) => void;
 }) {
   const expiryIso = restaurant.subscriptionExpiresAt
@@ -477,7 +479,9 @@ function EditForm({
     expiry: expiryIso,
     plan: restaurant.plan ?? "starter",
     type: restaurant.type ?? "restaurant" as RestaurantType,
+    logoUrl: restaurant.logoUrl ?? "",
   });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -486,6 +490,56 @@ function EditForm({
 
   return (
     <form onSubmit={submit} className="p-4 sm:p-5 border-l-4 border-[#722F37]">
+      {/* Logo */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="relative group">
+          {form.logoUrl ? (
+            <img src={form.logoUrl} alt="" className="w-14 h-14 rounded-xl object-cover border border-stone-200" />
+          ) : (
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center font-bold text-white text-xl">
+              {form.name.charAt(0) || "?"}
+            </div>
+          )}
+          <label className={`absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ${uploadingLogo ? "!opacity-100" : ""}`}>
+            {uploadingLogo ? (
+              <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Camera className="w-5 h-5 text-white" />
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={uploadingLogo}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setUploadingLogo(true);
+                try {
+                  const fd = new FormData();
+                  fd.append("file", file);
+                  fd.append("folder", "logos");
+                  const res = await fetch("/api/upload", { method: "POST", body: fd });
+                  const json = await res.json();
+                  if (json.ok) setForm((prev) => ({ ...prev, logoUrl: json.url }));
+                } finally {
+                  setUploadingLogo(false);
+                  e.target.value = "";
+                }
+              }}
+            />
+          </label>
+        </div>
+        <div className="text-sm">
+          <p className="font-medium text-stone-700">{form.logoUrl ? "Logo actuel" : "Pas de logo"}</p>
+          {form.logoUrl && (
+            <button type="button" onClick={() => setForm({ ...form, logoUrl: "" })} className="text-xs text-red-600 hover:underline flex items-center gap-1 mt-0.5">
+              <Trash2 className="w-3 h-3" /> Supprimer
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Nom">
           <input

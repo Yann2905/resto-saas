@@ -61,6 +61,7 @@ type UpdatePayload = {
   active?: boolean;
   subscriptionExpiresAt?: string | null;
   openingHours?: OpeningHours | null;
+  logoUrl?: string | null;
   lowStockThreshold?: number;
   hotelServices?: { id: string; label: string }[];
   hotelIssues?: { id: string; label: string }[];
@@ -94,7 +95,7 @@ export async function setRestaurantSubscription(
 
 export async function updateRestaurantInfo(
   restaurantId: string,
-  payload: { name: string; address: string; phone: string }
+  payload: { name: string; address: string; phone: string; logoUrl?: string | null }
 ): Promise<void> {
   await updateRestaurant({ restaurantId, ...payload });
 }
