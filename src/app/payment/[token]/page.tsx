@@ -34,6 +34,7 @@ export default async function PaymentPage({ params }: Props) {
       restaurantName={restaurant.name}
       currentExpiry={restaurant.subscription_expires_at}
       planTier={(restaurant.plan as "starter" | "pro" | "business") ?? "starter"}
+      isPartner={restaurant.is_partner ?? false}
     />
   );
 }

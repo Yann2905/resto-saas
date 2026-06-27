@@ -69,6 +69,14 @@ export async function POST(request: Request) {
   }
 
   // ── Résoudre le plan ──────────────────────────────────────────
+  const isPartnerPlan = planKey.endsWith("_partner");
+  const isPartner = (restaurant as Record<string, unknown>).is_partner === true;
+  if (isPartnerPlan && !isPartner) {
+    return NextResponse.json(
+      { ok: false, error: "Ce tarif est réservé aux partenaires" },
+      { status: 403 },
+    );
+  }
   const plan = getPlan(planKey);
   if (!plan) {
     return NextResponse.json(

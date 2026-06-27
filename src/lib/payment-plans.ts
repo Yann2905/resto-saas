@@ -12,7 +12,8 @@ export type PlanKey =
   | "business_1m"
   | "business_3m"
   | "business_6m"
-  | "business_1y";
+  | "business_1y"
+  | `${string}_partner`;
 
 export type Plan = {
   key: PlanKey;
@@ -49,8 +50,18 @@ export const PLANS: Plan[] = [
   { key: "business_1y", tier: "business", label: "Business · 1 an",   months: 12, price: 280000, pricePerMonth: 23300, saving: 80000 },
 ];
 
-export function getPlansByTier(tier: PlanTier): Plan[] {
-  return PLANS.filter((p) => p.tier === tier);
+export const PARTNER_PLANS: Plan[] = PLANS.map((p) => ({
+  ...p,
+  key: `${p.key}_partner` as PlanKey,
+  label: p.label.replace("·", "· Partenaire ·"),
+  price: Math.round(p.price / 2),
+  pricePerMonth: Math.round(p.pricePerMonth / 2),
+  saving: Math.round(p.saving / 2),
+}));
+
+export function getPlansByTier(tier: PlanTier, isPartner = false): Plan[] {
+  const source = isPartner ? PARTNER_PLANS : PLANS;
+  return source.filter((p) => p.tier === tier);
 }
 
 export function getTierLabel(tier: PlanTier): string {
@@ -58,7 +69,7 @@ export function getTierLabel(tier: PlanTier): string {
 }
 
 export function getPlan(key: string): Plan | undefined {
-  return PLANS.find((p) => p.key === key);
+  return PLANS.find((p) => p.key === key) || PARTNER_PLANS.find((p) => p.key === key);
 }
 
 

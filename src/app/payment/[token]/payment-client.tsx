@@ -16,6 +16,7 @@ type Props = {
   restaurantName: string;
   currentExpiry: string | null;
   planTier: PlanTier;
+  isPartner?: boolean;
 };
 
 export default function PaymentClient({
@@ -23,8 +24,9 @@ export default function PaymentClient({
   restaurantName,
   currentExpiry,
   planTier,
+  isPartner = false,
 }: Props) {
-  const tierPlans = getPlansByTier(planTier);
+  const tierPlans = getPlansByTier(planTier, isPartner);
   const tierLabel = getTierLabel(planTier);
   const [step, setStep] = useState<Step>("plan");
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
@@ -108,6 +110,16 @@ export default function PaymentClient({
       </header>
 
       <div className="max-w-2xl mx-auto px-4 pt-6">
+        {/* Partner badge */}
+        {isPartner && (
+          <div className="flex items-center gap-2 rounded-xl bg-[#C8963E]/10 border border-[#C8963E]/30 px-4 py-3 mb-4">
+            <span className="text-lg">🤝</span>
+            <span className="text-sm font-semibold text-[#C8963E]">
+              Partenaire Resto SaaS — tarif -50%
+            </span>
+          </div>
+        )}
+
         {/* Status card */}
         <div
           className={`rounded-2xl border p-5 mb-6 ${

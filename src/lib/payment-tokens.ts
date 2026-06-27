@@ -41,7 +41,7 @@ export async function resolvePaymentToken(token: string) {
 
   const { data, error } = await admin
     .from("payment_tokens")
-    .select("*, restaurants(id, slug, name, phone, active, subscription_expires_at, plan)")
+    .select("*, restaurants(id, slug, name, phone, active, subscription_expires_at, plan, is_partner)")
     .eq("token", token)
     .maybeSingle();
 
@@ -56,6 +56,7 @@ export async function resolvePaymentToken(token: string) {
       active: boolean;
       subscription_expires_at: string | null;
       plan: string | null;
+      is_partner: boolean;
     };
   };
 
