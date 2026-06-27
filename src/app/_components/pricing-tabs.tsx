@@ -32,6 +32,7 @@ const TABS: TabData[] = [
         name: "Starter",
         prices: [
           { duration: "1 mois", price: "10 000", perMonth: null },
+          { duration: "3 mois", price: "27 000", perMonth: "9 000" },
           { duration: "6 mois", price: "50 000", perMonth: "8 300" },
           { duration: "1 an", price: "90 000", perMonth: "7 500" },
         ],
@@ -53,6 +54,7 @@ const TABS: TabData[] = [
         name: "Pro",
         prices: [
           { duration: "1 mois", price: "15 000", perMonth: null },
+          { duration: "3 mois", price: "40 000", perMonth: "13 300" },
           { duration: "6 mois", price: "75 000", perMonth: "12 500" },
           { duration: "1 an", price: "130 000", perMonth: "10 800" },
         ],
@@ -73,6 +75,7 @@ const TABS: TabData[] = [
         name: "Business",
         prices: [
           { duration: "1 mois", price: "30 000", perMonth: null },
+          { duration: "3 mois", price: "80 000", perMonth: "26 700" },
           { duration: "6 mois", price: "150 000", perMonth: "25 000" },
           { duration: "1 an", price: "280 000", perMonth: "23 300" },
         ],
@@ -108,6 +111,7 @@ const TABS: TabData[] = [
         name: "Starter",
         prices: [
           { duration: "1 mois", price: "15 000", perMonth: null },
+          { duration: "3 mois", price: "40 000", perMonth: "13 300" },
           { duration: "6 mois", price: "75 000", perMonth: "12 500" },
           { duration: "1 an", price: "135 000", perMonth: "11 250" },
         ],
@@ -128,6 +132,7 @@ const TABS: TabData[] = [
         name: "Pro",
         prices: [
           { duration: "1 mois", price: "25 000", perMonth: null },
+          { duration: "3 mois", price: "67 000", perMonth: "22 300" },
           { duration: "6 mois", price: "125 000", perMonth: "20 800" },
           { duration: "1 an", price: "230 000", perMonth: "19 200" },
         ],
@@ -148,6 +153,7 @@ const TABS: TabData[] = [
         name: "Business",
         prices: [
           { duration: "1 mois", price: "45 000", perMonth: null },
+          { duration: "3 mois", price: "120 000", perMonth: "40 000" },
           { duration: "6 mois", price: "225 000", perMonth: "37 500" },
           { duration: "1 an", price: "420 000", perMonth: "35 000" },
         ],
@@ -184,6 +190,7 @@ const TABS: TabData[] = [
         name: "Starter",
         prices: [
           { duration: "1 mois", price: "20 000", perMonth: null },
+          { duration: "3 mois", price: "54 000", perMonth: "18 000" },
           { duration: "6 mois", price: "100 000", perMonth: "16 700" },
           { duration: "1 an", price: "180 000", perMonth: "15 000" },
         ],
@@ -204,6 +211,7 @@ const TABS: TabData[] = [
         name: "Pro",
         prices: [
           { duration: "1 mois", price: "35 000", perMonth: null },
+          { duration: "3 mois", price: "95 000", perMonth: "31 700" },
           { duration: "6 mois", price: "175 000", perMonth: "29 200" },
           { duration: "1 an", price: "320 000", perMonth: "26 700" },
         ],
@@ -224,6 +232,7 @@ const TABS: TabData[] = [
         name: "Business",
         prices: [
           { duration: "1 mois", price: "60 000", perMonth: null },
+          { duration: "3 mois", price: "160 000", perMonth: "53 300" },
           { duration: "6 mois", price: "300 000", perMonth: "50 000" },
           { duration: "1 an", price: "560 000", perMonth: "46 700" },
         ],
