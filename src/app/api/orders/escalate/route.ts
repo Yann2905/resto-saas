@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/server-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
-import { sendPushToRestaurant } from "@/lib/push";
 
 /**
  * POST /api/orders/escalate
  * Body: { orderId }
  *
  * Si la commande assignée n'a pas été acquittée après 1 min,
- * notifie tous les autres membres du restaurant.
+ * notifie tous les autres membres en ligne du restaurant via la queue.
  */
 export async function POST(request: NextRequest) {
   const auth = await requireUser();
@@ -70,19 +69,38 @@ export async function POST(request: NextRequest) {
     url: "/dashboard/orders",
   };
 
-  const { data: subs } = await admin
-    .from("push_subscriptions")
-    .select("user_id")
+  // Get all online staff except the assigned waiter
+  const { data: staff } = await admin
+    .from("profiles")
+    .select("id")
     .eq("restaurant_id", order.restaurant_id)
-    .neq("user_id", order.assigned_to);
+    .eq("is_online", true)
+    .neq("id", order.assigned_to);
 
-  const uniqueUserIds = [...new Set((subs ?? []).map((s) => s.user_id))];
+  const targetIds = (staff ?? []).map((s) => s.id as string);
 
-  await Promise.allSettled(
-    uniqueUserIds.map((uid) =>
-      sendPushToRestaurant(order.restaurant_id, payload, uid)
-    )
-  );
+  if (targetIds.length > 0) {
+    const jobs = targetIds.map((profileId) => ({
+      order_id: orderId,
+      profile_id: profileId,
+      restaurant_id: order.restaurant_id as string,
+      payload,
+      status: "pending" as const,
+    }));
 
-  return NextResponse.json({ ok: true, escalatedTo: uniqueUserIds.length });
+    await admin.from("notification_queue").insert(jobs);
+
+    // Fire-and-forget worker
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://resto-saas.vercel.app";
+    const cronSecret = process.env.CRON_SECRET || "";
+    fetch(`${appUrl}/api/cron/process-notifications`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(cronSecret ? { authorization: `Bearer ${cronSecret}` } : {}),
+      },
+    }).catch(() => {});
+  }
+
+  return NextResponse.json({ ok: true, escalatedTo: targetIds.length });
 }

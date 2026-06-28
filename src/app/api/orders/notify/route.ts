@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
-import { sendPushToRestaurant } from "@/lib/push";
 import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
@@ -28,21 +27,9 @@ export async function POST(request: NextRequest) {
     .eq("id", orderId)
     .maybeSingle();
 
-  if (orderError) {
-    console.error("[notify] order fetch error:", orderError.message);
-    return NextResponse.json({ ok: false }, { status: 500 });
+  if (orderError || !order) {
+    return NextResponse.json({ ok: false }, { status: orderError ? 500 : 404 });
   }
-
-  if (!order) {
-    return NextResponse.json({ ok: false }, { status: 404 });
-  }
-
-  console.log("[notify] order data:", {
-    id: orderId,
-    room_label: order.room_label,
-    table_number: order.table_number,
-    order_type: order.order_type,
-  });
 
   const total = (order.total as number).toLocaleString("fr-FR");
   const location = order.room_label
@@ -57,37 +44,74 @@ export async function POST(request: NextRequest) {
     ? "Signalement"
     : "Nouvelle commande";
 
-  try {
-    const payload = {
-      title: `${typeLabel} · ${location}`,
-      body: order.order_type === "food" ? `Total : ${total} FCFA` : "",
-      url: "/dashboard/orders",
-    };
+  const payload = {
+    title: `${typeLabel} · ${location}`,
+    body: order.order_type === "food"
+      ? `${location} · ${total} FCFA`
+      : `${location}`,
+    url: "/dashboard/orders",
+  };
 
-    if (order.assigned_to) {
-      const { data: owners } = await admin
-        .from("profiles")
-        .select("id")
-        .eq("restaurant_id", order.restaurant_id)
-        .eq("role", "owner");
+  // Build list of profiles to notify
+  const targetIds: string[] = [];
 
-      const pushTasks = [
-        sendPushToRestaurant(
-          order.restaurant_id,
-          { ...payload, body: order.order_type === "food" ? `${location} · ${total} FCFA — Glissez pour voir` : `${location} — Glissez pour voir` },
-          order.assigned_to,
-        ),
-        ...(owners ?? []).map((o) =>
-          sendPushToRestaurant(order.restaurant_id, payload, o.id)
-        ),
-      ];
-      await Promise.allSettled(pushTasks);
-    } else {
-      await sendPushToRestaurant(order.restaurant_id, payload);
+  // Always notify owners
+  const { data: owners } = await admin
+    .from("profiles")
+    .select("id, is_online")
+    .eq("restaurant_id", order.restaurant_id)
+    .eq("role", "owner");
+
+  if (owners) {
+    for (const o of owners) {
+      if (o.is_online) targetIds.push(o.id);
     }
-  } catch (e) {
-    console.error("[push] notify error:", e);
   }
 
-  return NextResponse.json({ ok: true });
+  // Notify assigned waiter if any
+  if (order.assigned_to) {
+    const { data: waiter } = await admin
+      .from("profiles")
+      .select("id, is_online")
+      .eq("id", order.assigned_to)
+      .maybeSingle();
+    if (waiter?.is_online && !targetIds.includes(waiter.id)) {
+      targetIds.push(waiter.id);
+    }
+  }
+
+  if (targetIds.length === 0) {
+    return NextResponse.json({ ok: true, queued: 0 });
+  }
+
+  // Insert into notification queue
+  const jobs = targetIds.map((profileId) => ({
+    order_id: orderId,
+    profile_id: profileId,
+    restaurant_id: order.restaurant_id,
+    payload,
+    status: "pending" as const,
+  }));
+
+  const { error: insertErr } = await admin
+    .from("notification_queue")
+    .insert(jobs);
+
+  if (insertErr) {
+    console.error("[notify] queue insert error:", insertErr.message);
+    return NextResponse.json({ ok: false }, { status: 500 });
+  }
+
+  // Fire-and-forget: trigger the worker immediately
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://resto-saas.vercel.app";
+  const cronSecret = process.env.CRON_SECRET || "";
+  fetch(`${appUrl}/api/cron/process-notifications`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(cronSecret ? { authorization: `Bearer ${cronSecret}` } : {}),
+    },
+  }).catch(() => {});
+
+  return NextResponse.json({ ok: true, queued: targetIds.length });
 }

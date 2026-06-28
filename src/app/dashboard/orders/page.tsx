@@ -87,10 +87,15 @@ export default function OrdersPage() {
     useState<NotificationPermission>("default");
   const [realtimeStatus, setRealtimeStatus] =
     useState<string>("connecting");
+  const [isOnline, setIsOnline] = useState(true);
+  const [togglingOnline, setTogglingOnline] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     if ("Notification" in window) setNotifPerm(Notification.permission);
+    fetch("/api/profile").then((r) => r.json()).then((j) => {
+      if (j.ok && j.isOnline !== undefined) setIsOnline(j.isOnline);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -258,6 +263,21 @@ export default function OrdersPage() {
     setNotifPerm(perm);
   };
 
+  const toggleOnline = async () => {
+    const next = !isOnline;
+    setTogglingOnline(true);
+    try {
+      const res = await fetch("/api/staff/online", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ online: next }),
+      });
+      const json = await res.json();
+      if (json.ok) setIsOnline(next);
+    } catch { /* ignore */ }
+    setTogglingOnline(false);
+  };
+
   const counts = useMemo(() => {
     const c: Record<OrderStatus, number> = {
       pending: 0,
@@ -374,6 +394,19 @@ export default function OrdersPage() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={toggleOnline}
+              disabled={togglingOnline}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                isOnline
+                  ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                  : "bg-stone-200 text-stone-500 hover:bg-stone-300"
+              }`}
+              title={isOnline ? "Vous recevez les notifications" : "Notifications désactivées"}
+            >
+              <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-stone-400"}`} />
+              {isOnline ? "En ligne" : "Hors ligne"}
+            </button>
             <button
               onClick={() => playChime()}
               className="rounded-full bg-stone-100 text-stone-700 hover:bg-stone-200 px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5"
