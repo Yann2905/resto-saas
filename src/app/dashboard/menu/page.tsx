@@ -23,6 +23,7 @@ type ProductForm = {
   price: string;
   categoryId: string;
   stockQuantity: string;
+  stockConsumption: string;
   imageUrl: string;
   available: boolean;
 };
@@ -32,6 +33,7 @@ const emptyProductForm: ProductForm = {
   price: "",
   categoryId: "",
   stockQuantity: "",
+  stockConsumption: "1",
   imageUrl: "",
   available: true,
 };
@@ -39,6 +41,7 @@ const emptyProductForm: ProductForm = {
 type CategoryForm = {
   name: string;
   parentId: string; // "" = parent principal
+  stock: string; // "" = pas de gestion de stock
 };
 
 export default function MenuAdminPage() {
@@ -154,6 +157,7 @@ export default function MenuAdminPage() {
           price: parseInt(form.price, 10) || 0,
           category_id: form.categoryId,
           stock_quantity: parseInt(form.stockQuantity, 10) || 0,
+          stock_consumption: parseFloat(form.stockConsumption) || 1,
           image_url: form.imageUrl.trim() || null,
           available: form.available,
           order: id
@@ -243,6 +247,7 @@ export default function MenuAdminPage() {
       const order = id
         ? categories.find((c) => c.id === id)?.order ?? siblings.length + 1
         : siblings.length + 1;
+      const stock = form.stock.trim() === "" ? null : parseFloat(form.stock);
       const res = await fetch("/api/menu/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -252,6 +257,7 @@ export default function MenuAdminPage() {
           name: form.name.trim(),
           parentId,
           order,
+          stock: stock !== null && !isNaN(stock) ? stock : null,
         }),
       });
       const json = await res.json();
@@ -450,6 +456,7 @@ export default function MenuAdminPage() {
             <ProductFormInline
               restaurantId={restaurant.id}
               leafCategories={leafCategories}
+              allCategories={categories}
               categoryName={categoryName}
               onCancel={() => setShowAddProduct(false)}
               onSave={(f) => saveProduct(null, f)}
@@ -505,10 +512,12 @@ export default function MenuAdminPage() {
                       price: String(p.price),
                       categoryId: p.categoryId,
                       stockQuantity: String(p.stockQuantity),
+                      stockConsumption: String(p.stockConsumption),
                       imageUrl: p.imageUrl ?? "",
                       available: p.available,
                     }}
                     leafCategories={leafCategories}
+                    allCategories={categories}
                     categoryName={categoryName}
                     onCancel={() => setEditingProductId(null)}
                     onSave={(f) => saveProduct(p.id, f)}
@@ -519,6 +528,7 @@ export default function MenuAdminPage() {
                     key={p.id}
                     product={p}
                     categoryLabel={categoryName(p.categoryId)}
+                    categoryStock={categories.find((c) => c.id === p.categoryId)?.stock ?? null}
                     onEdit={() => {
                       setEditingProductId(p.id);
                       setShowAddProduct(false);
@@ -540,17 +550,20 @@ export default function MenuAdminPage() {
 function ProductRowView({
   product,
   categoryLabel,
+  categoryStock,
   onEdit,
   onDelete,
   onToggleAvailable,
 }: {
   product: Product;
   categoryLabel: string;
+  categoryStock: number | null;
   onEdit: () => void;
   onDelete: () => void;
   onToggleAvailable: () => void;
 }) {
-  const out = !product.available || product.stockQuantity <= 0;
+  const hasCatStock = categoryStock !== null;
+  const out = !product.available || (hasCatStock ? categoryStock <= 0 : product.stockQuantity <= 0);
   return (
     <div className="rounded-xl border border-stone-200 bg-white p-3 flex flex-col sm:flex-row sm:items-center gap-3 hover:border-stone-300 transition-colors">
       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -576,8 +589,11 @@ function ProductRowView({
               {formatFCFA(product.price)}
             </span>
             <span className="text-stone-500">
-              Stock :{" "}
-              <span className="font-semibold">{product.stockQuantity}</span>
+              {hasCatStock ? (
+                <>Consomme : <span className="font-semibold">{product.stockConsumption}</span></>
+              ) : (
+                <>Stock : <span className="font-semibold">{product.stockQuantity}</span></>
+              )}
             </span>
             {out && (
               <span className="inline-flex items-center gap-1 text-red-600 font-medium">
@@ -621,6 +637,7 @@ function ProductFormInline({
   restaurantId,
   initial,
   leafCategories,
+  allCategories,
   categoryName,
   onCancel,
   onSave,
@@ -629,6 +646,7 @@ function ProductFormInline({
   restaurantId: string;
   initial?: ProductForm;
   leafCategories: Category[];
+  allCategories: Category[];
   categoryName: (id: string) => string;
   onCancel: () => void;
   onSave: (form: ProductForm) => void;
@@ -766,20 +784,42 @@ function ProductFormInline({
               className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
             />
           </Field>
-          <Field label="Stock">
-            <input
-              required
-              type="number"
-              inputMode="numeric"
-              min="0"
-              value={form.stockQuantity}
-              onChange={(e) =>
-                setForm({ ...form, stockQuantity: e.target.value })
-              }
-              placeholder="20"
-              className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
-            />
-          </Field>
+          {(() => {
+            const selectedCat = allCategories.find((c) => c.id === form.categoryId);
+            const catHasStock = selectedCat?.stock !== null && selectedCat?.stock !== undefined;
+            return catHasStock ? (
+              <Field label={`Qté consommée (stock catégorie: ${selectedCat!.stock})`}>
+                <input
+                  required
+                  type="number"
+                  inputMode="decimal"
+                  step="0.5"
+                  min="0.5"
+                  value={form.stockConsumption}
+                  onChange={(e) =>
+                    setForm({ ...form, stockConsumption: e.target.value })
+                  }
+                  placeholder="1 (0.5 pour un demi)"
+                  className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
+                />
+              </Field>
+            ) : (
+              <Field label="Stock">
+                <input
+                  required
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  value={form.stockQuantity}
+                  onChange={(e) =>
+                    setForm({ ...form, stockQuantity: e.target.value })
+                  }
+                  placeholder="20"
+                  className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
+                />
+              </Field>
+            );
+          })()}
           <label className="sm:col-span-2 flex items-center gap-2 text-sm text-stone-700 mt-1">
             <input
               type="checkbox"
@@ -842,6 +882,7 @@ function CategoryRowView({
           initial={{
             name: category.name,
             parentId: category.parentId ?? "",
+            stock: category.stock !== null ? String(category.stock) : "",
           }}
           onCancel={onCancel}
           onSave={onSave}
@@ -866,6 +907,17 @@ function CategoryRowView({
         >
           {category.name}
         </span>
+        {category.stock !== null && (
+          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
+            category.stock <= 0
+              ? "bg-red-100 text-red-700"
+              : category.stock <= 5
+              ? "bg-amber-100 text-amber-700"
+              : "bg-emerald-50 text-emerald-700"
+          }`}>
+            Stock: {category.stock}
+          </span>
+        )}
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
@@ -900,7 +952,7 @@ function CategoryFormInline({
   saving: boolean;
 }) {
   const [form, setForm] = useState<CategoryForm>(
-    initial ?? { name: "", parentId: "" }
+    initial ?? { name: "", parentId: "", stock: "" }
   );
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -912,7 +964,7 @@ function CategoryFormInline({
       onSubmit={submit}
       className="rounded-xl border-2 border-[#722F37] bg-white p-4 my-2 animate-fade-in-up"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Field label="Nom">
           <input
             required
@@ -936,6 +988,18 @@ function CategoryFormInline({
               </option>
             ))}
           </select>
+        </Field>
+        <Field label="Stock (optionnel)">
+          <input
+            type="number"
+            inputMode="decimal"
+            step="0.5"
+            min="0"
+            value={form.stock}
+            onChange={(e) => setForm({ ...form, stock: e.target.value })}
+            placeholder="Ex : 45 (vide = pas de stock)"
+            className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
+          />
         </Field>
       </div>
       <div className="mt-4 flex gap-2 justify-end">

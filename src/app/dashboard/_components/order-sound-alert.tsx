@@ -296,9 +296,50 @@ export default function OrderSoundAlert() {
       )
       .subscribe();
 
+    const categoryChannel = supabase
+      .channel(`global-categories-${restaurantId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "categories",
+          filter: `restaurant_id=eq.${restaurantId}`,
+        },
+        (payload) => {
+          const oldCat = payload.old as { stock?: number | null } | null;
+          const newCat = payload.new as { id: string; name: string; stock: number | null };
+
+          if (newCat.stock === null) return;
+          const threshold = thresholdRef.current;
+          const oldStock = oldCat?.stock;
+          const newStock = newCat.stock;
+          const cId = `cat-${newCat.id}`;
+
+          if (newStock <= threshold) {
+            let shouldAlert = false;
+            if (oldStock !== undefined && oldStock !== null) {
+              shouldAlert = oldStock > threshold;
+            } else {
+              shouldAlert = !alertedProducts.current.has(cId);
+            }
+
+            if (shouldAlert) {
+              alertedProducts.current.add(cId);
+              playWarningChime();
+              void alertLowStock(`Catégorie ${newCat.name}`, newStock);
+            }
+          } else {
+            alertedProducts.current.delete(cId);
+          }
+        },
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(orderChannel);
       supabase.removeChannel(productChannel);
+      supabase.removeChannel(categoryChannel);
     };
   }, [restaurantId]);
 

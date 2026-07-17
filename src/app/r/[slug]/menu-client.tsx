@@ -203,14 +203,18 @@ export default function MenuClient({
                 </span>
               </div>
               <div className="space-y-3">
-                {searchResults.map((p) => (
-                  <ProductCard
-                    key={p.id}
-                    product={p}
-                    onAdd={() => handleAdd(p)}
-                    justAdded={justAdded === p.id}
-                  />
-                ))}
+                {searchResults.map((p) => {
+                  const cat = categories.find((c) => c.id === p.categoryId);
+                  return (
+                    <ProductCard
+                      key={p.id}
+                      product={p}
+                      onAdd={() => handleAdd(p)}
+                      justAdded={justAdded === p.id}
+                      categoryStock={cat?.stock ?? null}
+                    />
+                  );
+                })}
               </div>
             </section>
           )
@@ -241,6 +245,7 @@ export default function MenuClient({
                               product={p}
                               onAdd={() => handleAdd(p)}
                               justAdded={justAdded === p.id}
+                              categoryStock={cat.stock}
                             />
                           ))}
                         </div>
@@ -273,12 +278,17 @@ function ProductCard({
   product,
   onAdd,
   justAdded,
+  categoryStock,
 }: {
   product: Product;
   onAdd: () => void;
   justAdded: boolean;
+  categoryStock?: number | null;
 }) {
-  const disabled = !product.available || product.stockQuantity <= 0;
+  const hasCatStock = categoryStock !== null && categoryStock !== undefined;
+  const disabled = !product.available || (hasCatStock
+    ? categoryStock < product.stockConsumption
+    : product.stockQuantity <= 0);
   return (
     <div className={`group relative bg-white rounded-2xl p-3 flex gap-4 items-center border transition-all ${disabled ? "border-stone-200/50" : "border-stone-200/80 hover:border-stone-300 hover:shadow-md hover:shadow-stone-900/5"}`}>
       <div className="relative flex-shrink-0">
@@ -309,12 +319,17 @@ function ProductCard({
         <div className="mt-1 text-sm font-semibold text-stone-700">
           {formatFCFA(product.price)}
         </div>
-        {!disabled && product.stockQuantity > 0 && product.stockQuantity <= 5 && (
-          <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-[#8a6828]">
-            <span className="w-1 h-1 rounded-full bg-[#C8963E]" />
-            Plus que {product.stockQuantity}
-          </div>
-        )}
+        {!disabled && (() => {
+          const remaining = hasCatStock
+            ? Math.floor(categoryStock / product.stockConsumption)
+            : product.stockQuantity;
+          return remaining > 0 && remaining <= 5 ? (
+            <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-[#8a6828]">
+              <span className="w-1 h-1 rounded-full bg-[#C8963E]" />
+              Plus que {remaining}
+            </div>
+          ) : null;
+        })()}
       </div>
       <button
         onClick={onAdd}

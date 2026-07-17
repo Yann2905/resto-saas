@@ -55,20 +55,48 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
     const productIds = items.map((i) => i.productId);
     const { data: products } = await supabase
       .from("products")
-      .select("id, name, stock_quantity")
+      .select("id, name, stock_quantity, stock_consumption, category_id")
       .in("id", productIds);
     setCheckingStock(false);
     if (!products) {
       setShowConfirm(true);
       return;
     }
+
+    const categoryIds = [...new Set(products.map((p) => p.category_id).filter(Boolean))];
+    let catStockMap = new Map<string, number | null>();
+    if (categoryIds.length > 0) {
+      const { data: cats } = await supabase
+        .from("categories")
+        .select("id, stock")
+        .in("id", categoryIds);
+      for (const c of cats ?? []) catStockMap.set(c.id, c.stock);
+    }
+
+    const catConsumption = new Map<string, number>();
     const issues: StockIssue[] = [];
+
     for (const item of items) {
       const p = products.find((pr) => pr.id === item.productId);
-      if (p && p.stock_quantity < item.quantity) {
-        issues.push({ name: p.name, requested: item.quantity, available: p.stock_quantity });
+      if (!p) continue;
+      const catStock = p.category_id ? catStockMap.get(p.category_id) : null;
+
+      if (catStock !== null && catStock !== undefined) {
+        const consumption = (p.stock_consumption ?? 1) * item.quantity;
+        const alreadyUsed = catConsumption.get(p.category_id) ?? 0;
+        const totalNeeded = alreadyUsed + consumption;
+        if (totalNeeded > catStock) {
+          const availableUnits = Math.floor((catStock - alreadyUsed) / (p.stock_consumption ?? 1));
+          issues.push({ name: p.name, requested: item.quantity, available: Math.max(0, availableUnits) });
+        }
+        catConsumption.set(p.category_id, totalNeeded);
+      } else {
+        if (p.stock_quantity < item.quantity) {
+          issues.push({ name: p.name, requested: item.quantity, available: p.stock_quantity });
+        }
       }
     }
+
     if (issues.length > 0) {
       setStockIssues(issues);
     } else {

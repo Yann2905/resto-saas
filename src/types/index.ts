@@ -48,6 +48,7 @@ export type Category = {
   name: string;
   parentId: string | null;
   order: number;
+  stock: number | null;
 };
 
 export type Product = {
@@ -59,6 +60,7 @@ export type Product = {
   categoryId: string;
   available: boolean;
   stockQuantity: number;
+  stockConsumption: number;
   order: number;
 };
 
@@ -189,6 +191,7 @@ export type CategoryRow = {
   name: string;
   parent_id: string | null;
   order: number;
+  stock: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -202,6 +205,7 @@ export type ProductRow = {
   category_id: string;
   available: boolean;
   stock_quantity: number;
+  stock_consumption: number;
   order: number;
   created_at: string;
   updated_at: string;
@@ -290,6 +294,7 @@ export function mapCategory(c: CategoryRow): Category {
     name: c.name,
     parentId: c.parent_id,
     order: c.order,
+    stock: c.stock ?? null,
   };
 }
 
@@ -303,6 +308,7 @@ export function mapProduct(p: ProductRow): Product {
     categoryId: p.category_id,
     available: p.available,
     stockQuantity: p.stock_quantity,
+    stockConsumption: p.stock_consumption ?? 1,
     order: p.order,
   };
 }

@@ -34,6 +34,9 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const { id, restaurantId, name, parentId, order } = body;
+  const stock = body.stock === null || body.stock === undefined || body.stock === ""
+    ? null
+    : parseFloat(body.stock);
 
   if (!restaurantId || !name)
     return NextResponse.json({ ok: false, error: "Missing fields" }, { status: 400 });
@@ -47,6 +50,7 @@ export async function POST(req: NextRequest) {
     name,
     parent_id: parentId ?? null,
     order: order ?? 0,
+    stock: stock !== null && !isNaN(stock) ? stock : null,
   };
 
   if (id) {
