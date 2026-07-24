@@ -52,7 +52,7 @@ function buildFullHtml(name: string, th: ThemeColors, tables: number[], codes: R
           ${header}
           <div class="table-num" style="color:${th.text}">TABLE ${t}</div>
           <img src="${src}" alt="QR table ${t}" />
-          <div class="scan" style="color:${th.text}">Scanner pour commander</div>
+          <div class="scan" style="color:${th.text}">📱 Scanner pour commander</div>
         </div>
       </div>`;
     })
@@ -65,11 +65,11 @@ function buildFullHtml(name: string, th: ThemeColors, tables: number[], codes: R
 body{font-family:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#fff;-webkit-font-smoothing:antialiased}
 .page{width:100%;height:100vh;display:flex;align-items:center;justify-content:center;page-break-after:always;break-after:page}
 .page:last-child{page-break-after:auto;break-after:auto}
-.card{width:80%;max-width:400px;border-radius:24px;padding:32px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.card{width:80%;max-width:400px;border-radius:32px;padding:36px;display:flex;flex-direction:column;align-items:center;text-align:center}
 .resto{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;margin-bottom:8px;opacity:0.85}
 .table-num{font-size:48px;font-weight:700;letter-spacing:-0.025em;margin-bottom:20px}
-img{width:100%;max-width:320px;aspect-ratio:1/1;border-radius:16px}
-.scan{font-size:14px;margin-top:16px;opacity:0.7;font-weight:500}
+img{width:100%;max-width:320px;aspect-ratio:1/1;border-radius:20px}
+.scan{font-size:18px;margin-top:20px;opacity:0.85;font-weight:700;letter-spacing:0.02em}
 .partner-brand{display:flex;align-items:center;gap:4px;margin-bottom:12px}
 .partner-logo{width:48px;height:48px;border-radius:12px}
 .partner-name{font-size:32px;font-weight:700;letter-spacing:-0.02em}
@@ -97,7 +97,7 @@ function buildGridHtml(name: string, th: ThemeColors, tables: number[], codes: R
             ${header}
             <div class="table-num" style="color:${th.text}">TABLE ${t}</div>
             <img src="${src}" alt="QR table ${t}" />
-            <div class="scan" style="color:${th.text}">Scanner pour commander</div>
+            <div class="scan" style="color:${th.text}">📱 Scanner pour commander</div>
           </div>`;
         })
         .join("\n");
@@ -113,11 +113,11 @@ body{font-family:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto
 .page{width:100%;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:12mm;page-break-after:always;break-after:page}
 .page:last-child{page-break-after:auto;break-after:auto}
 .grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:16px;width:100%;height:calc(100vh - 24mm)}
-.cell{border-radius:16px;padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.cell{border-radius:24px;padding:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .resto{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em;margin-bottom:4px;opacity:0.85}
 .table-num{font-size:32px;font-weight:700;letter-spacing:-0.025em;margin-bottom:10px}
-img{width:100%;max-width:200px;aspect-ratio:1/1;border-radius:12px}
-.scan{font-size:10px;margin-top:8px;opacity:0.7;font-weight:500}
+img{width:100%;max-width:200px;aspect-ratio:1/1;border-radius:16px}
+.scan{font-size:13px;margin-top:10px;opacity:0.85;font-weight:700;letter-spacing:0.02em}
 .partner-brand{display:flex;align-items:center;gap:3px;margin-bottom:6px}
 .partner-logo{width:28px;height:28px;border-radius:8px}
 .partner-name{font-size:18px;font-weight:700;letter-spacing:-0.02em}
@@ -385,7 +385,7 @@ export default function QrCodesPage() {
           {tables.map((t) => (
             <div
               key={t}
-              className="group bg-white rounded-2xl border border-stone-200 p-4 flex flex-col items-center text-center print:border-2 print:border-[#722F37] print:break-inside-avoid"
+              className="group bg-white rounded-3xl border border-stone-200 p-5 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow print:border-2 print:border-[#722F37] print:break-inside-avoid"
             >
               {isPartner ? (
                 <div className="flex items-center gap-1 mb-2">
@@ -406,15 +406,15 @@ export default function QrCodesPage() {
                 <img
                   src={codes[t]}
                   alt={`QR code table ${t}`}
-                  className="w-full aspect-square rounded-lg"
+                  className="w-full aspect-square rounded-2xl"
                 />
               ) : (
-                <div className="w-full aspect-square bg-stone-100 rounded-lg flex items-center justify-center">
+                <div className="w-full aspect-square bg-stone-100 rounded-2xl flex items-center justify-center">
                   <span className="w-5 h-5 border-2 border-stone-300 border-t-stone-900 rounded-full animate-spin" />
                 </div>
               )}
-              <div className="text-[10px] text-stone-500 mt-2">
-                Scannez pour commander
+              <div className="mt-3 w-full rounded-full bg-[#722F37]/10 text-[#722F37] py-1.5 text-xs font-bold tracking-wide text-center">
+                📱 Scannez pour commander
               </div>
               <button
                 onClick={() => downloadOne(t)}
@@ -578,7 +578,7 @@ export default function QrCodesPage() {
                       return (
                         <div
                           key={t}
-                          className="rounded-2xl p-3 flex flex-col items-center text-center"
+                          className="rounded-3xl p-4 flex flex-col items-center text-center"
                           style={{
                             backgroundColor: th.bg,
                             border: `2px solid ${th.border}`,
@@ -609,21 +609,21 @@ export default function QrCodesPage() {
                             <img
                               src={themedCodes[t]}
                               alt={`QR table ${t}`}
-                              className="w-full aspect-square rounded-lg"
+                              className="w-full aspect-square rounded-2xl"
                             />
                           ) : (
                             <div
-                              className="w-full aspect-square rounded-lg flex items-center justify-center"
+                              className="w-full aspect-square rounded-2xl flex items-center justify-center"
                               style={{ backgroundColor: th.border + "22" }}
                             >
                               <span className="w-4 h-4 border-2 border-stone-300 border-t-stone-900 rounded-full animate-spin" />
                             </div>
                           )}
                           <div
-                            className="text-[9px] mt-1.5"
-                            style={{ color: th.text, opacity: 0.6 }}
+                            className="text-[11px] font-semibold mt-2 tracking-wide"
+                            style={{ color: th.text, opacity: 0.8 }}
                           >
-                            Scanner pour commander
+                            📱 Scanner pour commander
                           </div>
                         </div>
                       );
