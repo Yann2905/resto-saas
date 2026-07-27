@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { Restaurant, RestaurantRow, RestaurantType, mapRestaurant } from "@/types";
+import { toastSuccess, toastError } from "@/lib/swal";
 
 type FeatureKey = "waiters" | "pushNotifications" | "fullStats" | "maxTables";
 
@@ -94,9 +95,10 @@ export default function RestaurantDetailPage() {
     setPlan(found.plan);
     setIsPartner(found.isPartner);
     setActive(found.active);
+    const expDate = found.subscriptionExpiresAt || found.planExpiresAt;
     setExpiry(
-      found.subscriptionExpiresAt
-        ? new Date(found.subscriptionExpiresAt).toISOString().slice(0, 10)
+      expDate
+        ? new Date(expDate).toISOString().slice(0, 10)
         : ""
     );
     setOverrides((found.featureOverrides as Record<string, boolean | number | undefined>) ?? {});
@@ -140,7 +142,9 @@ export default function RestaurantDetailPage() {
         if (v !== undefined) cleanOverrides[k] = v;
       }
 
-      await fetch("/api/admin/restaurants/features", {
+      const isoExp = expiry ? new Date(expiry).toISOString() : null;
+
+      const res = await fetch("/api/admin/restaurants/features", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -148,13 +152,24 @@ export default function RestaurantDetailPage() {
           plan,
           isPartner,
           active,
-          planExpiresAt: expiry || null,
+          subscriptionExpiresAt: isoExp,
+          planExpiresAt: isoExp,
           featureOverrides: cleanOverrides,
           type: restaurantType,
           logoUrl: logoUrl || null,
         }),
       });
-      await fetchRestaurant();
+
+      const json = await res.json();
+      if (json.ok) {
+        void toastSuccess("Modifications enregistrées !");
+        await fetchRestaurant();
+      } else {
+        void toastError(json.error || "Erreur lors de l'enregistrement");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erreur de connexion";
+      void toastError(msg);
     } finally {
       setSaving(false);
     }

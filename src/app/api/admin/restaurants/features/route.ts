@@ -33,8 +33,17 @@ export async function PUT(request: NextRequest) {
   if (body.plan && ["starter", "pro", "business"].includes(body.plan as string)) {
     update.plan = body.plan;
   }
-  if (body.planExpiresAt !== undefined) {
-    update.plan_expires_at = body.planExpiresAt || null;
+  if (body.planExpiresAt !== undefined || body.subscriptionExpiresAt !== undefined) {
+    const rawDate = (body.subscriptionExpiresAt ?? body.planExpiresAt) as string | null;
+    let isoDate: string | null = null;
+    if (rawDate && typeof rawDate === "string" && rawDate.trim() !== "") {
+      const d = new Date(rawDate);
+      if (!isNaN(d.getTime())) {
+        isoDate = d.toISOString();
+      }
+    }
+    update.subscription_expires_at = isoDate;
+    update.plan_expires_at = isoDate;
   }
   if (typeof body.active === "boolean") {
     update.active = body.active;
