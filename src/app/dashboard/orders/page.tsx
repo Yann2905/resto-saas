@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { ArrowRight, Bell, CheckCircle2, Printer, Volume2 } from "lucide-react";
+import { ArrowRight, Banknote, Bell, CheckCircle2, Printer, Volume2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { Order, OrderRow, OrderStatus, OrderType, isHotelType, mapOrder } from "@/types";
+import { Order, OrderPaymentMethod, OrderRow, OrderStatus, OrderType, isHotelType, mapOrder } from "@/types";
 import { formatFCFA } from "@/lib/format";
 import { playChime } from "../_components/order-sound-alert";
 import { toastSuccess } from "@/lib/swal";
+import CashSessionBar from "./_components/cash-session-bar";
+import OrderPaymentModal from "./_components/order-payment-modal";
+import ReceiptPrintModal from "./_components/receipt-modal";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "En attente",
@@ -89,6 +92,33 @@ export default function OrdersPage() {
     useState<string>("connecting");
   const [isOnline, setIsOnline] = useState(true);
   const [togglingOnline, setTogglingOnline] = useState(false);
+
+  // Caisse & Encaissement Direct Modals State
+  const [selectedPaymentOrder, setSelectedPaymentOrder] = useState<Order | null>(null);
+  const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<Order | null>(null);
+
+  const handlePaymentSuccess = (paymentData: {
+    paymentMethod: OrderPaymentMethod;
+    amountReceived: number;
+    changeGiven: number;
+  }) => {
+    if (!selectedPaymentOrder) return;
+    const updatedOrder: Order = {
+      ...selectedPaymentOrder,
+      paymentStatus: "paid",
+      paymentMethod: paymentData.paymentMethod,
+      amountReceived: paymentData.amountReceived,
+      changeGiven: paymentData.changeGiven,
+      paidAt: new Date().toISOString(),
+    };
+
+    setOrders((prev) =>
+      prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o))
+    );
+    void toastSuccess("Commande encaissée avec succès !");
+    setSelectedReceiptOrder(updatedOrder);
+    setSelectedPaymentOrder(null);
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -425,6 +455,14 @@ export default function OrdersPage() {
             )}
           </div>
         </div>
+
+        {/* Barre de Caisse & Enregistrement de Session */}
+        {restaurantId && (
+          <div className="mb-6">
+            <CashSessionBar restaurantId={restaurantId} />
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           <StatCard label="En attente" value={counts.pending} color="gold" />
           <StatCard
@@ -535,6 +573,15 @@ export default function OrdersPage() {
                           <div className="text-2xl font-bold text-stone-900 tracking-tight">
                             {order.roomLabel ? `Chambre ${order.roomLabel}` : `Table ${order.tableNumber}`}
                           </div>
+                          {order.paymentStatus === "paid" ? (
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              Payé ({order.paymentMethod === "cash" ? "Cash" : order.paymentMethod === "mobile_money" ? "MoMo" : "Payé"})
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                              À Encaisser
+                            </span>
+                          )}
                           {order.orderType !== "food" && (
                             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                               order.orderType === "service"
@@ -656,19 +703,27 @@ export default function OrdersPage() {
                           {STATUS_LABELS[NEXT_STATUS[order.status]!]}
                         </button>
                       )}
-                      <button
-                        onClick={() =>
-                          window.open(
-                            `/dashboard/orders/${order.id}/receipt?print=auto`,
-                            "_blank"
-                          )
-                        }
-                        className="px-3.5 bg-stone-100 text-stone-700 rounded-xl text-sm hover:bg-stone-200 transition-colors flex items-center justify-center"
-                        aria-label="Imprimer le reçu"
-                        title="Imprimer le reçu"
-                      >
-                        <Printer className="w-4 h-4" aria-hidden />
-                      </button>
+
+                      {/* Bouton d'encaissement direct & impression reçu */}
+                      {order.paymentStatus === "paid" ? (
+                        <button
+                          onClick={() => setSelectedReceiptOrder(order)}
+                          className="px-3.5 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-semibold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1.5"
+                          title="Voir & Imprimer le reçu"
+                        >
+                          <Printer className="w-4 h-4 text-emerald-600" />
+                          Reçu
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setSelectedPaymentOrder(order)}
+                          className="px-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-950/20 flex items-center justify-center gap-1.5"
+                          title="Encaisser la commande"
+                        >
+                          <Banknote className="w-4 h-4" />
+                          Encaisser
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -678,6 +733,25 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
+
+      {/* Modals de Caisse & Impression Reçu */}
+      {selectedPaymentOrder && (
+        <OrderPaymentModal
+          order={selectedPaymentOrder}
+          isOpen={!!selectedPaymentOrder}
+          onClose={() => setSelectedPaymentOrder(null)}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
+
+      {selectedReceiptOrder && (
+        <ReceiptPrintModal
+          order={selectedReceiptOrder}
+          restaurant={restaurant}
+          isOpen={!!selectedReceiptOrder}
+          onClose={() => setSelectedReceiptOrder(null)}
+        />
+      )}
     </main>
   );
 }

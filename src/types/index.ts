@@ -77,6 +77,9 @@ export type OrderItem = {
   imageUrl?: string | null;
 };
 
+export type OrderPaymentStatus = "unpaid" | "paid";
+export type OrderPaymentMethod = "cash" | "mobile_money" | "card" | "room_bill" | "other";
+
 export type Order = {
   id: string;
   restaurantId: string;
@@ -86,6 +89,12 @@ export type Order = {
   items: OrderItem[];
   total: number;
   status: OrderStatus;
+  paymentStatus: OrderPaymentStatus;
+  paymentMethod: OrderPaymentMethod | null;
+  paidAt: string | null;
+  amountReceived: number | null;
+  changeGiven: number | null;
+  cashSessionId: string | null;
   assignedTo: string | null;
   assignedName: string | null;
   acknowledgedAt: string | null;
@@ -220,10 +229,66 @@ export type OrderRow = {
   items: OrderItem[];
   total: number;
   status: OrderStatus;
+  payment_status?: OrderPaymentStatus;
+  payment_method?: OrderPaymentMethod | null;
+  paid_at?: string | null;
+  amount_received?: number | null;
+  change_given?: number | null;
+  cash_session_id?: string | null;
   assigned_to: string | null;
   acknowledged_at: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type CashSessionStatus = "open" | "closed";
+
+export type CashSession = {
+  id: string;
+  restaurantId: string;
+  openedBy: string | null;
+  closedBy: string | null;
+  openingFloat: number;
+  closingCashActual: number | null;
+  closingCashExpected: number | null;
+  status: CashSessionStatus;
+  openedAt: string;
+  closedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CashSessionRow = {
+  id: string;
+  restaurant_id: string;
+  opened_by: string | null;
+  closed_by: string | null;
+  opening_float: number;
+  closing_cash_actual: number | null;
+  closing_cash_expected: number | null;
+  status: CashSessionStatus;
+  opened_at: string;
+  closed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CashSessionSummary = {
+  sessionId: string;
+  restaurantId: string;
+  status: CashSessionStatus;
+  openingFloat: number;
+  openedAt: string;
+  closedAt: string | null;
+  totalCash: number;
+  totalMomo: number;
+  totalCard: number;
+  totalOther: number;
+  totalSales: number;
+  ordersCount: number;
+  expectedCash: number;
+  closingCashActual: number | null;
+  closingCashExpected: number | null;
 };
 
 export type PaymentTokenRow = {
@@ -323,11 +388,34 @@ export function mapOrder(o: OrderRow & { assigned_name?: string | null }): Order
     items: o.items,
     total: o.total,
     status: o.status,
+    paymentStatus: o.payment_status ?? "unpaid",
+    paymentMethod: o.payment_method ?? null,
+    paidAt: o.paid_at ?? null,
+    amountReceived: o.amount_received ?? null,
+    changeGiven: o.change_given ?? null,
+    cashSessionId: o.cash_session_id ?? null,
     assignedTo: o.assigned_to,
     assignedName: o.assigned_name ?? null,
     acknowledgedAt: o.acknowledged_at,
     createdAt: o.created_at,
     updatedAt: o.updated_at,
+  };
+}
+
+export function mapCashSession(r: CashSessionRow): CashSession {
+  return {
+    id: r.id,
+    restaurantId: r.restaurant_id,
+    openedBy: r.opened_by,
+    closedBy: r.closed_by,
+    openingFloat: r.opening_float,
+    closingCashActual: r.closing_cash_actual,
+    closingCashExpected: r.closing_cash_expected,
+    status: r.status,
+    openedAt: r.opened_at,
+    closedAt: r.closed_at,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
   };
 }
 
