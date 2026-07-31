@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Minus, Plus, Search, ShoppingBag, Truck, UtensilsCrossed, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Check, MapPin, Minus, Plus, Search, ShoppingBag, Truck, UtensilsCrossed, X } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
+import { addToCart, getCart, cartCount, cartTotal, clearCart } from "@/lib/cart";
 
 type RestaurantInfo = {
   id: string;
@@ -29,10 +31,65 @@ type Props = {
 };
 
 export default function MarketplaceClient({ products, restaurants }: Props) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectedResto, setSelectedResto] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<ProductWithRestaurant | null>(null);
   const [detailQty, setDetailQty] = useState(1);
+  const [justAdded, setJustAdded] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  // Cart state — track for the active restaurant in cart
+  const [activeCartResto, setActiveCartResto] = useState<RestaurantInfo | null>(null);
+  const [count, setCount] = useState(0);
+  const [total, setTotal] = useState(0);
+
+  const refreshCart = useCallback(() => {
+    for (const r of restaurants) {
+      const items = getCart(r.id, "delivery");
+      if (items.length > 0) {
+        setActiveCartResto(r);
+        setCount(cartCount(items));
+        setTotal(cartTotal(items));
+        return;
+      }
+    }
+    setActiveCartResto(null);
+    setCount(0);
+    setTotal(0);
+  }, [restaurants]);
+
+  useEffect(() => {
+    refreshCart();
+    window.addEventListener("cart:updated", refreshCart);
+    return () => window.removeEventListener("cart:updated", refreshCart);
+  }, [refreshCart]);
+
+  const handleAdd = (product: ProductWithRestaurant, qty: number = 1) => {
+    // If cart has items from a different restaurant, warn
+    if (activeCartResto && activeCartResto.id !== product.restaurant.id) {
+      const confirm = window.confirm(
+        `Votre panier contient des articles de ${activeCartResto.name}. Voulez-vous vider le panier et commander chez ${product.restaurant.name} ?`
+      );
+      if (!confirm) return;
+      clearCart(activeCartResto.id, "delivery");
+    }
+
+    for (let i = 0; i < qty; i++) {
+      addToCart(product.restaurant.id, "delivery", {
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+      });
+    }
+
+    setJustAdded(product.id);
+    setTimeout(() => setJustAdded((prev) => (prev === product.id ? null : prev)), 800);
+
+    setToast(`${product.name} ajouté au panier`);
+    setTimeout(() => setToast(null), 2000);
+  };
 
   const filtered = useMemo(() => {
     let result = products;
@@ -51,7 +108,7 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
   }, [products, search, selectedResto]);
 
   return (
-    <main className="min-h-screen bg-[#FFF8F0]">
+    <main className="min-h-screen bg-[#FFF8F0] pb-28">
       {/* ── Header ─────────────────────────────────── */}
       <header className="bg-white sticky top-0 z-30 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 pt-4 pb-3">
@@ -162,12 +219,6 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
                   {r.deliveryFee > 0 ? `Livraison : ${formatFCFA(r.deliveryFee)}` : "Livraison gratuite"}
                 </div>
               </div>
-              <Link
-                href={`/r/${r.slug}?mode=delivery`}
-                className="bg-white text-[#722F37] text-xs font-bold px-3 py-2 rounded-xl hover:bg-stone-100 transition-colors flex-shrink-0 shadow-sm"
-              >
-                Menu complet
-              </Link>
             </div>
           </div>
         );
@@ -198,63 +249,123 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
 
             <div className="grid grid-cols-2 gap-3">
               {filtered.map((product) => (
-                <button
+                <div
                   key={`${product.restaurant.id}-${product.id}`}
-                  onClick={() => { setSelectedProduct(product); setDetailQty(1); }}
-                  className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all text-left group active:scale-[0.98]"
+                  className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group"
                 >
-                  {/* Image */}
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center">
-                        <UtensilsCrossed className="w-10 h-10 text-amber-300" />
-                      </div>
-                    )}
-                    {/* Price badge */}
-                    <div className="absolute bottom-2 left-2 bg-[#722F37] rounded-lg px-2.5 py-1 shadow-lg">
-                      <span className="text-xs font-bold text-white">
-                        {formatFCFA(product.price)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Info */}
-                  <div className="p-3">
-                    <h3 className="font-bold text-stone-900 text-sm leading-tight line-clamp-2 mb-2 min-h-[2.5rem]">
-                      {product.name}
-                    </h3>
-                    {/* Restaurant */}
-                    <div className="flex items-center gap-1.5">
-                      {product.restaurant.logoUrl ? (
+                  {/* Image — clickable for detail */}
+                  <button
+                    onClick={() => { setSelectedProduct(product); setDetailQty(1); }}
+                    className="w-full text-left"
+                  >
+                    <div className="relative aspect-[4/3] overflow-hidden">
+                      {product.imageUrl ? (
                         <img
-                          src={product.restaurant.logoUrl}
-                          alt=""
-                          className="w-5 h-5 rounded-full object-cover"
+                          src={product.imageUrl}
+                          alt={product.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center">
-                          <span className="text-[8px] font-bold text-white">
-                            {product.restaurant.name.charAt(0)}
-                          </span>
+                        <div className="w-full h-full bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center">
+                          <UtensilsCrossed className="w-10 h-10 text-amber-300" />
                         </div>
                       )}
-                      <span className="text-[11px] text-stone-500 truncate font-medium">
-                        {product.restaurant.name}
-                      </span>
+                      {/* Price badge */}
+                      <div className="absolute bottom-2 left-2 bg-[#722F37] rounded-lg px-2.5 py-1 shadow-lg">
+                        <span className="text-xs font-bold text-white">
+                          {formatFCFA(product.price)}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Info + add button */}
+                  <div className="p-3">
+                    <button
+                      onClick={() => { setSelectedProduct(product); setDetailQty(1); }}
+                      className="text-left w-full"
+                    >
+                      <h3 className="font-bold text-stone-900 text-sm leading-tight line-clamp-2 mb-2 min-h-[2.5rem]">
+                        {product.name}
+                      </h3>
+                    </button>
+                    {/* Restaurant + Add button */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {product.restaurant.logoUrl ? (
+                          <img
+                            src={product.restaurant.logoUrl}
+                            alt=""
+                            className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center flex-shrink-0">
+                            <span className="text-[8px] font-bold text-white">
+                              {product.restaurant.name.charAt(0)}
+                            </span>
+                          </div>
+                        )}
+                        <span className="text-[11px] text-stone-500 truncate font-medium">
+                          {product.restaurant.name}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleAdd(product)}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm flex-shrink-0 ${
+                          justAdded === product.id
+                            ? "bg-emerald-500 text-white scale-110"
+                            : "bg-[#722F37] text-white hover:bg-[#5a2530] active:scale-95"
+                        }`}
+                      >
+                        {justAdded === product.id ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </>
         )}
       </div>
+
+      {/* ── Floating cart bar ──────────────────── */}
+      {count > 0 && activeCartResto && (
+        <div className="fixed bottom-4 inset-x-4 z-40 max-w-3xl mx-auto">
+          <button
+            onClick={() => router.push(`/r/${activeCartResto.slug}/cart?mode=delivery`)}
+            className="w-full bg-[#722F37] text-white rounded-2xl py-4 px-5 flex items-center justify-between shadow-2xl shadow-[#722F37]/40 hover:bg-[#5a2530] active:scale-[0.98] transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                <ShoppingBag className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-bold">Voir le panier</div>
+                <div className="text-xs text-white/70">
+                  {count} article{count > 1 ? "s" : ""} · {activeCartResto.name}
+                </div>
+              </div>
+            </div>
+            <div className="text-lg font-bold">
+              {formatFCFA(total)}
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* ── Toast notification ─────────────────── */}
+      {toast && (
+        <div className="fixed top-20 inset-x-0 z-50 flex justify-center pointer-events-none animate-fade-in-up">
+          <div className="bg-stone-900 text-white text-sm font-medium px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-400" />
+            {toast}
+          </div>
+        </div>
+      )}
 
       {/* ── Product Detail Modal ───────────────── */}
       {selectedProduct && (
@@ -263,7 +374,9 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setSelectedProduct(null)}
           />
-          <div className="relative bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md mx-auto overflow-hidden animate-slide-up sm:animate-none sm:my-8">
+          <div className="relative bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md mx-auto overflow-hidden sm:my-8"
+            style={{ animation: "slideUp 0.3s ease-out" }}
+          >
             {/* Close */}
             <button
               onClick={() => setSelectedProduct(null)}
@@ -322,7 +435,7 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
                 </p>
               )}
 
-              {/* Quantity + Commander button */}
+              {/* Quantity + Add to cart button */}
               <div className="flex items-center gap-3 mt-4">
                 <div className="flex items-center gap-1 bg-stone-100 rounded-full p-1">
                   <button
@@ -341,13 +454,16 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
-                <Link
-                  href={`/r/${selectedProduct.restaurant.slug}?mode=delivery`}
+                <button
+                  onClick={() => {
+                    handleAdd(selectedProduct, detailQty);
+                    setSelectedProduct(null);
+                  }}
                   className="flex-1 bg-[#722F37] text-white rounded-2xl py-4 font-bold text-sm text-center hover:bg-[#5a2530] active:scale-[0.98] transition-all shadow-lg shadow-[#722F37]/30 flex items-center justify-center gap-2"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  Commander · {formatFCFA(selectedProduct.price * detailQty)}
-                </Link>
+                  Ajouter · {formatFCFA(selectedProduct.price * detailQty)}
+                </button>
               </div>
             </div>
           </div>
@@ -355,12 +471,16 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
       )}
 
       <style jsx>{`
-        @keyframes slide-up {
+        @keyframes slideUp {
           from { transform: translateY(100%); }
           to { transform: translateY(0); }
         }
-        .animate-slide-up {
-          animation: slide-up 0.3s ease-out;
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up {
+          animation: fadeInUp 0.3s ease-out;
         }
       `}</style>
     </main>
