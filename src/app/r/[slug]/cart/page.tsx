@@ -7,23 +7,28 @@ export default async function CartPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ table?: string; room?: string }>;
+  searchParams: Promise<{ table?: string; room?: string; mode?: string }>;
 }) {
   const { slug } = await params;
-  const { table, room } = await searchParams;
+  const { table, room, mode } = await searchParams;
   const restaurant = await getRestaurantBySlug(slug);
   if (!restaurant) notFound();
   if (!isSubscriptionActive(restaurant)) notFound();
 
   const tableNumber = table ? parseInt(table, 10) : null;
   const roomLabel = room ? decodeURIComponent(room) : null;
-  if (!tableNumber && !roomLabel) notFound();
+  const isDelivery = mode === "delivery" && restaurant.deliveryEnabled;
+
+  // Allow access if table/room OR delivery mode
+  if (!tableNumber && !roomLabel && !isDelivery) notFound();
 
   return (
     <CartClient
       restaurant={{ id: restaurant.id, name: restaurant.name, slug: restaurant.slug }}
       tableNumber={tableNumber}
       roomLabel={roomLabel}
+      deliveryMode={isDelivery}
+      deliveryFee={isDelivery ? restaurant.deliveryFee : 0}
     />
   );
 }

@@ -89,7 +89,19 @@ export default function ReceiptClient({
           <Row label="Reçu N°" value={`#${receiptNo}`} bold />
           <Row label="Date" value={fmtDate(created)} />
           <Row label="Heure" value={fmtTime(created)} />
-          <Row label={order.roomLabel ? "Chambre" : "Table"} value={order.roomLabel ?? String(order.tableNumber)} />
+          <Row
+            label={order.orderMode === "delivery" ? "Mode" : order.roomLabel ? "Chambre" : "Table"}
+            value={order.orderMode === "delivery" ? "LIVRAISON" : (order.roomLabel ?? String(order.tableNumber))}
+          />
+          {order.orderMode === "delivery" && order.deliveryQuartier && (
+            <Row label="Quartier" value={order.deliveryQuartier} />
+          )}
+          {order.orderMode === "delivery" && order.deliveryCarrefour && (
+            <Row label="Repère" value={order.deliveryCarrefour} />
+          )}
+          {order.orderMode === "delivery" && order.deliveryPhone && (
+            <Row label="Tél." value={order.deliveryPhone} />
+          )}
           {order.orderType !== "food" && (
             <Row label="Type" value={order.orderType === "service" ? "SERVICE" : "PROBLÈME"} />
           )}
@@ -130,8 +142,11 @@ export default function ReceiptClient({
           <div className="space-y-0.5 my-1">
             <Row
               label={`Articles (${itemsCount})`}
-              value={formatFCFA(order.total)}
+              value={formatFCFA(order.orderMode === "delivery" && order.deliveryFee > 0 ? order.total - order.deliveryFee : order.total)}
             />
+            {order.orderMode === "delivery" && order.deliveryFee > 0 && (
+              <Row label="Livraison" value={formatFCFA(order.deliveryFee)} />
+            )}
             <div className="flex justify-between gap-2 font-bold text-[14px] mt-1.5 pt-1.5 border-t border-[#722F37]">
               <span>TOTAL</span>
               <span className="tabular-nums">{formatFCFA(order.total)}</span>

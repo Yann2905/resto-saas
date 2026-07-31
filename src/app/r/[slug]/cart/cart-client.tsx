@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Check, Loader2, ShoppingCart } from "lucide-react";
+import { AlertTriangle, Check, Loader2, MapPin, Phone, ShoppingCart, Truck } from "lucide-react";
 import { CartItem } from "@/types";
 import { supabase } from "@/lib/supabase";
 import {
@@ -21,13 +21,17 @@ type Props = {
   restaurant: { id: string; name: string; slug: string };
   tableNumber: number | null;
   roomLabel?: string | null;
+  deliveryMode?: boolean;
+  deliveryFee?: number;
 };
 
-export default function CartClient({ restaurant, tableNumber, roomLabel }: Props) {
+export default function CartClient({ restaurant, tableNumber, roomLabel, deliveryMode = false, deliveryFee = 0 }: Props) {
   const router = useRouter();
-  const tableKey = roomLabel ?? String(tableNumber);
-  const locationLabel = roomLabel ? `Chambre ${roomLabel}` : `Table ${tableNumber}`;
-  const locationParam = roomLabel
+  const tableKey = deliveryMode ? "delivery" : (roomLabel ?? String(tableNumber));
+  const locationLabel = deliveryMode ? "Livraison" : (roomLabel ? `Chambre ${roomLabel}` : `Table ${tableNumber}`);
+  const locationParam = deliveryMode
+    ? "mode=delivery"
+    : roomLabel
     ? `room=${encodeURIComponent(roomLabel)}`
     : `table=${tableNumber}`;
   const [items, setItems] = useState<CartItem[]>([]);
@@ -36,6 +40,11 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
   const [showConfirm, setShowConfirm] = useState(false);
   const [stockIssues, setStockIssues] = useState<StockIssue[]>([]);
   const [checkingStock, setCheckingStock] = useState(false);
+
+  // Delivery form fields
+  const [deliveryPhone, setDeliveryPhone] = useState("");
+  const [deliveryQuartier, setDeliveryQuartier] = useState("");
+  const [deliveryCarrefour, setDeliveryCarrefour] = useState("");
 
   useEffect(() => {
     setItems(getCart(restaurant.id, tableKey));
@@ -106,9 +115,30 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
   };
 
   const handleSubmit = async () => {
+    if (deliveryMode) {
+      if (!deliveryPhone.trim()) {
+        setError("Numéro de téléphone requis pour la livraison");
+        return;
+      }
+      if (!deliveryQuartier.trim()) {
+        setError("Quartier requis pour la livraison");
+        return;
+      }
+      if (!deliveryCarrefour.trim()) {
+        setError("Carrefour / point de repère requis pour la livraison");
+        return;
+      }
+    }
     setSubmitting(true);
     setError(null);
-    const res = await createOrder(restaurant.id, tableNumber, items, roomLabel);
+    const deliveryParams = deliveryMode ? {
+      orderMode: "delivery" as const,
+      deliveryPhone: deliveryPhone.trim(),
+      deliveryQuartier: deliveryQuartier.trim(),
+      deliveryCarrefour: deliveryCarrefour.trim(),
+      deliveryFee,
+    } : null;
+    const res = await createOrder(restaurant.id, tableNumber, items, roomLabel, deliveryParams);
     setSubmitting(false);
     setShowConfirm(false);
     if (!res.ok) {
@@ -124,7 +154,8 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
     router.push(`/r/${restaurant.slug}/order/${res.orderId}?${locationParam}`);
   };
 
-  const total = cartTotal(items);
+  const subtotal = cartTotal(items);
+  const total = subtotal + (deliveryMode ? deliveryFee : 0);
 
   return (
     <main className="min-h-screen bg-stone-50 pb-40">
@@ -210,6 +241,67 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
           </div>
         )}
 
+        {/* Delivery form */}
+        {deliveryMode && items.length > 0 && (
+          <div className="mt-4 bg-white rounded-2xl border border-stone-200 p-4 animate-fade-in-up">
+            <div className="flex items-center gap-2 mb-3">
+              <Truck className="w-4 h-4 text-[#722F37]" />
+              <h3 className="font-semibold text-stone-900 text-sm">Informations de livraison</h3>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 mb-1 block">
+                  Téléphone *
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+                  <input
+                    type="tel"
+                    value={deliveryPhone}
+                    onChange={(e) => setDeliveryPhone(e.target.value)}
+                    placeholder="Ex: 07 XX XX XX XX"
+                    className="w-full rounded-xl border border-stone-300 pl-9 pr-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 mb-1 block">
+                  Quartier *
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={deliveryQuartier}
+                    onChange={(e) => setDeliveryQuartier(e.target.value)}
+                    placeholder="Ex: Cocody, Riviera 2"
+                    className="w-full rounded-xl border border-stone-300 pl-9 pr-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 mb-1 block">
+                  Carrefour / Point de repère *
+                </label>
+                <input
+                  type="text"
+                  value={deliveryCarrefour}
+                  onChange={(e) => setDeliveryCarrefour(e.target.value)}
+                  placeholder="Ex: Carrefour Palmeraie, à côté de..."
+                  className="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
+                />
+              </div>
+            </div>
+
+            {deliveryFee > 0 && (
+              <div className="mt-3 pt-3 border-t border-stone-100 flex items-baseline justify-between">
+                <span className="text-xs text-stone-500">Frais de livraison</span>
+                <span className="text-sm font-semibold text-stone-700">{formatFCFA(deliveryFee)}</span>
+              </div>
+            )}
+          </div>
+        )}
+
         {stockIssues.length > 0 && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl animate-fade-in-up">
             <div className="flex items-center gap-2 mb-2">
@@ -276,6 +368,16 @@ export default function CartClient({ restaurant, tableNumber, roomLabel }: Props
             <p className="text-sm text-stone-500 text-center mb-5">
               {locationLabel} · {items.reduce((s, i) => s + i.quantity, 0)} article{items.length > 1 ? "s" : ""}
             </p>
+            {deliveryMode && (
+              <div className="text-left bg-stone-50 rounded-xl p-3 mb-4 text-xs text-stone-600 space-y-1">
+                <div><span className="font-semibold">Tél :</span> {deliveryPhone}</div>
+                <div><span className="font-semibold">Quartier :</span> {deliveryQuartier}</div>
+                <div><span className="font-semibold">Repère :</span> {deliveryCarrefour}</div>
+                {deliveryFee > 0 && (
+                  <div><span className="font-semibold">Livraison :</span> {formatFCFA(deliveryFee)}</div>
+                )}
+              </div>
+            )}
             <div className="text-center text-3xl font-bold text-stone-900 mb-6">
               {formatFCFA(total)}
             </div>

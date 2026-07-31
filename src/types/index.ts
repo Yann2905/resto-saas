@@ -40,6 +40,8 @@ export type Restaurant = {
   hotelRooms: string[];
   hotelServices: HotelService[];
   hotelIssues: HotelService[];
+  deliveryEnabled: boolean;
+  deliveryFee: number;
 };
 
 export type Category = {
@@ -62,9 +64,12 @@ export type Product = {
   stockQuantity: number;
   stockConsumption: number;
   order: number;
+  description: string | null;
 };
 
 export type UserRole = "owner" | "superadmin" | "waiter";
+
+export type OrderMode = "dine_in" | "delivery";
 
 export type OrderStatus = "pending" | "preparing" | "ready" | "served";
 
@@ -98,6 +103,11 @@ export type Order = {
   assignedTo: string | null;
   assignedName: string | null;
   acknowledgedAt: string | null;
+  orderMode: OrderMode;
+  deliveryQuartier: string | null;
+  deliveryCarrefour: string | null;
+  deliveryPhone: string | null;
+  deliveryFee: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -192,6 +202,8 @@ export type RestaurantRow = {
   hotel_rooms?: string[];
   hotel_services?: HotelService[];
   hotel_issues?: HotelService[];
+  delivery_enabled?: boolean;
+  delivery_fee?: number;
 };
 
 export type CategoryRow = {
@@ -216,6 +228,7 @@ export type ProductRow = {
   stock_quantity: number;
   stock_consumption: number;
   order: number;
+  description: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -237,6 +250,11 @@ export type OrderRow = {
   cash_session_id?: string | null;
   assigned_to: string | null;
   acknowledged_at: string | null;
+  order_mode: string;
+  delivery_quartier: string | null;
+  delivery_carrefour: string | null;
+  delivery_phone: string | null;
+  delivery_fee: number;
   created_at: string;
   updated_at: string;
 };
@@ -349,6 +367,8 @@ export function mapRestaurant(r: RestaurantRow): Restaurant {
     hotelRooms: r.hotel_rooms ?? [],
     hotelServices: (r.hotel_services as HotelService[]) ?? [],
     hotelIssues: (r.hotel_issues as HotelService[]) ?? [],
+    deliveryEnabled: r.delivery_enabled ?? false,
+    deliveryFee: r.delivery_fee ?? 0,
   };
 }
 
@@ -375,6 +395,7 @@ export function mapProduct(p: ProductRow): Product {
     stockQuantity: p.stock_quantity,
     stockConsumption: p.stock_consumption ?? 1,
     order: p.order,
+    description: p.description ?? null,
   };
 }
 
@@ -397,6 +418,11 @@ export function mapOrder(o: OrderRow & { assigned_name?: string | null }): Order
     assignedTo: o.assigned_to,
     assignedName: o.assigned_name ?? null,
     acknowledgedAt: o.acknowledged_at,
+    orderMode: (o.order_mode as OrderMode) ?? "dine_in",
+    deliveryQuartier: o.delivery_quartier ?? null,
+    deliveryCarrefour: o.delivery_carrefour ?? null,
+    deliveryPhone: o.delivery_phone ?? null,
+    deliveryFee: o.delivery_fee ?? 0,
     createdAt: o.created_at,
     updatedAt: o.updated_at,
   };

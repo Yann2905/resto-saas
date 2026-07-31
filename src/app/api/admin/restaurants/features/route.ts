@@ -51,6 +51,15 @@ export async function PUT(request: NextRequest) {
   if (body.logoUrl !== undefined) {
     update.logo_url = body.logoUrl || null;
   }
+  if (typeof body.deliveryEnabled === "boolean") {
+    update.delivery_enabled = body.deliveryEnabled;
+  }
+  if (body.deliveryFee !== undefined) {
+    const fee = Number(body.deliveryFee);
+    if (!isNaN(fee) && fee >= 0) {
+      update.delivery_fee = Math.round(fee);
+    }
+  }
   const typeValue = body.type && ["restaurant", "hotel", "both"].includes(body.type as string)
     ? (body.type as string)
     : null;

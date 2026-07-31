@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Lock,
   Trash2,
+  Truck,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -19,6 +20,8 @@ import {
 } from "@/lib/opening-hours";
 import { updateRestaurantHours, updateRestaurant } from "@/lib/admin";
 import { isHotelType, type DaySchedule, type OpeningHours, type WeekKey } from "@/types";
+import { getPlanLimits, type FeatureOverrides } from "@/lib/plan-limits";
+import { formatFCFA } from "@/lib/format";
 
 export default function SettingsPage() {
   const { user, restaurant, role, loading } = useAuth();
@@ -227,6 +230,9 @@ export default function SettingsPage() {
             </button>
           </div>
         </section>
+
+        {/* ── Section Livraison ─────────────────────────────── */}
+        <DeliverySettingsSection restaurant={restaurant} setToast={setToast} />
 
         {/* ── Section Hôtel (si type=hotel) ────────────────────── */}
         {isHotelType(restaurant.type) && (
@@ -809,6 +815,101 @@ function HotelSettingsSection({
           className="rounded-full bg-[#722F37] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors disabled:bg-stone-400"
         >
           {saving ? "Enregistrement..." : "Enregistrer"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/* ── Composant Settings Livraison ────────────────────────── */
+
+function DeliverySettingsSection({
+  restaurant,
+  setToast,
+}: {
+  restaurant: Restaurant;
+  setToast: (v: string | null) => void;
+}) {
+  const limits = getPlanLimits(restaurant.plan, restaurant.featureOverrides as FeatureOverrides, restaurant.isPartner);
+  const [enabled, setEnabled] = useState(restaurant.deliveryEnabled);
+  const [fee, setFee] = useState(String(restaurant.deliveryFee));
+  const [saving, setSaving] = useState(false);
+
+  if (!limits.delivery) return null;
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateRestaurant({
+        restaurantId: restaurant.id,
+        deliveryEnabled: enabled,
+        deliveryFee: parseInt(fee, 10) || 0,
+      });
+      setToast("Paramètres de livraison enregistrés");
+      setTimeout(() => setToast(null), 2500);
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : "Erreur");
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="bg-white rounded-2xl border border-stone-200 p-5 mt-6">
+      <div className="mb-4">
+        <h3 className="font-bold text-stone-900 flex items-center gap-2">
+          <Truck className="w-4 h-4" aria-hidden />
+          Livraison
+        </h3>
+        <p className="text-xs text-stone-500 mt-0.5">
+          Activez la livraison pour permettre aux clients de commander sans scanner un QR code.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+            className="rounded border-stone-300 w-5 h-5"
+          />
+          <div>
+            <span className="text-sm font-semibold text-stone-900">Activer la livraison</span>
+            <p className="text-xs text-stone-500 mt-0.5">
+              Les clients pourront passer commande pour se faire livrer.
+            </p>
+          </div>
+        </label>
+
+        <div className={`transition-opacity ${enabled ? "" : "opacity-50 pointer-events-none"}`}>
+          <label className="block text-sm font-semibold text-stone-700 mb-1">
+            Frais de livraison (FCFA)
+          </label>
+          <input
+            type="number"
+            min={0}
+            value={fee}
+            onChange={(e) => setFee(e.target.value)}
+            placeholder="Ex: 1000"
+            className="w-full sm:w-48 rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900 font-bold focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
+          />
+          {parseInt(fee, 10) > 0 && (
+            <p className="text-xs text-stone-500 mt-1">
+              {formatFCFA(parseInt(fee, 10))} sera ajouté au total de chaque commande en livraison.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-5 flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="rounded-full bg-[#722F37] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors disabled:bg-stone-400"
+        >
+          {saving ? "Enregistrement..." : "Enregistrer la livraison"}
         </button>
       </div>
     </section>

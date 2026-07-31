@@ -18,11 +18,13 @@ import {
   Smartphone,
   Trash2,
   X,
+  Banknote,
+  Truck,
 } from "lucide-react";
 import { Restaurant, RestaurantRow, RestaurantType, mapRestaurant } from "@/types";
 import { toastSuccess, toastError } from "@/lib/swal";
 
-type FeatureKey = "waiters" | "pushNotifications" | "fullStats" | "maxTables";
+type FeatureKey = "waiters" | "pushNotifications" | "fullStats" | "maxTables" | "cashRegister" | "delivery";
 
 const FEATURES: {
   key: FeatureKey;
@@ -59,12 +61,26 @@ const FEATURES: {
     Icon: QrCode,
     type: "number",
   },
+  {
+    key: "cashRegister",
+    label: "Caisse enregistreuse",
+    desc: "Encaissement direct, sessions de caisse, impression de reçus",
+    Icon: Banknote,
+    type: "boolean",
+  },
+  {
+    key: "delivery",
+    label: "Livraison",
+    desc: "Commandes en livraison avec adresse et frais de livraison",
+    Icon: Truck,
+    type: "boolean",
+  },
 ];
 
 const PLAN_DEFAULTS: Record<string, Record<string, boolean | number>> = {
-  starter: { waiters: false, pushNotifications: false, fullStats: false, maxTables: 10 },
-  pro: { waiters: true, pushNotifications: true, fullStats: true, maxTables: 10 },
-  business: { waiters: true, pushNotifications: true, fullStats: true, maxTables: 10 },
+  starter: { waiters: false, pushNotifications: false, fullStats: false, maxTables: 10, cashRegister: false, delivery: false },
+  pro: { waiters: true, pushNotifications: true, fullStats: true, maxTables: 10, cashRegister: true, delivery: true },
+  business: { waiters: true, pushNotifications: true, fullStats: true, maxTables: 10, cashRegister: true, delivery: true },
 };
 
 export default function RestaurantDetailPage() {

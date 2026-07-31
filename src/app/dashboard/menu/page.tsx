@@ -26,6 +26,7 @@ type ProductForm = {
   stockConsumption: string;
   imageUrl: string;
   available: boolean;
+  description: string;
 };
 
 const emptyProductForm: ProductForm = {
@@ -36,6 +37,7 @@ const emptyProductForm: ProductForm = {
   stockConsumption: "1",
   imageUrl: "",
   available: true,
+  description: "",
 };
 
 type CategoryForm = {
@@ -160,6 +162,7 @@ export default function MenuAdminPage() {
           stock_consumption: parseFloat(form.stockConsumption) || 1,
           image_url: form.imageUrl.trim() || null,
           available: form.available,
+          description: form.description.trim() || null,
           order: id
             ? products.find((p) => p.id === id)?.order ?? products.length + 1
             : products.length + 1,
@@ -515,6 +518,7 @@ export default function MenuAdminPage() {
                       stockConsumption: String(p.stockConsumption),
                       imageUrl: p.imageUrl ?? "",
                       available: p.available,
+                      description: p.description ?? "",
                     }}
                     leafCategories={leafCategories}
                     allCategories={categories}
@@ -583,6 +587,9 @@ function ProductRowView({
           <div className="font-semibold text-stone-900 truncate">
             {product.name}
           </div>
+          {product.description && (
+            <div className="text-xs text-stone-400 truncate">{product.description}</div>
+          )}
           <div className="text-xs text-stone-500 truncate">{categoryLabel}</div>
           <div className="mt-1 flex items-center gap-3 text-xs flex-wrap">
             <span className="font-semibold text-stone-700">
@@ -755,6 +762,15 @@ function ProductFormInline({
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="Ex : Ndolé"
               className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
+            />
+          </Field>
+          <Field label="Description (optionnel)" className="sm:col-span-2">
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Décrivez votre plat... (visible par les clients)"
+              rows={2}
+              className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 resize-none"
             />
           </Field>
           <Field label="Catégorie" className="sm:col-span-2">

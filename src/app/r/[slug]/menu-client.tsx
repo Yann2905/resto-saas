@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Plus, QrCode, Search, UtensilsCrossed, X } from "lucide-react";
+import { Check, Minus, Plus, QrCode, Search, UtensilsCrossed, X } from "lucide-react";
 import { Category, Product } from "@/types";
 import { formatFCFA } from "@/lib/format";
 import { addToCart, cartCount, cartTotal, getCart } from "@/lib/cart";
@@ -14,6 +14,8 @@ type Props = {
   products: Product[];
   tableNumber: number | null;
   roomLabel?: string | null;
+  deliveryMode?: boolean;
+  deliveryFee?: number;
 };
 
 export default function MenuClient({
@@ -22,6 +24,8 @@ export default function MenuClient({
   products,
   tableNumber,
   roomLabel,
+  deliveryMode = false,
+  deliveryFee = 0,
 }: Props) {
   const router = useRouter();
   const [count, setCount] = useState(0);
@@ -29,9 +33,13 @@ export default function MenuClient({
   const [activeParent, setActiveParent] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const tableKey = roomLabel ?? (tableNumber ? String(tableNumber) : "na");
-  const locationLabel = roomLabel ? `Chambre ${roomLabel}` : `Table ${tableNumber}`;
-  const locationParam = roomLabel
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [detailQty, setDetailQty] = useState(1);
+  const tableKey = deliveryMode ? "delivery" : (roomLabel ?? (tableNumber ? String(tableNumber) : "na"));
+  const locationLabel = deliveryMode ? "Livraison" : (roomLabel ? `Chambre ${roomLabel}` : `Table ${tableNumber}`);
+  const locationParam = deliveryMode
+    ? "mode=delivery"
+    : roomLabel
     ? `room=${encodeURIComponent(roomLabel)}`
     : `table=${tableNumber}`;
 
@@ -90,7 +98,7 @@ export default function MenuClient({
     setTimeout(() => setJustAdded((prev) => (prev === p.id ? null : prev)), 600);
   };
 
-  if (!tableNumber && !roomLabel) {
+  if (!tableNumber && !roomLabel && !deliveryMode) {
     return (
       <main className="min-h-screen flex items-center justify-center p-6 bg-stone-50">
         <div className="max-w-sm text-center">
@@ -132,7 +140,14 @@ export default function MenuClient({
                 </h1>
                 <p className="text-xs text-stone-500 mt-0.5 flex items-center gap-1.5">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  {locationLabel} · En service
+                  {deliveryMode ? (
+                    <span className="flex items-center gap-1">
+                      <span className="text-[#722F37] font-semibold">Livraison</span> · En service
+                      {deliveryFee > 0 && <span> · Frais: {formatFCFA(deliveryFee)}</span>}
+                    </span>
+                  ) : (
+                    <>{locationLabel} · En service</>
+                  )}
                 </p>
               </div>
             </div>
@@ -212,6 +227,7 @@ export default function MenuClient({
                       onAdd={() => handleAdd(p)}
                       justAdded={justAdded === p.id}
                       categoryStock={cat?.stock ?? null}
+                      onDetail={(prod) => { setSelectedProduct(prod); setDetailQty(1); }}
                     />
                   );
                 })}
@@ -246,6 +262,7 @@ export default function MenuClient({
                               onAdd={() => handleAdd(p)}
                               justAdded={justAdded === p.id}
                               categoryStock={cat.stock}
+                              onDetail={(prod) => { setSelectedProduct(prod); setDetailQty(1); }}
                             />
                           ))}
                         </div>
@@ -270,6 +287,114 @@ export default function MenuClient({
           />
         </div>
       )}
+
+      {/* Product Detail Modal */}
+      {selectedProduct && (() => {
+        const cat = categories.find((c) => c.id === selectedProduct.categoryId);
+        const catStock = cat?.stock ?? null;
+        const hasCatStock = catStock !== null;
+        const disabled = !selectedProduct.available || (hasCatStock
+          ? catStock < selectedProduct.stockConsumption
+          : selectedProduct.stockQuantity <= 0);
+        const remaining = hasCatStock
+          ? Math.floor((catStock ?? 0) / selectedProduct.stockConsumption)
+          : selectedProduct.stockQuantity;
+        const maxQty = disabled ? 0 : remaining;
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setSelectedProduct(null)}
+            />
+            <div className="relative bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md mx-auto overflow-hidden animate-fade-in-up">
+              {/* Close button */}
+              <button
+                onClick={() => setSelectedProduct(null)}
+                className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/60 transition-colors"
+                aria-label="Fermer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* Image */}
+              {selectedProduct.imageUrl ? (
+                <img
+                  src={selectedProduct.imageUrl}
+                  alt={selectedProduct.name}
+                  className="w-full h-56 sm:h-64 object-cover"
+                />
+              ) : (
+                <div className="w-full h-56 sm:h-64 bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center">
+                  <UtensilsCrossed className="w-16 h-16 text-stone-300" />
+                </div>
+              )}
+
+              {/* Content */}
+              <div className="p-5 pb-8">
+                <h2 className="text-xl font-bold text-stone-900 mb-1">
+                  {selectedProduct.name}
+                </h2>
+                {selectedProduct.description && (
+                  <p className="text-sm text-stone-600 mb-3 leading-relaxed">
+                    {selectedProduct.description}
+                  </p>
+                )}
+                <div className="text-lg font-bold text-[#722F37] mb-3">
+                  {formatFCFA(selectedProduct.price)}
+                </div>
+
+                {/* Stock indicator */}
+                {disabled ? (
+                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 rounded-full px-3 py-1 mb-4">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    Produit indisponible
+                  </div>
+                ) : remaining > 0 && remaining <= 5 ? (
+                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8a6828] bg-[#C8963E]/10 rounded-full px-3 py-1 mb-4">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#C8963E]" />
+                    Plus que {remaining} disponible{remaining > 1 ? "s" : ""}
+                  </div>
+                ) : null}
+
+                {/* Quantity selector + Add button */}
+                {!disabled && (
+                  <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-1 bg-stone-100 rounded-full p-1">
+                      <button
+                        onClick={() => setDetailQty((q) => Math.max(1, q - 1))}
+                        className="w-9 h-9 rounded-full bg-white text-stone-700 shadow-sm hover:bg-stone-50 transition-colors flex items-center justify-center"
+                        aria-label="Diminuer"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="w-8 text-center font-bold text-stone-900">
+                        {detailQty}
+                      </span>
+                      <button
+                        onClick={() => setDetailQty((q) => Math.min(maxQty, q + 1))}
+                        className="w-9 h-9 rounded-full bg-[#722F37] text-white hover:bg-[#5a2530] transition-colors flex items-center justify-center"
+                        aria-label="Augmenter"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => {
+                        for (let i = 0; i < detailQty; i++) handleAdd(selectedProduct);
+                        setSelectedProduct(null);
+                      }}
+                      className="flex-1 bg-[#722F37] text-white rounded-2xl py-3.5 font-bold text-sm hover:bg-[#5a2530] active:scale-[0.98] transition-all shadow-lg shadow-[#722F37]/30"
+                    >
+                      Ajouter au panier · {formatFCFA(selectedProduct.price * detailQty)}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </main>
   );
 }
@@ -279,11 +404,13 @@ function ProductCard({
   onAdd,
   justAdded,
   categoryStock,
+  onDetail,
 }: {
   product: Product;
   onAdd: () => void;
   justAdded: boolean;
   categoryStock?: number | null;
+  onDetail?: (product: Product) => void;
 }) {
   const hasCatStock = categoryStock !== null && categoryStock !== undefined;
   const disabled = !product.available || (hasCatStock
@@ -291,45 +418,55 @@ function ProductCard({
     : product.stockQuantity <= 0);
   return (
     <div className={`group relative bg-white rounded-2xl p-3 flex gap-4 items-center border transition-all ${disabled ? "border-stone-200/50" : "border-stone-200/80 hover:border-stone-300 hover:shadow-md hover:shadow-stone-900/5"}`}>
-      <div className="relative flex-shrink-0">
-        {product.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className={`w-24 h-24 rounded-xl object-cover bg-stone-100 ${disabled ? "opacity-50" : ""}`}
-          />
-        ) : (
-          <div className={`w-24 h-24 rounded-xl bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center text-stone-400 ${disabled ? "opacity-50" : ""}`}>
-            <UtensilsCrossed className="w-8 h-8" aria-hidden />
-          </div>
-        )}
-        {disabled && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="bg-black/60 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full backdrop-blur-sm">
-              Épuisé
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="flex-1 min-w-0 py-1">
-        <div className="font-semibold text-stone-900 truncate">
-          {product.name}
-        </div>
-        <div className="mt-1 text-sm font-semibold text-stone-700">
-          {formatFCFA(product.price)}
-        </div>
-        {!disabled && (() => {
-          const remaining = hasCatStock
-            ? Math.floor(categoryStock / product.stockConsumption)
-            : product.stockQuantity;
-          return remaining > 0 && remaining <= 5 ? (
-            <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-[#8a6828]">
-              <span className="w-1 h-1 rounded-full bg-[#C8963E]" />
-              Plus que {remaining}
+      <div
+        className="flex gap-4 items-center flex-1 min-w-0 cursor-pointer"
+        onClick={() => onDetail?.(product)}
+      >
+        <div className="relative flex-shrink-0">
+          {product.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={product.imageUrl}
+              alt={product.name}
+              className={`w-24 h-24 rounded-xl object-cover bg-stone-100 ${disabled ? "opacity-50" : ""}`}
+            />
+          ) : (
+            <div className={`w-24 h-24 rounded-xl bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center text-stone-400 ${disabled ? "opacity-50" : ""}`}>
+              <UtensilsCrossed className="w-8 h-8" aria-hidden />
             </div>
-          ) : null;
-        })()}
+          )}
+          {disabled && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="bg-black/60 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full backdrop-blur-sm">
+                Épuisé
+              </span>
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0 py-1">
+          <div className="font-semibold text-stone-900 truncate">
+            {product.name}
+          </div>
+          {product.description && (
+            <div className="text-xs text-stone-500 truncate mt-0.5">
+              {product.description}
+            </div>
+          )}
+          <div className="mt-1 text-sm font-semibold text-stone-700">
+            {formatFCFA(product.price)}
+          </div>
+          {!disabled && (() => {
+            const remaining = hasCatStock
+              ? Math.floor(categoryStock / product.stockConsumption)
+              : product.stockQuantity;
+            return remaining > 0 && remaining <= 5 ? (
+              <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-[#8a6828]">
+                <span className="w-1 h-1 rounded-full bg-[#C8963E]" />
+                Plus que {remaining}
+              </div>
+            ) : null;
+          })()}
+        </div>
       </div>
       <button
         onClick={onAdd}

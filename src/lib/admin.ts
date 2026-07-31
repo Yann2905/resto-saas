@@ -66,6 +66,8 @@ type UpdatePayload = {
   hotelServices?: { id: string; label: string }[];
   hotelIssues?: { id: string; label: string }[];
   hotelRooms?: string[];
+  deliveryEnabled?: boolean;
+  deliveryFee?: number;
 };
 
 export async function updateRestaurant(payload: UpdatePayload): Promise<void> {

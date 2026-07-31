@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { ArrowRight, Banknote, Bell, CheckCircle2, Printer, Volume2 } from "lucide-react";
+import { ArrowRight, Banknote, Bell, CheckCircle2, Phone, Printer, Truck, Volume2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { Order, OrderPaymentMethod, OrderRow, OrderStatus, OrderType, isHotelType, mapOrder } from "@/types";
+import { getPlanLimits, type FeatureOverrides } from "@/lib/plan-limits";
 import { formatFCFA } from "@/lib/format";
 import { playChime } from "../_components/order-sound-alert";
 import { toastSuccess } from "@/lib/swal";
@@ -84,6 +85,8 @@ export default function OrdersPage() {
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
   const [typeFilter, setTypeFilter] = useState<OrderType | "all">("all");
   const isHotel = isHotelType(restaurant?.type);
+  const limits = getPlanLimits(restaurant?.plan, restaurant?.featureOverrides as FeatureOverrides, restaurant?.isPartner);
+  const showCashRegister = limits.cashRegister;
   const knownIds = useRef<Set<string>>(new Set());
   const firstLoadDone = useRef(false);
   const [notifPerm, setNotifPerm] =
@@ -457,7 +460,7 @@ export default function OrdersPage() {
         </div>
 
         {/* Barre de Caisse & Enregistrement de Session */}
-        {restaurantId && (
+        {showCashRegister && restaurantId && (
           <div className="mb-6">
             <CashSessionBar restaurantId={restaurantId} />
           </div>
@@ -591,6 +594,12 @@ export default function OrdersPage() {
                               {order.orderType === "service" ? "Service" : "Problème"}
                             </span>
                           )}
+                          {order.orderMode === "delivery" && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 flex items-center gap-1">
+                              <Truck className="w-3 h-3" />
+                              Livraison
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs text-stone-500 mt-0.5 font-mono">
                           #{order.id.slice(0, 6).toUpperCase()} ·{" "}
@@ -611,6 +620,31 @@ export default function OrdersPage() {
                         {STATUS_LABELS[order.status]}
                       </span>
                     </div>
+
+                    {/* Delivery info */}
+                    {order.orderMode === "delivery" && (
+                      <div className="mb-3 bg-blue-50/50 rounded-xl p-3 space-y-1 text-xs text-stone-600">
+                        {order.deliveryQuartier && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-stone-700">Quartier :</span> {order.deliveryQuartier}
+                            {order.deliveryCarrefour && <span className="text-stone-400">· {order.deliveryCarrefour}</span>}
+                          </div>
+                        )}
+                        {order.deliveryPhone && (
+                          <div className="flex items-center gap-1.5">
+                            <Phone className="w-3 h-3 text-blue-500" />
+                            <a href={`tel:${order.deliveryPhone}`} className="text-blue-600 font-semibold hover:underline">
+                              {order.deliveryPhone}
+                            </a>
+                          </div>
+                        )}
+                        {order.deliveryFee > 0 && (
+                          <div className="text-stone-500">
+                            Frais de livraison : <span className="font-semibold">{formatFCFA(order.deliveryFee)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="space-y-1.5 text-sm mb-4">
                       {order.orderType === "food" ? (
@@ -705,7 +739,7 @@ export default function OrdersPage() {
                       )}
 
                       {/* Bouton d'encaissement direct & impression reçu */}
-                      {order.paymentStatus === "paid" ? (
+                      {showCashRegister && (order.paymentStatus === "paid" ? (
                         <button
                           onClick={() => setSelectedReceiptOrder(order)}
                           className="px-3.5 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-semibold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1.5"
@@ -723,7 +757,7 @@ export default function OrdersPage() {
                           <Banknote className="w-4 h-4" />
                           Encaisser
                         </button>
-                      )}
+                      ))}
                     </div>
                   </div>
                 </div>

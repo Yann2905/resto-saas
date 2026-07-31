@@ -27,6 +27,8 @@ export async function POST(req: NextRequest) {
     hotelServices?: unknown;
     hotelIssues?: unknown;
     hotelRooms?: unknown;
+    deliveryEnabled?: unknown;
+    deliveryFee?: unknown;
   } | null;
 
   if (!body) {
@@ -138,6 +140,15 @@ export async function POST(req: NextRequest) {
       );
     }
     update.hotel_rooms = body.hotelRooms;
+  }
+  if (typeof body.deliveryEnabled === "boolean") {
+    update.delivery_enabled = body.deliveryEnabled;
+  }
+  if (body.deliveryFee !== undefined) {
+    const fee = Number(body.deliveryFee);
+    if (!isNaN(fee) && fee >= 0) {
+      update.delivery_fee = Math.round(fee);
+    }
   }
 
   // Champs réservés au superadmin

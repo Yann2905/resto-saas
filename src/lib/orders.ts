@@ -11,11 +11,20 @@ export type CreateOrderResult =
   | { ok: true; orderId: string }
   | { ok: false; error: string };
 
+export type DeliveryParams = {
+  orderMode: "delivery";
+  deliveryPhone: string;
+  deliveryQuartier: string;
+  deliveryCarrefour: string;
+  deliveryFee: number;
+};
+
 export async function createOrder(
   restaurantId: string,
   tableNumber: number | null,
   items: CartItem[],
   roomLabel?: string | null,
+  delivery?: DeliveryParams | null,
 ): Promise<CreateOrderResult> {
   if (items.length === 0) return { ok: false, error: "Panier vide" };
 
@@ -29,6 +38,11 @@ export async function createOrder(
     p_table_number: tableNumber,
     p_items: payload,
     p_room_label: roomLabel ?? null,
+    p_order_mode: delivery?.orderMode ?? "dine_in",
+    p_delivery_quartier: delivery?.deliveryQuartier ?? null,
+    p_delivery_carrefour: delivery?.deliveryCarrefour ?? null,
+    p_delivery_phone: delivery?.deliveryPhone ?? null,
+    p_delivery_fee: delivery?.deliveryFee ?? 0,
   });
 
   if (error) {

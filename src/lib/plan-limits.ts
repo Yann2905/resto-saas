@@ -5,6 +5,8 @@ export type FeatureOverrides = {
   pushNotifications?: boolean;
   fullStats?: boolean;
   maxTables?: number;
+  cashRegister?: boolean;
+  delivery?: boolean;
 };
 
 type ResolvedLimits = {
@@ -13,6 +15,8 @@ type ResolvedLimits = {
   waiters: boolean;
   pushNotifications: boolean;
   fullStats: boolean;
+  cashRegister: boolean;
+  delivery: boolean;
   label: string;
 };
 
@@ -23,6 +27,8 @@ const PLAN_DEFAULTS: Record<Plan, ResolvedLimits> = {
     waiters: false,
     pushNotifications: false,
     fullStats: false,
+    cashRegister: false,
+    delivery: false,
     label: "Starter",
   },
   pro: {
@@ -31,6 +37,8 @@ const PLAN_DEFAULTS: Record<Plan, ResolvedLimits> = {
     waiters: true,
     pushNotifications: true,
     fullStats: true,
+    cashRegister: true,
+    delivery: true,
     label: "Pro",
   },
   business: {
@@ -39,6 +47,8 @@ const PLAN_DEFAULTS: Record<Plan, ResolvedLimits> = {
     waiters: true,
     pushNotifications: true,
     fullStats: true,
+    cashRegister: true,
+    delivery: true,
     label: "Business",
   },
 };
@@ -49,7 +59,7 @@ export function getPlanLimits(
   isPartner?: boolean,
 ): ResolvedLimits {
   if (isPartner) {
-    return { ...PLAN_DEFAULTS.business, canChangeMaxTables: true, label: "Partenaire" };
+    return { ...PLAN_DEFAULTS.business, canChangeMaxTables: true, cashRegister: true, delivery: true, label: "Partenaire" };
   }
 
   const key = (plan ?? "starter") as Plan;
@@ -65,6 +75,8 @@ export function getPlanLimits(
     waiters: overrides.waiters ?? base.waiters,
     pushNotifications: overrides.pushNotifications ?? base.pushNotifications,
     fullStats: overrides.fullStats ?? base.fullStats,
+    cashRegister: overrides.cashRegister ?? base.cashRegister,
+    delivery: overrides.delivery ?? base.delivery,
     label: base.label,
   };
 }

@@ -9,6 +9,11 @@ export type ReceiptData = {
   tableNumber: number | null;
   roomLabel: string | null;
   orderType: string;
+  orderMode: string;
+  deliveryQuartier: string | null;
+  deliveryCarrefour: string | null;
+  deliveryPhone: string | null;
+  deliveryFee: number;
   dateStr: string;
   items: {
     name: string;
@@ -52,6 +57,11 @@ export function generateReceiptData(
     tableNumber: order.tableNumber,
     roomLabel: order.roomLabel,
     orderType: order.orderType,
+    orderMode: order.orderMode ?? "dine_in",
+    deliveryQuartier: order.deliveryQuartier ?? null,
+    deliveryCarrefour: order.deliveryCarrefour ?? null,
+    deliveryPhone: order.deliveryPhone ?? null,
+    deliveryFee: order.deliveryFee ?? 0,
     dateStr,
     items: order.items.map((i) => ({
       name: i.name,

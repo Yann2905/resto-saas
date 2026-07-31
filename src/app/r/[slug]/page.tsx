@@ -93,6 +93,23 @@ export default async function RestaurantMenuPage({
     );
   }
 
+  // If delivery is enabled and user has no table/room, show delivery option
+  const showDeliveryEntry = restaurant.deliveryEnabled && !tableNumber && !roomLabel;
+
+  if (showDeliveryEntry) {
+    return (
+      <MenuClient
+        restaurant={{ id: restaurant.id, name: restaurant.name, slug: restaurant.slug, logoUrl: restaurant.logoUrl ?? null }}
+        categories={categories}
+        products={products}
+        tableNumber={null}
+        roomLabel={null}
+        deliveryMode
+        deliveryFee={restaurant.deliveryFee}
+      />
+    );
+  }
+
   return (
     <MenuClient
       restaurant={{ id: restaurant.id, name: restaurant.name, slug: restaurant.slug, logoUrl: restaurant.logoUrl ?? null }}
