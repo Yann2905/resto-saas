@@ -96,6 +96,13 @@ export default function Home() {
           </span>
         </div>
         <div className="flex items-center gap-5">
+          <Link
+            href="/commander"
+            className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-b from-[#C8963E] to-[#a07832] text-white font-semibold px-5 py-2 text-sm shadow-md shadow-[#722F37]/30 hover:from-[#d4a94e] hover:to-[#C8963E] transition-all"
+          >
+            <Package className="w-4 h-4" />
+            Commander
+          </Link>
           <a
             href="#fonctionnement"
             className="hidden sm:inline text-sm text-stone-400 hover:text-white transition-colors"
@@ -131,33 +138,34 @@ export default function Home() {
             Utilisé par des restaurants en Côte d&apos;Ivoire
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-[1.05]">
-            Vos clients scannent.
+            Commandez.
             <br />
             <span className="bg-gradient-to-r from-[#d4a94e] via-[#C8963E] to-[#722F37] bg-clip-text text-transparent">
-              Vous servez plus vite.
+              On vous livre.
             </span>
           </h1>
           <p className="mt-6 text-lg md:text-xl text-stone-400 max-w-2xl leading-relaxed">
-            QR code sur chaque table, menu digital toujours à jour, commandes
-            en temps réel avec notification sonore sur le téléphone de chaque
-            serveur. Sans app à télécharger pour vos clients.
+            Découvrez les menus des restaurants près de chez vous et commandez
+            en livraison. Sur place ? Scannez le QR code sur votre table et
+            commandez sans attendre.
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row gap-3">
+            <Link
+              href="/commander"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#C8963E] to-[#a07832] text-white font-semibold px-7 py-4 shadow-lg shadow-[#722F37]/40 hover:from-[#d4a94e] hover:to-[#C8963E] transition-all text-base"
+            >
+              <Package className="w-5 h-5" />
+              Commander en livraison
+            </Link>
             <a
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#C8963E] to-[#a07832] text-white font-semibold px-7 py-4 shadow-lg shadow-[#722F37]/40 hover:from-[#d4a94e] hover:to-[#C8963E] transition-all text-base"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-stone-700 bg-[#722F37]/40 backdrop-blur px-7 py-4 font-medium text-stone-200 hover:bg-[#5a2530] transition-colors"
             >
-              Démarrer maintenant
+              Restaurateur ? Démarrer ici
               <ChevronRight className="w-5 h-5" />
-            </a>
-            <a
-              href="#fonctionnement"
-              className="inline-flex items-center justify-center rounded-full border border-stone-700 bg-[#722F37]/40 backdrop-blur px-7 py-4 font-medium text-stone-200 hover:bg-[#5a2530] transition-colors"
-            >
-              Voir comment ça marche
             </a>
           </div>
 
