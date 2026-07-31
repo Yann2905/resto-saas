@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { ArrowRight, Banknote, Bell, CheckCircle2, Phone, Printer, Truck, Volume2 } from "lucide-react";
+import { ArrowRight, Banknote, Bell, CheckCircle2, ChevronDown, ChevronUp, MapPin, Phone, Printer, Truck, Volume2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { Order, OrderPaymentMethod, OrderRow, OrderStatus, OrderType, isHotelType, mapOrder } from "@/types";
@@ -550,220 +550,18 @@ export default function OrdersPage() {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredOrders.map((order) => {
-              const st = STATUS_STYLES[order.status];
-              const created = order.createdAt
-                ? new Date(order.createdAt)
-                : null;
-              const nextStatus = NEXT_STATUS[order.status];
-              return (
-                <SwipeableCard
-                  key={order.id}
-                  onSwipe={() => advance(order)}
-                  nextLabel={nextStatus ? STATUS_LABELS[nextStatus] : null}
-                  disabled={!nextStatus}
-                >
-                <div
-                  className={`relative overflow-hidden bg-white rounded-2xl border transition-all duration-300 animate-fade-in-up hover:shadow-lg ${st.card}`}
-                >
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-br ${st.accent} pointer-events-none`}
-                  />
-                  <div className="relative p-5">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-2xl font-bold text-stone-900 tracking-tight">
-                            {order.roomLabel ? `Chambre ${order.roomLabel}` : `Table ${order.tableNumber}`}
-                          </div>
-                          {order.paymentStatus === "paid" ? (
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                              Payé ({order.paymentMethod === "cash" ? "Cash" : order.paymentMethod === "mobile_money" ? "MoMo" : "Payé"})
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                              À Encaisser
-                            </span>
-                          )}
-                          {order.orderType !== "food" && (
-                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                              order.orderType === "service"
-                                ? "bg-blue-100 text-blue-700"
-                                : "bg-red-100 text-red-700"
-                            }`}>
-                              {order.orderType === "service" ? "Service" : "Problème"}
-                            </span>
-                          )}
-                          {order.orderMode === "delivery" && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 flex items-center gap-1">
-                              <Truck className="w-3 h-3" />
-                              Livraison
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-stone-500 mt-0.5 font-mono">
-                          #{order.id.slice(0, 6).toUpperCase()} ·{" "}
-                          {created
-                            ? created.toLocaleTimeString("fr-FR", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
-                            : "--:--"}
-                        </div>
-                      </div>
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${st.badge}`}
-                      >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${st.dot} ${st.dotPulse ? "animate-pulse" : ""}`}
-                        />
-                        {STATUS_LABELS[order.status]}
-                      </span>
-                    </div>
-
-                    {/* Delivery info */}
-                    {order.orderMode === "delivery" && (
-                      <div className="mb-3 bg-blue-50/50 rounded-xl p-3 space-y-1 text-xs text-stone-600">
-                        {order.deliveryQuartier && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-stone-700">Quartier :</span> {order.deliveryQuartier}
-                            {order.deliveryCarrefour && <span className="text-stone-400">· {order.deliveryCarrefour}</span>}
-                          </div>
-                        )}
-                        {order.deliveryPhone && (
-                          <div className="flex items-center gap-1.5">
-                            <Phone className="w-3 h-3 text-blue-500" />
-                            <a href={`tel:${order.deliveryPhone}`} className="text-blue-600 font-semibold hover:underline">
-                              {order.deliveryPhone}
-                            </a>
-                          </div>
-                        )}
-                        {order.deliveryFee > 0 && (
-                          <div className="text-stone-500">
-                            Frais de livraison : <span className="font-semibold">{formatFCFA(order.deliveryFee)}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="space-y-1.5 text-sm mb-4">
-                      {order.orderType === "food" ? (
-                        order.items.map((item) => (
-                          <div
-                            key={item.productId}
-                            className="flex items-center justify-between gap-2"
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              {item.imageUrl ? (
-                                <img
-                                  src={item.imageUrl}
-                                  alt=""
-                                  className="w-8 h-8 rounded-lg object-cover flex-shrink-0 bg-stone-100"
-                                />
-                              ) : (
-                                <div className="w-8 h-8 rounded-lg bg-stone-100 flex-shrink-0" />
-                              )}
-                              <span className="truncate text-stone-700">
-                                <span className="text-stone-400 font-mono text-xs mr-1.5">
-                                  {item.quantity}×
-                                </span>
-                                {item.name}
-                              </span>
-                            </div>
-                            <span className="text-stone-500 tabular-nums text-xs flex-shrink-0">
-                              {formatFCFA(item.total)}
-                            </span>
-                          </div>
-                        ))
-                      ) : (
-                        (order.items as unknown as { id: string; label: string }[]).map((item) => (
-                          <div key={item.id} className="flex items-center gap-2 text-stone-700">
-                            <span className="w-1.5 h-1.5 rounded-full bg-stone-400 flex-shrink-0" />
-                            {item.label}
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    {order.orderType === "food" && (
-                      <div className="border-t border-stone-200 pt-3 mb-4 flex items-baseline justify-between">
-                        <span className="text-xs uppercase tracking-wider text-stone-500 font-medium">
-                          Total
-                        </span>
-                        <span className="text-lg font-bold text-stone-900 tabular-nums tracking-tight">
-                          {formatFCFA(order.total)}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Assignation & accusé de réception */}
-                    {order.assignedTo && (
-                      <div className={`flex items-center gap-2 mb-3 text-xs ${order.acknowledgedAt ? "text-emerald-700" : "text-[#8a6828]"}`}>
-                        {order.acknowledgedAt ? (
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                        ) : (
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#C8963E] animate-pulse" />
-                        )}
-                        <span>
-                          {order.acknowledgedAt
-                            ? `Pris en charge${order.assignedName ? ` par ${order.assignedName}` : ""}`
-                            : `Assigné${order.assignedName ? ` à ${order.assignedName}` : ""} — en attente`
-                          }
-                        </span>
-                      </div>
-                    )}
-                    {escalatedIds.has(order.id) && !order.acknowledgedAt && (
-                      <div className="flex items-center gap-2 mb-3 text-xs text-red-700 bg-red-50 rounded-lg px-3 py-1.5">
-                        <Bell className="w-3.5 h-3.5" />
-                        Commande non prise en charge depuis 1 min{order.assignedName ? ` (${order.assignedName})` : ""}
-                      </div>
-                    )}
-
-                    <div className="flex gap-2">
-                      {order.status === "pending" && !order.acknowledgedAt && (
-                        <button
-                          onClick={() => acknowledge(order.id)}
-                          className="flex-1 bg-emerald-600 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                          J&apos;ai reçu
-                        </button>
-                      )}
-                      {NEXT_STATUS[order.status] && (
-                        <button
-                          onClick={() => advance(order)}
-                          className={`flex-1 bg-[#722F37] text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors flex items-center justify-center gap-1.5`}
-                        >
-                          {STATUS_LABELS[NEXT_STATUS[order.status]!]}
-                        </button>
-                      )}
-
-                      {/* Bouton d'encaissement direct & impression reçu */}
-                      {showCashRegister && (order.paymentStatus === "paid" ? (
-                        <button
-                          onClick={() => setSelectedReceiptOrder(order)}
-                          className="px-3.5 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-semibold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1.5"
-                          title="Voir & Imprimer le reçu"
-                        >
-                          <Printer className="w-4 h-4 text-emerald-600" />
-                          Reçu
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setSelectedPaymentOrder(order)}
-                          className="px-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-950/20 flex items-center justify-center gap-1.5"
-                          title="Encaisser la commande"
-                        >
-                          <Banknote className="w-4 h-4" />
-                          Encaisser
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                </SwipeableCard>
-              );
-            })}
+            {filteredOrders.map((order) => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                escalated={escalatedIds.has(order.id)}
+                showCashRegister={showCashRegister}
+                onAdvance={() => advance(order)}
+                onAcknowledge={() => acknowledge(order.id)}
+                onPayment={() => setSelectedPaymentOrder(order)}
+                onReceipt={() => setSelectedReceiptOrder(order)}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -787,6 +585,273 @@ export default function OrdersPage() {
         />
       )}
     </main>
+  );
+}
+
+function OrderCard({
+  order,
+  escalated,
+  showCashRegister,
+  onAdvance,
+  onAcknowledge,
+  onPayment,
+  onReceipt,
+}: {
+  order: Order;
+  escalated: boolean;
+  showCashRegister: boolean;
+  onAdvance: () => void;
+  onAcknowledge: () => void;
+  onPayment: () => void;
+  onReceipt: () => void;
+}) {
+  const [expanded, setExpanded] = useState(order.status !== "served");
+  const st = STATUS_STYLES[order.status];
+  const created = order.createdAt ? new Date(order.createdAt) : null;
+  const nextStatus = NEXT_STATUS[order.status];
+  const isDelivery = order.orderMode === "delivery";
+  const itemCount = order.items.reduce((s, i) => s + (i.quantity ?? 1), 0);
+
+  const locationText = isDelivery
+    ? "Livraison"
+    : order.roomLabel
+    ? `Chambre ${order.roomLabel}`
+    : `Table ${order.tableNumber}`;
+
+  return (
+    <SwipeableCard
+      onSwipe={onAdvance}
+      nextLabel={nextStatus ? STATUS_LABELS[nextStatus] : null}
+      disabled={!nextStatus}
+    >
+      <div className={`relative overflow-hidden bg-white rounded-2xl border transition-all duration-300 animate-fade-in-up hover:shadow-lg ${st.card}`}>
+        <div className={`absolute inset-0 bg-gradient-to-br ${st.accent} pointer-events-none`} />
+        <div className="relative">
+          {/* Header */}
+          <div className="p-4 pb-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-3 min-w-0">
+                {/* Icon */}
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  isDelivery
+                    ? "bg-blue-100 text-blue-600"
+                    : "bg-stone-100 text-stone-600"
+                }`}>
+                  {isDelivery ? (
+                    <Truck className="w-5 h-5" />
+                  ) : (
+                    <span className="text-base font-bold">{order.roomLabel ?? order.tableNumber}</span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="font-bold text-stone-900 text-base leading-tight">
+                    {locationText}
+                  </div>
+                  <div className="text-[11px] text-stone-500 mt-0.5 flex items-center gap-1.5">
+                    <span className="font-mono">#{order.id.slice(0, 6).toUpperCase()}</span>
+                    <span>·</span>
+                    <span>{created ? created.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "--:--"}</span>
+                    <span>·</span>
+                    <span>{itemCount} article{itemCount > 1 ? "s" : ""}</span>
+                  </div>
+                </div>
+              </div>
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border whitespace-nowrap ${st.badge}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${st.dot} ${st.dotPulse ? "animate-pulse" : ""}`} />
+                {STATUS_LABELS[order.status]}
+              </span>
+            </div>
+
+            {/* Tags row */}
+            <div className="flex flex-wrap gap-1.5 mt-2.5">
+              {order.paymentStatus === "paid" ? (
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Payé {order.paymentMethod === "cash" ? "(Cash)" : order.paymentMethod === "mobile_money" ? "(MoMo)" : ""}
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                  À encaisser
+                </span>
+              )}
+              {isDelivery && (
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                  <Truck className="w-2.5 h-2.5" /> Livraison
+                </span>
+              )}
+              {order.orderType !== "food" && (
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                  order.orderType === "service" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"
+                }`}>
+                  {order.orderType === "service" ? "Service" : "Problème"}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Delivery info card */}
+          {isDelivery && (
+            <div className="mx-4 mb-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-3 border border-blue-100">
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-stone-800">
+                    {order.deliveryQuartier ?? "—"}
+                  </div>
+                  {order.deliveryCarrefour && (
+                    <div className="text-xs text-stone-500 mt-0.5">{order.deliveryCarrefour}</div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center justify-between mt-2 pt-2 border-t border-blue-100">
+                {order.deliveryPhone && (
+                  <a href={`tel:${order.deliveryPhone}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                    <Phone className="w-3.5 h-3.5" />
+                    {order.deliveryPhone}
+                  </a>
+                )}
+                {order.deliveryFee > 0 && (
+                  <span className="text-xs text-stone-500">
+                    Livraison : <span className="font-bold text-stone-700">{formatFCFA(order.deliveryFee)}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Expandable items section */}
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="w-full px-4 py-2 flex items-center justify-between text-xs text-stone-500 hover:bg-stone-50 transition-colors border-t border-stone-100"
+          >
+            <span className="font-medium">
+              {expanded ? "Masquer les détails" : `Voir les détails (${itemCount} article${itemCount > 1 ? "s" : ""})`}
+            </span>
+            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+
+          {expanded && (
+            <div className="px-4 pb-3">
+              <div className="space-y-1.5 text-sm">
+                {order.orderType === "food" ? (
+                  order.items.map((item) => (
+                    <div key={item.productId} className="flex items-center justify-between gap-2 py-1">
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-stone-100" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-stone-100 flex-shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <div className="text-stone-800 font-medium truncate">{item.name}</div>
+                          <div className="text-xs text-stone-400">{item.quantity} × {formatFCFA(item.price)}</div>
+                        </div>
+                      </div>
+                      <span className="text-stone-700 font-semibold tabular-nums text-sm flex-shrink-0">
+                        {formatFCFA(item.total)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  (order.items as unknown as { id: string; label: string }[]).map((item) => (
+                    <div key={item.id} className="flex items-center gap-2 text-stone-700 py-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-stone-400 flex-shrink-0" />
+                      {item.label}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {order.orderType === "food" && (
+                <div className="border-t border-stone-200 pt-3 mt-3 flex items-baseline justify-between">
+                  {isDelivery && order.deliveryFee > 0 ? (
+                    <div className="space-y-1 flex-1">
+                      <div className="flex justify-between text-xs text-stone-500">
+                        <span>Sous-total</span>
+                        <span>{formatFCFA(order.total - order.deliveryFee)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-stone-500">
+                        <span>Livraison</span>
+                        <span>{formatFCFA(order.deliveryFee)}</span>
+                      </div>
+                      <div className="flex justify-between pt-1">
+                        <span className="text-xs uppercase tracking-wider text-stone-500 font-medium">Total</span>
+                        <span className="text-lg font-bold text-stone-900 tabular-nums tracking-tight">{formatFCFA(order.total)}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="text-xs uppercase tracking-wider text-stone-500 font-medium">Total</span>
+                      <span className="text-lg font-bold text-stone-900 tabular-nums tracking-tight">{formatFCFA(order.total)}</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Assignation */}
+          {order.assignedTo && (
+            <div className={`mx-4 mb-3 flex items-center gap-2 text-xs ${order.acknowledgedAt ? "text-emerald-700" : "text-[#8a6828]"}`}>
+              {order.acknowledgedAt ? (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              ) : (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C8963E] animate-pulse" />
+              )}
+              <span>
+                {order.acknowledgedAt
+                  ? `Pris en charge${order.assignedName ? ` par ${order.assignedName}` : ""}`
+                  : `Assigné${order.assignedName ? ` à ${order.assignedName}` : ""} — en attente`
+                }
+              </span>
+            </div>
+          )}
+          {escalated && !order.acknowledgedAt && (
+            <div className="mx-4 mb-3 flex items-center gap-2 text-xs text-red-700 bg-red-50 rounded-lg px-3 py-1.5">
+              <Bell className="w-3.5 h-3.5" />
+              Commande non prise en charge depuis 1 min{order.assignedName ? ` (${order.assignedName})` : ""}
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex gap-2 p-4 pt-2">
+            {order.status === "pending" && !order.acknowledgedAt && (
+              <button
+                onClick={onAcknowledge}
+                className="flex-1 bg-emerald-600 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                J&apos;ai reçu
+              </button>
+            )}
+            {nextStatus && (
+              <button
+                onClick={onAdvance}
+                className="flex-1 bg-[#722F37] text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors flex items-center justify-center gap-1.5"
+              >
+                {STATUS_LABELS[nextStatus]}
+              </button>
+            )}
+            {showCashRegister && (order.paymentStatus === "paid" ? (
+              <button
+                onClick={onReceipt}
+                className="px-3.5 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-semibold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Printer className="w-4 h-4 text-emerald-600" />
+                Reçu
+              </button>
+            ) : (
+              <button
+                onClick={onPayment}
+                className="px-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-950/20 flex items-center justify-center gap-1.5"
+              >
+                <Banknote className="w-4 h-4" />
+                Encaisser
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </SwipeableCard>
   );
 }
 
