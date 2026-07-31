@@ -162,9 +162,9 @@ export default function CartClient({ restaurant, tableNumber, roomLabel, deliver
       <header className="bg-white/90 backdrop-blur-md border-b border-stone-200 sticky top-0 z-20">
         <div className="max-w-2xl mx-auto px-5 py-4 flex items-center gap-3">
           <Link
-            href={`/r/${restaurant.slug}?${locationParam}`}
+            href={deliveryMode ? "/commander" : `/r/${restaurant.slug}?${locationParam}`}
             className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors"
-            aria-label="Retour au menu"
+            aria-label="Retour"
           >
             ←
           </Link>
@@ -193,10 +193,10 @@ export default function CartClient({ restaurant, tableNumber, roomLabel, deliver
               Ajoutez des plats depuis le menu.
             </p>
             <Link
-              href={`/r/${restaurant.slug}?${locationParam}`}
+              href={deliveryMode ? "/commander" : `/r/${restaurant.slug}?${locationParam}`}
               className="inline-flex items-center gap-2 rounded-full bg-[#722F37] text-white px-6 py-3 font-semibold hover:bg-[#5a2530] transition-colors"
             >
-              ← Retour au menu
+              ← {deliveryMode ? "Retour à la marketplace" : "Retour au menu"}
             </Link>
           </div>
         ) : (
