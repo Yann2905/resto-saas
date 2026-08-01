@@ -86,7 +86,7 @@ export default function OrdersPage() {
   const [typeFilter, setTypeFilter] = useState<OrderType | "all">("all");
   const isHotel = isHotelType(restaurant?.type);
   const limits = getPlanLimits(restaurant?.plan, restaurant?.featureOverrides as FeatureOverrides, restaurant?.isPartner);
-  const showCashRegister = limits.cashRegister;
+  const showCashRegister = limits.cashRegister && role !== "waiter";
   const knownIds = useRef<Set<string>>(new Set());
   const firstLoadDone = useRef(false);
   const [notifPerm, setNotifPerm] =
@@ -462,7 +462,7 @@ export default function OrdersPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <div className={`grid grid-cols-2 ${isWaiter ? "md:grid-cols-4" : "md:grid-cols-5"} gap-3 mb-6`}>
           <StatCard label="En attente" value={counts.pending} color="gold" />
           <StatCard
             label="En préparation"
@@ -471,12 +471,14 @@ export default function OrdersPage() {
           />
           <StatCard label="Prêt" value={counts.ready} color="emerald" />
           <StatCard label="Servi" value={counts.served} color="stone" />
-          <StatCard
-            label="Revenus en cours"
-            value={formatFCFA(revenueEnCours)}
-            color="stone"
-            isText
-          />
+          {!isWaiter && (
+            <StatCard
+              label="Revenus en cours"
+              value={formatFCFA(revenueEnCours)}
+              color="stone"
+              isText
+            />
+          )}
         </div>
 
         <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
