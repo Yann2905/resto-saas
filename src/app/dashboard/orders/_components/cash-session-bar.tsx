@@ -120,25 +120,42 @@ export default function CashSessionBar({ restaurantId }: Props) {
 
   return (
     <>
-      <div className="bg-slate-900 border border-slate-800/90 rounded-2xl p-4 shadow-xl text-slate-100 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-slate-900 border border-slate-800/90 rounded-2xl p-4 shadow-xl text-slate-100">
         {session ? (
           /* Session Ouverte */
-          <div className="flex flex-wrap items-center gap-6">
-            <div className="flex items-center gap-2.5 bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-1.5 rounded-xl text-emerald-400">
-              <Unlock className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-wider">Caisse Ouverte</span>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-1.5 rounded-xl text-emerald-400">
+                <Unlock className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wider">Caisse Ouverte</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={loadSession}
+                  title="Rafraîchir"
+                  className="p-2 rounded-xl border border-slate-800 bg-slate-800/40 hover:bg-slate-800 text-slate-300 transition"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+                <Link
+                  href="/dashboard/caisse"
+                  className="p-2 rounded-xl border border-slate-800 bg-slate-800/40 hover:bg-slate-800 text-slate-300 transition"
+                  title="Historique"
+                >
+                  <History className="w-4 h-4" />
+                </Link>
+              </div>
             </div>
 
-            <div className="flex items-center gap-6 text-xs font-medium border-l border-slate-800 pl-6">
-              <div>
-                <span className="text-slate-400 block">Fond initial</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-medium">
+              <div className="bg-slate-800/50 rounded-xl p-2.5">
+                <span className="text-slate-400 block mb-0.5">Fond initial</span>
                 <span className="text-sm font-semibold text-slate-200">
                   {formatFCFA(summary?.openingFloat || 0)}
                 </span>
               </div>
-
-              <div>
-                <span className="text-slate-400 flex items-center gap-1">
+              <div className="bg-slate-800/50 rounded-xl p-2.5">
+                <span className="text-slate-400 flex items-center gap-1 mb-0.5">
                   <Banknote className="w-3.5 h-3.5 text-emerald-400" />
                   Ventes Cash
                 </span>
@@ -146,9 +163,8 @@ export default function CashSessionBar({ restaurantId }: Props) {
                   {formatFCFA(summary?.totalCash || 0)}
                 </span>
               </div>
-
-              <div>
-                <span className="text-slate-400 flex items-center gap-1">
+              <div className="bg-slate-800/50 rounded-xl p-2.5">
+                <span className="text-slate-400 flex items-center gap-1 mb-0.5">
                   <Smartphone className="w-3.5 h-3.5 text-blue-400" />
                   Ventes MoMo
                 </span>
@@ -156,10 +172,9 @@ export default function CashSessionBar({ restaurantId }: Props) {
                   {formatFCFA(summary?.totalMomo || 0)}
                 </span>
               </div>
-
-              {(summary?.totalExpenses ?? 0) > 0 && (
-                <div>
-                  <span className="text-slate-400 flex items-center gap-1">
+              {(summary?.totalExpenses ?? 0) > 0 ? (
+                <div className="bg-slate-800/50 rounded-xl p-2.5">
+                  <span className="text-slate-400 flex items-center gap-1 mb-0.5">
                     <ArrowDownCircle className="w-3.5 h-3.5 text-red-400" />
                     Sorties
                   </span>
@@ -167,77 +182,81 @@ export default function CashSessionBar({ restaurantId }: Props) {
                     -{formatFCFA(summary?.totalExpenses || 0)}
                   </span>
                 </div>
+              ) : (
+                <div className="bg-slate-800/50 rounded-xl p-2.5">
+                  <span className="text-slate-400 flex items-center gap-1 mb-0.5">
+                    <ArrowDownCircle className="w-3.5 h-3.5 text-slate-500" />
+                    Sorties
+                  </span>
+                  <span className="text-sm font-semibold text-slate-500">0 FCFA</span>
+                </div>
               )}
-
-              <div className="border-l border-slate-800 pl-6">
-                <span className="text-slate-400 block">Solde Théorique Caisse</span>
-                <span className="text-base font-extrabold text-amber-400">
-                  {formatFCFA(summary?.expectedCash || 0)}
-                </span>
-              </div>
             </div>
-          </div>
-        ) : (
-          /* Aucune session ouverte */
-          <div className="flex items-center gap-3 text-slate-400">
-            <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-xl text-amber-400 text-xs font-semibold">
-              <Lock className="w-4 h-4" />
-              <span>Caisse non ouverte</span>
+
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex items-center justify-between">
+              <span className="text-xs text-amber-300/80 font-medium">Solde Théorique Caisse</span>
+              <span className="text-lg font-extrabold text-amber-400">
+                {formatFCFA(summary?.expectedCash || 0)}
+              </span>
             </div>
-            <p className="text-xs">
-              Ouvrez la caisse pour enregistrer le fond initial et suivre les espèces.
-            </p>
-          </div>
-        )}
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={loadSession}
-            title="Rafraîchir"
-            className="p-2 rounded-xl border border-slate-800 bg-slate-800/40 hover:bg-slate-800 text-slate-300 transition"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-
-          <Link
-            href="/dashboard/caisse"
-            className="p-2 rounded-xl border border-slate-800 bg-slate-800/40 hover:bg-slate-800 text-slate-300 transition"
-            title="Historique"
-          >
-            <History className="w-4 h-4" />
-          </Link>
-
-          {session ? (
-            <>
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowExpenseModal(true)}
-                className="px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-semibold flex items-center gap-1.5 transition"
-                title="Enregistrer une sortie"
+                className="flex-1 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
               >
                 <ArrowDownCircle className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sortie</span>
+                Sortie
               </button>
               <button
                 onClick={() => {
                   setClosingCashInput((summary?.expectedCash || 0).toString());
                   setShowCloseModal(true);
                 }}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-red-950/60 border border-slate-700 hover:border-red-800/60 text-red-400 hover:text-red-300 text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-red-950/60 border border-slate-700 hover:border-red-800/60 text-red-400 hover:text-red-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition shadow-sm"
               >
                 <Lock className="w-3.5 h-3.5" />
-                <span>Clôturer (Z)</span>
+                Clôturer (Z)
               </button>
-            </>
-          ) : (
-            <button
-              onClick={() => setShowOpenModal(true)}
-              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-emerald-950/40"
-            >
-              <Unlock className="w-3.5 h-3.5" />
-              <span>Ouvrir la Caisse</span>
-            </button>
-          )}
-        </div>
+            </div>
+          </div>
+        ) : (
+          /* Aucune session ouverte */
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 text-slate-400">
+              <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl text-amber-400 text-xs font-semibold">
+                <Lock className="w-4 h-4" />
+                <span>Caisse fermée</span>
+              </div>
+              <p className="text-xs hidden sm:block">
+                Ouvrez la caisse pour suivre les espèces.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={loadSession}
+                title="Rafraîchir"
+                className="p-2 rounded-xl border border-slate-800 bg-slate-800/40 hover:bg-slate-800 text-slate-300 transition"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+              <Link
+                href="/dashboard/caisse"
+                className="p-2 rounded-xl border border-slate-800 bg-slate-800/40 hover:bg-slate-800 text-slate-300 transition"
+                title="Historique"
+              >
+                <History className="w-4 h-4" />
+              </Link>
+              <button
+                onClick={() => setShowOpenModal(true)}
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-950/40"
+              >
+                <Unlock className="w-3.5 h-3.5" />
+                Ouvrir la Caisse
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal Ouverture */}
