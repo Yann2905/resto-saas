@@ -330,8 +330,8 @@ export default function CartClient({ restaurant, tableNumber, roomLabel, deliver
       </div>
 
       {items.length > 0 && (
-        <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-stone-200">
-          <div className="max-w-2xl mx-auto px-5 py-4">
+        <div className={`fixed inset-x-0 bg-white/95 backdrop-blur-md border-t border-stone-200 z-30 ${deliveryMode ? "bottom-14" : "bottom-0"}`} style={deliveryMode ? { paddingBottom: "env(safe-area-inset-bottom, 0px)" } : undefined}>
+          <div className="max-w-2xl mx-auto px-5 py-3">
             <div className="flex items-baseline justify-between mb-3">
               <span className="text-sm text-stone-500 uppercase tracking-wider font-medium">
                 Total
