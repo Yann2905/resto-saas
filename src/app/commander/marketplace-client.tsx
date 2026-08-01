@@ -24,6 +24,9 @@ type ProductWithRestaurant = {
   price: number;
   imageUrl: string | null;
   description: string | null;
+  categoryId: string;
+  categoryName: string;
+  productOrder: number;
   restaurant: RestaurantInfo;
 };
 
@@ -41,6 +44,7 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // Cart state — track for the active restaurant in cart
   const [activeCartResto, setActiveCartResto] = useState<RestaurantInfo | null>(null);
@@ -96,10 +100,22 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
     setTimeout(() => setToast(null), 2000);
   };
 
+  const restoCategories = useMemo(() => {
+    if (!selectedResto) return [];
+    const cats = new Map<string, string>();
+    for (const p of products) {
+      if (p.restaurant.id === selectedResto) cats.set(p.categoryId, p.categoryName);
+    }
+    return Array.from(cats, ([id, name]) => ({ id, name }));
+  }, [products, selectedResto]);
+
   const filtered = useMemo(() => {
     let result = products;
     if (selectedResto) {
       result = result.filter((p) => p.restaurant.id === selectedResto);
+      if (selectedCategory) {
+        result = result.filter((p) => p.categoryId === selectedCategory);
+      }
     }
     const term = search.trim().toLowerCase();
     if (term) {
@@ -110,7 +126,26 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
       );
     }
     return result;
-  }, [products, search, selectedResto]);
+  }, [products, search, selectedResto, selectedCategory]);
+
+  const groupedByCategory = useMemo(() => {
+    if (!selectedResto || selectedCategory || search.trim()) return null;
+    const groups: { categoryName: string; items: ProductWithRestaurant[] }[] = [];
+    const map = new Map<string, ProductWithRestaurant[]>();
+    const order: string[] = [];
+    for (const p of filtered) {
+      if (!map.has(p.categoryId)) {
+        map.set(p.categoryId, []);
+        order.push(p.categoryId);
+      }
+      map.get(p.categoryId)!.push(p);
+    }
+    for (const catId of order) {
+      const items = map.get(catId)!;
+      groups.push({ categoryName: items[0].categoryName, items });
+    }
+    return groups;
+  }, [filtered, selectedResto, selectedCategory, search]);
 
   return (
     <main className="min-h-screen bg-[#FFF8F0] pb-20">
@@ -175,7 +210,7 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
           <div className="max-w-3xl mx-auto px-4 pb-3 overflow-x-auto">
             <div className="flex gap-2">
               <button
-                onClick={() => setSelectedResto(null)}
+                onClick={() => { setSelectedResto(null); setSelectedCategory(null); }}
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all flex-shrink-0 ${
                   !selectedResto
                     ? "bg-[#722F37] text-white shadow-sm"
@@ -187,7 +222,7 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
               {restaurants.map((r) => (
                 <button
                   key={r.id}
-                  onClick={() => setSelectedResto(r.id === selectedResto ? null : r.id)}
+                  onClick={() => { setSelectedResto(r.id === selectedResto ? null : r.id); setSelectedCategory(null); }}
                   className={`whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition-all flex items-center gap-2 flex-shrink-0 ${
                     selectedResto === r.id
                       ? "bg-[#722F37] text-white shadow-sm"
@@ -241,7 +276,34 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
         );
       })()}
 
-      {/* ── Products grid ──────────────────────── */}
+      {/* ── Category chips (when restaurant selected) ── */}
+      {selectedResto && restoCategories.length > 1 && (
+        <div className="max-w-3xl mx-auto px-4 pt-3 overflow-x-auto">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all flex-shrink-0 ${
+                !selectedCategory ? "bg-[#C8963E] text-white shadow-sm" : "bg-white text-stone-600 hover:bg-stone-100 border border-stone-200"
+              }`}
+            >
+              Tout
+            </button>
+            {restoCategories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id === selectedCategory ? null : cat.id)}
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all flex-shrink-0 ${
+                  selectedCategory === cat.id ? "bg-[#C8963E] text-white shadow-sm" : "bg-white text-stone-600 hover:bg-stone-100 border border-stone-200"
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Products ──────────────────────────── */}
       <div className="max-w-3xl mx-auto px-4 py-5">
         {filtered.length === 0 ? (
           <div className="text-center py-24">
@@ -253,96 +315,37 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
             </p>
             <p className="text-sm text-stone-400">Essayez un autre terme de recherche</p>
           </div>
+        ) : groupedByCategory ? (
+          /* Grouped by category view */
+          <div className="space-y-6">
+            {groupedByCategory.map((group) => (
+              <div key={group.categoryName}>
+                <h2 className="font-bold text-stone-900 text-lg mb-3 flex items-center gap-2">
+                  <span className="w-1 h-5 rounded-full bg-[#722F37]" />
+                  {group.categoryName}
+                </h2>
+                <div className="grid grid-cols-2 gap-3">
+                  {group.items.map((product) => (
+                    <ProductCard key={product.id} product={product} onDetail={() => { setSelectedProduct(product); setDetailQty(1); }} onAdd={() => handleAdd(product)} added={justAdded === product.id} showRestaurant={false} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
+          /* Flat grid view */
           <>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-bold text-stone-900">
-                {selectedResto ? "Plats disponibles" : "Tous les plats"}
+                {selectedResto && selectedCategory ? restoCategories.find((c) => c.id === selectedCategory)?.name ?? "Plats" : selectedResto ? "Plats disponibles" : "Tous les plats"}
               </h2>
               <span className="text-xs text-stone-400 bg-stone-100 rounded-full px-3 py-1">
                 {filtered.length} plat{filtered.length > 1 ? "s" : ""}
               </span>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               {filtered.map((product) => (
-                <div
-                  key={`${product.restaurant.id}-${product.id}`}
-                  className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group"
-                >
-                  {/* Image — clickable for detail */}
-                  <button
-                    onClick={() => { setSelectedProduct(product); setDetailQty(1); }}
-                    className="w-full text-left"
-                  >
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      {product.imageUrl ? (
-                        <img
-                          src={product.imageUrl}
-                          alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center">
-                          <UtensilsCrossed className="w-10 h-10 text-amber-300" />
-                        </div>
-                      )}
-                      {/* Price badge */}
-                      <div className="absolute bottom-2 left-2 bg-[#722F37] rounded-lg px-2.5 py-1 shadow-lg">
-                        <span className="text-xs font-bold text-white">
-                          {formatFCFA(product.price)}
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* Info + add button */}
-                  <div className="p-3">
-                    <button
-                      onClick={() => { setSelectedProduct(product); setDetailQty(1); }}
-                      className="text-left w-full"
-                    >
-                      <h3 className="font-bold text-stone-900 text-sm leading-tight line-clamp-2 mb-2 min-h-[2.5rem]">
-                        {product.name}
-                      </h3>
-                    </button>
-                    {/* Restaurant + Add button */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        {product.restaurant.logoUrl ? (
-                          <img
-                            src={product.restaurant.logoUrl}
-                            alt=""
-                            className="w-5 h-5 rounded-full object-cover flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center flex-shrink-0">
-                            <span className="text-[8px] font-bold text-white">
-                              {product.restaurant.name.charAt(0)}
-                            </span>
-                          </div>
-                        )}
-                        <span className="text-[11px] text-stone-500 truncate font-medium">
-                          {product.restaurant.name}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => handleAdd(product)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm flex-shrink-0 ${
-                          justAdded === product.id
-                            ? "bg-emerald-500 text-white scale-110"
-                            : "bg-[#722F37] text-white hover:bg-[#5a2530] active:scale-95"
-                        }`}
-                      >
-                        {justAdded === product.id ? (
-                          <Check className="w-4 h-4" />
-                        ) : (
-                          <Plus className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <ProductCard key={`${product.restaurant.id}-${product.id}`} product={product} onDetail={() => { setSelectedProduct(product); setDetailQty(1); }} onAdd={() => handleAdd(product)} added={justAdded === product.id} showRestaurant={!selectedResto} />
               ))}
             </div>
           </>
@@ -559,5 +562,67 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
         }
       `}</style>
     </main>
+  );
+}
+
+function ProductCard({
+  product,
+  onDetail,
+  onAdd,
+  added,
+  showRestaurant,
+}: {
+  product: ProductWithRestaurant;
+  onDetail: () => void;
+  onAdd: () => void;
+  added: boolean;
+  showRestaurant: boolean;
+}) {
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group">
+      <button onClick={onDetail} className="w-full text-left">
+        <div className="relative aspect-[4/3] overflow-hidden">
+          {product.imageUrl ? (
+            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center">
+              <UtensilsCrossed className="w-10 h-10 text-amber-300" />
+            </div>
+          )}
+          <div className="absolute bottom-2 left-2 bg-[#722F37] rounded-lg px-2.5 py-1 shadow-lg">
+            <span className="text-xs font-bold text-white">{formatFCFA(product.price)}</span>
+          </div>
+        </div>
+      </button>
+      <div className="p-3">
+        <button onClick={onDetail} className="text-left w-full">
+          <h3 className="font-bold text-stone-900 text-sm leading-tight line-clamp-2 mb-2 min-h-[2.5rem]">{product.name}</h3>
+        </button>
+        <div className="flex items-center justify-between">
+          {showRestaurant ? (
+            <div className="flex items-center gap-1.5 min-w-0">
+              {product.restaurant.logoUrl ? (
+                <img src={product.restaurant.logoUrl} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center flex-shrink-0">
+                  <span className="text-[8px] font-bold text-white">{product.restaurant.name.charAt(0)}</span>
+                </div>
+              )}
+              <span className="text-[11px] text-stone-500 truncate font-medium">{product.restaurant.name}</span>
+            </div>
+          ) : (
+            <span className="text-sm font-semibold text-[#722F37]">{formatFCFA(product.price)}</span>
+          )}
+          <button
+            onClick={onAdd}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm flex-shrink-0 ${
+              added ? "bg-emerald-500 text-white scale-110" : "bg-[#722F37] text-white hover:bg-[#5a2530] active:scale-95"
+            }`}
+          >
+            {added ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

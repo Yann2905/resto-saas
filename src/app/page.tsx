@@ -6,24 +6,6 @@ import MarketplaceClient from "./commander/marketplace-client";
 
 export const revalidate = 60;
 
-type RestaurantInfo = {
-  id: string;
-  slug: string;
-  name: string;
-  logoUrl: string | null;
-  deliveryFee: number;
-  address: string | null;
-};
-
-type ProductWithRestaurant = {
-  id: string;
-  name: string;
-  price: number;
-  imageUrl: string | null;
-  description: string | null;
-  restaurant: RestaurantInfo;
-};
-
 export default async function HomePage() {
   const supabase = createSupabaseAdminClient();
 
@@ -67,16 +49,36 @@ export default async function HomePage() {
 
   const restaurantIds = activeRestaurants.map((r) => r.id);
 
-  const { data: products } = await supabase
-    .from("products")
-    .select("*")
-    .in("restaurant_id", restaurantIds)
-    .eq("available", true)
-    .order("created_at", { ascending: false });
+  const [{ data: products }, { data: categories }] = await Promise.all([
+    supabase
+      .from("products")
+      .select("*")
+      .in("restaurant_id", restaurantIds)
+      .eq("available", true)
+      .order("order", { ascending: true }),
+    supabase
+      .from("categories")
+      .select("id, name, restaurant_id, \"order\"")
+      .in("restaurant_id", restaurantIds)
+      .order("order", { ascending: true }),
+  ]);
 
+  const catMap = new Map((categories ?? []).map((c: { id: string; name: string }) => [c.id, c.name]));
   const restMap = new Map(activeRestaurants.map((r) => [r.id, r]));
 
-  const allProducts: ProductWithRestaurant[] = ((products as ProductRow[]) ?? [])
+  type MarketProduct = {
+    id: string;
+    name: string;
+    price: number;
+    imageUrl: string | null;
+    description: string | null;
+    categoryId: string;
+    categoryName: string;
+    productOrder: number;
+    restaurant: { id: string; slug: string; name: string; logoUrl: string | null; deliveryFee: number; address: string | null };
+  };
+
+  const allProducts: MarketProduct[] = ((products as ProductRow[]) ?? [])
     .map((p) => {
       const mapped = mapProduct(p);
       const rest = restMap.get(mapped.restaurantId);
@@ -87,6 +89,9 @@ export default async function HomePage() {
         price: mapped.price,
         imageUrl: mapped.imageUrl ?? null,
         description: mapped.description,
+        categoryId: mapped.categoryId,
+        categoryName: catMap.get(mapped.categoryId) ?? "Autres",
+        productOrder: mapped.order,
         restaurant: {
           id: rest.id,
           slug: rest.slug,
@@ -97,7 +102,7 @@ export default async function HomePage() {
         },
       };
     })
-    .filter(Boolean) as ProductWithRestaurant[];
+    .filter(Boolean) as MarketProduct[];
 
   const restaurantList = activeRestaurants.map((r) => ({
     id: r.id,
