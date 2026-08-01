@@ -165,11 +165,17 @@ export default function OrdersPage() {
     };
 
     fetchOrders();
+    const retryTimer = setTimeout(() => {
+      if (!firstLoadDone.current && !cancelled) fetchOrders();
+    }, 2000);
 
     const onVisible = () => {
       if (document.visibilityState === "visible") fetchOrders();
     };
     document.addEventListener("visibilitychange", onVisible);
+
+    const onFocus = () => fetchOrders();
+    window.addEventListener("focus", onFocus);
 
     const onSWMessage = (e: MessageEvent) => {
       if (e.data?.type === "REFRESH_ORDERS") fetchOrders();
@@ -248,8 +254,10 @@ export default function OrdersPage() {
 
     return () => {
       cancelled = true;
+      clearTimeout(retryTimer);
       supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
       navigator.serviceWorker?.removeEventListener("message", onSWMessage);
     };
   }, [restaurantId]);

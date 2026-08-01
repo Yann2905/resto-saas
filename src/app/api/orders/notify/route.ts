@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
+import { sendPushToRestaurant } from "@/lib/push";
 import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
 
   const { data: order, error: orderError } = await admin
     .from("orders")
-    .select("*")
+    .select("id, restaurant_id, total, table_number, room_label, order_type, assigned_to")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -52,66 +53,21 @@ export async function POST(request: NextRequest) {
     url: "/dashboard/orders",
   };
 
-  // Build list of profiles to notify
-  const targetIds: string[] = [];
+  const sent: string[] = [];
 
-  // Always notify owners
-  const { data: owners } = await admin
-    .from("profiles")
-    .select("id, is_online")
-    .eq("restaurant_id", order.restaurant_id)
-    .eq("role", "owner");
+  // Send push directly to all owners (no is_online filter)
+  sendPushToRestaurant(order.restaurant_id, payload).catch((err) => {
+    console.error("[notify] push to restaurant failed:", err);
+  });
+  sent.push("restaurant");
 
-  if (owners) {
-    for (const o of owners) {
-      if (o.is_online) targetIds.push(o.id);
-    }
-  }
-
-  // Notify assigned waiter if any
+  // Also send specifically to assigned waiter if any
   if (order.assigned_to) {
-    const { data: waiter } = await admin
-      .from("profiles")
-      .select("id, is_online")
-      .eq("id", order.assigned_to)
-      .maybeSingle();
-    if (waiter?.is_online && !targetIds.includes(waiter.id)) {
-      targetIds.push(waiter.id);
-    }
+    sendPushToRestaurant(order.restaurant_id, payload, order.assigned_to).catch((err) => {
+      console.error("[notify] push to waiter failed:", err);
+    });
+    sent.push("waiter:" + order.assigned_to);
   }
 
-  if (targetIds.length === 0) {
-    return NextResponse.json({ ok: true, queued: 0 });
-  }
-
-  // Insert into notification queue
-  const jobs = targetIds.map((profileId) => ({
-    order_id: orderId,
-    profile_id: profileId,
-    restaurant_id: order.restaurant_id,
-    payload,
-    status: "pending" as const,
-  }));
-
-  const { error: insertErr } = await admin
-    .from("notification_queue")
-    .insert(jobs);
-
-  if (insertErr) {
-    console.error("[notify] queue insert error:", insertErr.message);
-    return NextResponse.json({ ok: false }, { status: 500 });
-  }
-
-  // Fire-and-forget: trigger the worker immediately
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://resto-saas.vercel.app";
-  const cronSecret = process.env.CRON_SECRET || "";
-  fetch(`${appUrl}/api/cron/process-notifications`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(cronSecret ? { authorization: `Bearer ${cronSecret}` } : {}),
-    },
-  }).catch(() => {});
-
-  return NextResponse.json({ ok: true, queued: targetIds.length });
+  return NextResponse.json({ ok: true, sent: sent.length });
 }

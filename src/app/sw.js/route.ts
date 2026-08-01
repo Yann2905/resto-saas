@@ -124,7 +124,11 @@ self.addEventListener("notificationclick", (event) => {
             return client.focus();
           }
         }
-        return self.clients.openWindow(url);
+        return self.clients.openWindow(url).then((win) => {
+          if (win) {
+            setTimeout(() => win.postMessage({ type: "REFRESH_ORDERS" }), 2500);
+          }
+        });
       }),
     ])
   );
