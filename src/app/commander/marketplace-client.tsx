@@ -3,7 +3,8 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, MapPin, Minus, Plus, Search, ShoppingBag, Truck, UtensilsCrossed, X } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, Check, MapPin, Menu, Minus, Plus, Search, ShoppingBag, Truck, UtensilsCrossed, X } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
 import { addToCart, getCart, cartCount, cartTotal, clearCart } from "@/lib/cart";
 import DeliveryNav from "./_components/delivery-nav";
@@ -39,6 +40,7 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
   const [detailQty, setDetailQty] = useState(1);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Cart state — track for the active restaurant in cart
   const [activeCartResto, setActiveCartResto] = useState<RestaurantInfo | null>(null);
@@ -117,9 +119,7 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
         <div className="max-w-3xl mx-auto px-4 pt-4 pb-3">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#722F37] to-[#5a2530] flex items-center justify-center shadow-sm">
-                <Truck className="w-4 h-4 text-white" />
-              </div>
+              <Image src="/icon-192.png" alt="Resto SaaS" width={36} height={36} className="rounded-xl shadow-sm" priority />
               <div>
                 <h1 className="text-lg font-bold text-stone-900 leading-tight">
                   Resto SaaS
@@ -127,17 +127,26 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
                 <p className="text-[11px] text-stone-500">Livraison à domicile</p>
               </div>
             </div>
-            {count > 0 && activeCartResto && (
+            <div className="flex items-center gap-2">
+              {count > 0 && activeCartResto && (
+                <button
+                  onClick={() => router.push(`/r/${activeCartResto.slug}/cart?mode=delivery`)}
+                  className="relative w-10 h-10 rounded-full bg-[#722F37]/10 flex items-center justify-center hover:bg-[#722F37]/20 transition-colors"
+                >
+                  <ShoppingBag className="w-5 h-5 text-[#722F37]" />
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#722F37] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                    {count}
+                  </span>
+                </button>
+              )}
               <button
-                onClick={() => router.push(`/r/${activeCartResto.slug}/cart?mode=delivery`)}
-                className="relative w-10 h-10 rounded-full bg-[#722F37]/10 flex items-center justify-center hover:bg-[#722F37]/20 transition-colors"
+                onClick={() => setMenuOpen(true)}
+                className="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center text-stone-600 hover:bg-stone-200 transition-colors"
+                aria-label="Menu"
               >
-                <ShoppingBag className="w-5 h-5 text-[#722F37]" />
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#722F37] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
-                  {count}
-                </span>
+                <Menu className="w-5 h-5" />
               </button>
-            )}
+            </div>
           </div>
 
           {/* Search bar */}
@@ -478,6 +487,57 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
         </div>
       )}
 
+      {/* ── Hamburger Menu ─────────────────────── */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMenuOpen(false)} />
+          <div className="absolute top-0 right-0 w-72 h-full bg-white shadow-2xl flex flex-col" style={{ animation: "slideInRight 0.25s ease-out" }}>
+            <div className="flex items-center justify-between p-5 border-b border-stone-100">
+              <div className="flex items-center gap-2">
+                <Image src="/icon-192.png" alt="Resto SaaS" width={28} height={28} className="rounded-lg" />
+                <span className="font-bold text-stone-900 text-sm">Resto SaaS</span>
+              </div>
+              <button onClick={() => setMenuOpen(false)} className="w-9 h-9 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 hover:bg-stone-200">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 p-4 space-y-1">
+              <Link href="/dashboard/login" onClick={() => setMenuOpen(false)} className="flex items-center justify-between px-4 py-3 rounded-xl text-stone-700 font-medium hover:bg-stone-50 transition-colors">
+                Connexion restaurant
+                <ArrowRight className="w-4 h-4 text-stone-400" />
+              </Link>
+              <a href="https://wa.me/2250575343846?text=Bonjour%2C%20je%20souhaite%20essayer%20Resto%20SaaS%20pour%20mon%20restaurant." target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="flex items-center justify-between px-4 py-3 rounded-xl text-stone-700 font-medium hover:bg-stone-50 transition-colors">
+                Restaurateur ? Démarrer ici
+                <ArrowRight className="w-4 h-4 text-stone-400" />
+              </a>
+              <div className="border-t border-stone-100 my-3" />
+              <Link href="/a-propos" onClick={() => setMenuOpen(false)} className="flex items-center px-4 py-3 rounded-xl text-stone-500 text-sm hover:bg-stone-50 transition-colors">
+                À propos
+              </Link>
+              <Link href="/contact" onClick={() => setMenuOpen(false)} className="flex items-center px-4 py-3 rounded-xl text-stone-500 text-sm hover:bg-stone-50 transition-colors">
+                Contact
+              </Link>
+              <Link href="/cgu" onClick={() => setMenuOpen(false)} className="flex items-center px-4 py-3 rounded-xl text-stone-500 text-sm hover:bg-stone-50 transition-colors">
+                CGU
+              </Link>
+            </div>
+            <div className="p-4 border-t border-stone-100">
+              <a
+                href="https://wa.me/2250575343846"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full rounded-xl bg-emerald-600 text-white font-semibold py-3 text-sm hover:bg-emerald-500 transition-colors"
+              >
+                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden>
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                </svg>
+                WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Bottom Nav ─────────────────────────── */}
       <DeliveryNav cartCount={count} activeTab="home" />
 
@@ -492,6 +552,10 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
         }
         .animate-fade-in-up {
           animation: fadeInUp 0.3s ease-out;
+        }
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
         }
       `}</style>
     </main>
