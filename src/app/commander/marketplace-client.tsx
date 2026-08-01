@@ -430,10 +430,10 @@ export default function MarketplaceClient({ products, restaurants, categories = 
                 Connexion restaurant
                 <ArrowRight className="w-4 h-4 text-stone-400" />
               </Link>
-              <Link href="/inscription" onClick={() => setMenuOpen(false)} className="flex items-center justify-between px-4 py-3 rounded-xl text-stone-700 font-medium hover:bg-stone-50 transition-colors">
-                Restaurateur ? Démarrer ici
+              <a href="https://wa.me/2250575343846?text=Bonjour%2C%20je%20souhaite%20cr%C3%A9er%20mon%20restaurant%20sur%20Resto%20SaaS" onClick={() => setMenuOpen(false)} className="flex items-center justify-between px-4 py-3 rounded-xl text-stone-700 font-medium hover:bg-stone-50 transition-colors" target="_blank" rel="noopener noreferrer">
+                Restaurateur ? Contactez-nous
                 <ArrowRight className="w-4 h-4 text-stone-400" />
-              </Link>
+              </a>
               <div className="border-t border-stone-100 my-3" />
               <Link href="/a-propos" onClick={() => setMenuOpen(false)} className="flex items-center px-4 py-3 rounded-xl text-stone-500 text-sm hover:bg-stone-50 transition-colors">
                 À propos

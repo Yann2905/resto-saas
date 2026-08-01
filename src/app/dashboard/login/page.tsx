@@ -336,9 +336,7 @@ export default function LoginPage() {
 
         <p className="text-center text-xs text-stone-500 mt-6">
           Pas de compte ?{" "}
-          <a href="/inscription" className="text-[#722F37] font-semibold hover:underline">
-            Créer mon restaurant
-          </a>
+          <span className="text-stone-400">Contactez l&apos;administrateur</span>
         </p>
       </div>
     </main>
