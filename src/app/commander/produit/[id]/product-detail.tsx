@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, memo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, MapPin, Minus, Plus, ShoppingBag, Truck, UtensilsCrossed } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
@@ -85,7 +86,7 @@ export default function ProductDetail({ product, restaurant, categoryName, simil
       {/* Image */}
       <div className="relative">
         {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.name} className="w-full h-72 sm:h-96 object-cover" />
+          <Image src={product.imageUrl} alt={product.name} width={800} height={400} priority className="w-full h-72 sm:h-96 object-cover" />
         ) : (
           <div className="w-full h-72 sm:h-96 bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center">
             <UtensilsCrossed className="w-24 h-24 text-amber-200" />
@@ -228,7 +229,7 @@ export default function ProductDetail({ product, restaurant, categoryName, simil
   );
 }
 
-function SimilarCard({ product, onAdd }: { product: SimilarProduct; onAdd: () => void }) {
+const SimilarCard = memo(function SimilarCard({ product, onAdd }: { product: SimilarProduct; onAdd: () => void }) {
   const [justAdded, setJustAdded] = useState(false);
 
   const handleClick = () => {
@@ -242,7 +243,7 @@ function SimilarCard({ product, onAdd }: { product: SimilarProduct; onAdd: () =>
       <Link href={`/commander/produit/${product.id}`}>
         <div className="relative aspect-[4/3] overflow-hidden">
           {product.imageUrl ? (
-            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+            <Image src={product.imageUrl} alt={product.name} width={160} height={120} className="w-full h-full object-cover" loading="lazy" />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center">
               <UtensilsCrossed className="w-8 h-8 text-amber-300" />
@@ -268,4 +269,4 @@ function SimilarCard({ product, onAdd }: { product: SimilarProduct; onAdd: () =>
       </div>
     </div>
   );
-}
+});

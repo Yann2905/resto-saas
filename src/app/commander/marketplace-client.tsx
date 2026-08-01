@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, memo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -117,6 +117,8 @@ export default function MarketplaceClient({ products, restaurants, categories = 
       .sort((a, b) => a.order - b.order);
   }, [products, selectedResto, categories]);
 
+  const catOrderMap = useMemo(() => new Map(categories.map((c) => [c.id, c.order])), [categories]);
+
   const filtered = useMemo(() => {
     let result = products;
     if (selectedResto) {
@@ -133,8 +135,13 @@ export default function MarketplaceClient({ products, restaurants, categories = 
           p.restaurant.name.toLowerCase().includes(term)
       );
     }
-    return result;
-  }, [products, search, selectedResto, selectedCategory]);
+    return [...result].sort((a, b) => {
+      const catA = catOrderMap.get(a.categoryId) ?? 999;
+      const catB = catOrderMap.get(b.categoryId) ?? 999;
+      if (catA !== catB) return catA - catB;
+      return a.productOrder - b.productOrder;
+    });
+  }, [products, search, selectedResto, selectedCategory, catOrderMap]);
 
   const groupedByCategory = useMemo(() => {
     if (!selectedResto || selectedCategory || search.trim()) return null;
@@ -464,7 +471,7 @@ export default function MarketplaceClient({ products, restaurants, categories = 
   );
 }
 
-function ProductCard({
+const ProductCard = memo(function ProductCard({
   product,
   onAdd,
   added,
@@ -480,7 +487,7 @@ function ProductCard({
       <Link href={`/commander/produit/${product.id}`} className="block">
         <div className="relative aspect-[4/3] overflow-hidden">
           {product.imageUrl ? (
-            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+            <Image src={product.imageUrl} alt={product.name} width={400} height={300} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center">
               <UtensilsCrossed className="w-10 h-10 text-amber-300" />
@@ -522,4 +529,4 @@ function ProductCard({
       </div>
     </div>
   );
-}
+});

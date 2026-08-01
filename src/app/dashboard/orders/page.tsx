@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ArrowRight, Banknote, Bell, CheckCircle2, ChevronDown, ChevronUp, MapPin, Phone, Printer, Truck, Volume2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -254,16 +254,14 @@ export default function OrdersPage() {
     };
   }, [restaurantId]);
 
-  const advance = (order: Order) => {
+  const advance = useCallback((order: Order) => {
     const next = NEXT_STATUS[order.status];
     if (!next) return;
     clearBadge();
     const previousStatus = order.status;
-    // Optimistic — UI change instantanément
     setOrders((prev) =>
       prev.map((o) => (o.id === order.id ? { ...o, status: next } : o))
     );
-    // Fire-and-forget avec rollback si échec
     fetch("/api/orders/advance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -272,7 +270,6 @@ export default function OrdersPage() {
       .then((res) => res.json())
       .then((json) => {
         if (!json.ok) {
-          // Rollback
           setOrders((prev) =>
             prev.map((o) =>
               o.id === order.id ? { ...o, status: previousStatus } : o
@@ -281,14 +278,13 @@ export default function OrdersPage() {
         }
       })
       .catch(() => {
-        // Rollback on network error
         setOrders((prev) =>
           prev.map((o) =>
             o.id === order.id ? { ...o, status: previousStatus } : o
           )
         );
       });
-  };
+  }, []);
 
   const requestNotif = async () => {
     if (!("Notification" in window)) return;
@@ -363,7 +359,7 @@ export default function OrdersPage() {
   const filteredOrders =
     filter === "all" ? byType : byType.filter((o) => o.status === filter);
 
-  const acknowledge = async (orderId: string) => {
+  const acknowledge = useCallback(async (orderId: string) => {
     const res = await fetch("/api/orders/acknowledge", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -380,7 +376,7 @@ export default function OrdersPage() {
       );
       void toastSuccess("Commande prise en charge !");
     }
-  };
+  }, []);
 
   if (loading && !restaurant) {
     return (
@@ -588,7 +584,7 @@ export default function OrdersPage() {
   );
 }
 
-function OrderCard({
+const OrderCard = memo(function OrderCard({
   order,
   escalated,
   showCashRegister,
@@ -853,9 +849,9 @@ function OrderCard({
       </div>
     </SwipeableCard>
   );
-}
+});
 
-function StatCard({
+const StatCard = memo(function StatCard({
   label,
   value,
   color,
@@ -886,9 +882,9 @@ function StatCard({
       </div>
     </div>
   );
-}
+});
 
-function SwipeableCard({
+const SwipeableCard = memo(function SwipeableCard({
   children,
   onSwipe,
   nextLabel,
@@ -950,4 +946,4 @@ function SwipeableCard({
       </div>
     </div>
   );
-}
+});

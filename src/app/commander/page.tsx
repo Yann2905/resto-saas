@@ -12,7 +12,7 @@ export default async function CommanderPage() {
 
   const { data: restaurants } = await supabase
     .from("restaurants")
-    .select("*")
+    .select("id, slug, name, logo_url, address, delivery_fee, active, delivery_enabled, plan, subscription_expires_at, is_partner, feature_overrides, type")
     .eq("active", true)
     .eq("delivery_enabled", true);
 
@@ -73,7 +73,7 @@ export default async function CommanderPage() {
   const [{ data: products }, { data: categories }] = await Promise.all([
     supabase
       .from("products")
-      .select("*")
+      .select("id, name, price, image_url, description, category_id, restaurant_id, \"order\", available, stock_quantity, stock_consumption")
       .in("restaurant_id", restaurantIds)
       .eq("available", true)
       .order("order", { ascending: true }),

@@ -15,7 +15,7 @@ export default async function ProductPage({
 
   const { data: productRow } = await supabase
     .from("products")
-    .select("*")
+    .select("id, name, price, image_url, description, category_id, restaurant_id, \"order\", available, stock_quantity, stock_consumption")
     .eq("id", id)
     .eq("available", true)
     .maybeSingle();
@@ -33,7 +33,7 @@ export default async function ProductPage({
 
   const { data: similarRows } = await supabase
     .from("products")
-    .select("*")
+    .select("id, name, price, image_url, description, category_id, restaurant_id, \"order\", available, stock_quantity, stock_consumption")
     .eq("restaurant_id", product.restaurantId)
     .eq("category_id", product.categoryId)
     .eq("available", true)

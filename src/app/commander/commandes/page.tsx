@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, memo } from "react";
 import Link from "next/link";
 import {
   ChefHat,
@@ -64,7 +64,7 @@ export default function CommandesPage() {
     const ids = stored.map((o) => o.id);
     const { data } = await supabase
       .from("orders")
-      .select("*")
+      .select("id, restaurant_id, table_number, room_label, status, items, total, created_at, updated_at, order_type, order_mode, assigned_to, acknowledged_at, delivery_phone, delivery_quartier, delivery_carrefour, delivery_fee, payment_status")
       .in("id", ids)
       .order("created_at", { ascending: false });
 
@@ -225,7 +225,7 @@ export default function CommandesPage() {
   );
 }
 
-function OrderCard({
+const OrderCard = memo(function OrderCard({
   order,
   storedOrder,
   expanded,
@@ -367,4 +367,4 @@ function OrderCard({
       )}
     </div>
   );
-}
+});
