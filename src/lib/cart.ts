@@ -21,7 +21,15 @@ export function saveCart(
   items: CartItem[]
 ) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(keyFor(restaurantId, table), JSON.stringify(items));
+  const key = keyFor(restaurantId, table);
+  if (items.length === 0) {
+    localStorage.removeItem(key);
+    if (table === "delivery") {
+      localStorage.removeItem("delivery_cart_slug");
+    }
+  } else {
+    localStorage.setItem(key, JSON.stringify(items));
+  }
   window.dispatchEvent(new Event("cart:updated"));
 }
 
