@@ -55,19 +55,56 @@ export async function POST(request: NextRequest) {
 
   const sent: string[] = [];
 
-  // Send push directly to all owners (no is_online filter)
-  sendPushToRestaurant(order.restaurant_id, payload).catch((err) => {
+  // If assigned to a waiter, check if they're online
+  if (order.assigned_to) {
+    const { data: waiterProfile } = await admin
+      .from("profiles")
+      .select("id, is_online")
+      .eq("id", order.assigned_to)
+      .maybeSingle();
+
+    if (waiterProfile?.is_online) {
+      sendPushToRestaurant(order.restaurant_id, payload, order.assigned_to).catch((err) => {
+        console.error("[notify] push to waiter failed:", err);
+      });
+      sent.push("waiter:" + order.assigned_to);
+    } else {
+      // Waiter is offline — find another online waiter for this table
+      const tableNum = order.table_number as number | null;
+      let newWaiterId: string | null = null;
+
+      if (tableNum) {
+        const { data: onlineWaiter } = await admin
+          .from("profiles")
+          .select("id")
+          .eq("restaurant_id", order.restaurant_id)
+          .eq("role", "waiter")
+          .eq("is_online", true)
+          .neq("id", order.assigned_to)
+          .limit(1)
+          .maybeSingle();
+
+        if (onlineWaiter) {
+          newWaiterId = onlineWaiter.id as string;
+          await admin
+            .from("orders")
+            .update({ assigned_to: newWaiterId })
+            .eq("id", orderId);
+
+          sendPushToRestaurant(order.restaurant_id, payload, newWaiterId).catch((err) => {
+            console.error("[notify] push to reassigned waiter failed:", err);
+          });
+          sent.push("reassigned:" + newWaiterId);
+        }
+      }
+    }
+  }
+
+  // Send push to owners/managers (online only)
+  sendPushToRestaurant(order.restaurant_id, payload, null, true).catch((err) => {
     console.error("[notify] push to restaurant failed:", err);
   });
-  sent.push("restaurant");
-
-  // Also send specifically to assigned waiter if any
-  if (order.assigned_to) {
-    sendPushToRestaurant(order.restaurant_id, payload, order.assigned_to).catch((err) => {
-      console.error("[notify] push to waiter failed:", err);
-    });
-    sent.push("waiter:" + order.assigned_to);
-  }
+  sent.push("restaurant-online");
 
   return NextResponse.json({ ok: true, sent: sent.length });
 }
