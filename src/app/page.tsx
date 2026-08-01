@@ -113,5 +113,11 @@ export default async function HomePage() {
     address: r.address ?? null,
   }));
 
-  return <MarketplaceClient products={allProducts} restaurants={restaurantList} />;
+  const categoryList = (categories ?? []).map((c: { id: string; name: string; order: number }) => ({
+    id: c.id,
+    name: c.name,
+    order: c.order ?? 0,
+  }));
+
+  return <MarketplaceClient products={allProducts} restaurants={restaurantList} categories={categoryList} />;
 }

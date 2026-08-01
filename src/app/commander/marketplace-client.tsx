@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowRight, Check, MapPin, Menu, Minus, Plus, Search, ShoppingBag, Truck, UtensilsCrossed, X } from "lucide-react";
+import { ArrowRight, Check, MapPin, Menu, Plus, Search, ShoppingBag, Truck, UtensilsCrossed, X } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
 import { addToCart, getCart, cartCount, cartTotal, clearCart } from "@/lib/cart";
 import DeliveryNav from "./_components/delivery-nav";
@@ -16,6 +16,12 @@ type RestaurantInfo = {
   logoUrl: string | null;
   deliveryFee: number;
   address: string | null;
+};
+
+type CategoryInfo = {
+  id: string;
+  name: string;
+  order: number;
 };
 
 type ProductWithRestaurant = {
@@ -33,14 +39,13 @@ type ProductWithRestaurant = {
 type Props = {
   products: ProductWithRestaurant[];
   restaurants: RestaurantInfo[];
+  categories?: CategoryInfo[];
 };
 
-export default function MarketplaceClient({ products, restaurants }: Props) {
+export default function MarketplaceClient({ products, restaurants, categories = [] }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectedResto, setSelectedResto] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<ProductWithRestaurant | null>(null);
-  const [detailQty, setDetailQty] = useState(1);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -102,12 +107,15 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
 
   const restoCategories = useMemo(() => {
     if (!selectedResto) return [];
-    const cats = new Map<string, string>();
+    const catIds = new Set<string>();
     for (const p of products) {
-      if (p.restaurant.id === selectedResto) cats.set(p.categoryId, p.categoryName);
+      if (p.restaurant.id === selectedResto) catIds.add(p.categoryId);
     }
-    return Array.from(cats, ([id, name]) => ({ id, name }));
-  }, [products, selectedResto]);
+    const catOrderMap = new Map(categories.map((c) => [c.id, c.order]));
+    return Array.from(catIds)
+      .map((id) => ({ id, name: categories.find((c) => c.id === id)?.name ?? products.find((p) => p.categoryId === id)?.categoryName ?? "Autres", order: catOrderMap.get(id) ?? 999 }))
+      .sort((a, b) => a.order - b.order);
+  }, [products, selectedResto, categories]);
 
   const filtered = useMemo(() => {
     let result = products;
@@ -130,22 +138,16 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
 
   const groupedByCategory = useMemo(() => {
     if (!selectedResto || selectedCategory || search.trim()) return null;
-    const groups: { categoryName: string; items: ProductWithRestaurant[] }[] = [];
     const map = new Map<string, ProductWithRestaurant[]>();
-    const order: string[] = [];
     for (const p of filtered) {
-      if (!map.has(p.categoryId)) {
-        map.set(p.categoryId, []);
-        order.push(p.categoryId);
-      }
+      if (!map.has(p.categoryId)) map.set(p.categoryId, []);
       map.get(p.categoryId)!.push(p);
     }
-    for (const catId of order) {
-      const items = map.get(catId)!;
-      groups.push({ categoryName: items[0].categoryName, items });
-    }
-    return groups;
-  }, [filtered, selectedResto, selectedCategory, search]);
+    const catOrderMap = new Map(categories.map((c) => [c.id, c.order]));
+    return Array.from(map.entries())
+      .sort(([a], [b]) => (catOrderMap.get(a) ?? 999) - (catOrderMap.get(b) ?? 999))
+      .map(([, items]) => ({ categoryName: items[0].categoryName, items }));
+  }, [filtered, selectedResto, selectedCategory, search, categories]);
 
   return (
     <main className="min-h-screen bg-[#FFF8F0] pb-20">
@@ -326,7 +328,7 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
                 </h2>
                 <div className="grid grid-cols-2 gap-3">
                   {group.items.map((product) => (
-                    <ProductCard key={product.id} product={product} onDetail={() => { setSelectedProduct(product); setDetailQty(1); }} onAdd={() => handleAdd(product)} added={justAdded === product.id} showRestaurant={false} />
+                    <ProductCard key={product.id} product={product} onAdd={() => handleAdd(product)} added={justAdded === product.id} showRestaurant={false} />
                   ))}
                 </div>
               </div>
@@ -345,7 +347,7 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
             </div>
             <div className="grid grid-cols-2 gap-3">
               {filtered.map((product) => (
-                <ProductCard key={`${product.restaurant.id}-${product.id}`} product={product} onDetail={() => { setSelectedProduct(product); setDetailQty(1); }} onAdd={() => handleAdd(product)} added={justAdded === product.id} showRestaurant={!selectedResto} />
+                <ProductCard key={`${product.restaurant.id}-${product.id}`} product={product} onAdd={() => handleAdd(product)} added={justAdded === product.id} showRestaurant={!selectedResto} />
               ))}
             </div>
           </>
@@ -383,109 +385,6 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
           <div className="bg-stone-900 text-white text-sm font-medium px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2">
             <Check className="w-4 h-4 text-emerald-400" />
             {toast}
-          </div>
-        </div>
-      )}
-
-      {/* ── Product Detail Modal ───────────────── */}
-      {selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setSelectedProduct(null)}
-          />
-          <div className="relative bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md mx-auto overflow-hidden sm:my-8"
-            style={{ animation: "slideUp 0.3s ease-out" }}
-          >
-            {/* Close */}
-            <button
-              onClick={() => setSelectedProduct(null)}
-              className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/60 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Image */}
-            {selectedProduct.imageUrl ? (
-              <img
-                src={selectedProduct.imageUrl}
-                alt={selectedProduct.name}
-                className="w-full h-60 sm:h-72 object-cover"
-              />
-            ) : (
-              <div className="w-full h-60 sm:h-72 bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center">
-                <UtensilsCrossed className="w-20 h-20 text-amber-200" />
-              </div>
-            )}
-
-            {/* Content */}
-            <div className="p-5 pb-8">
-              {/* Restaurant tag */}
-              <div className="flex items-center gap-2 mb-3">
-                {selectedProduct.restaurant.logoUrl ? (
-                  <img src={selectedProduct.restaurant.logoUrl} alt="" className="w-7 h-7 rounded-lg object-cover" />
-                ) : (
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#C8963E] to-[#a07832] flex items-center justify-center">
-                    <span className="text-xs font-bold text-white">{selectedProduct.restaurant.name.charAt(0)}</span>
-                  </div>
-                )}
-                <div>
-                  <span className="text-sm font-semibold text-stone-700">{selectedProduct.restaurant.name}</span>
-                  <div className="text-[11px] text-stone-400 flex items-center gap-1">
-                    <Truck className="w-3 h-3" />
-                    {selectedProduct.restaurant.deliveryFee > 0
-                      ? `Livraison : ${formatFCFA(selectedProduct.restaurant.deliveryFee)}`
-                      : "Livraison gratuite"}
-                  </div>
-                </div>
-              </div>
-
-              {/* Name & price */}
-              <h2 className="text-xl font-bold text-stone-900 mb-1">
-                {selectedProduct.name}
-              </h2>
-              <div className="text-2xl font-bold text-[#722F37] mb-2">
-                {formatFCFA(selectedProduct.price)}
-              </div>
-
-              {/* Description */}
-              {selectedProduct.description && (
-                <p className="text-sm text-stone-600 leading-relaxed mb-4">
-                  {selectedProduct.description}
-                </p>
-              )}
-
-              {/* Quantity + Add to cart button */}
-              <div className="flex items-center gap-3 mt-4">
-                <div className="flex items-center gap-1 bg-stone-100 rounded-full p-1">
-                  <button
-                    onClick={() => setDetailQty((q) => Math.max(1, q - 1))}
-                    className="w-10 h-10 rounded-full bg-white text-stone-700 shadow-sm hover:bg-stone-50 transition-colors flex items-center justify-center"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="w-8 text-center font-bold text-stone-900 text-lg">
-                    {detailQty}
-                  </span>
-                  <button
-                    onClick={() => setDetailQty((q) => q + 1)}
-                    className="w-10 h-10 rounded-full bg-[#722F37] text-white hover:bg-[#5a2530] transition-colors flex items-center justify-center"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-                <button
-                  onClick={() => {
-                    handleAdd(selectedProduct, detailQty);
-                    setSelectedProduct(null);
-                  }}
-                  className="flex-1 bg-[#722F37] text-white rounded-2xl py-4 font-bold text-sm text-center hover:bg-[#5a2530] active:scale-[0.98] transition-all shadow-lg shadow-[#722F37]/30 flex items-center justify-center gap-2"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  Ajouter · {formatFCFA(selectedProduct.price * detailQty)}
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -567,20 +466,18 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
 
 function ProductCard({
   product,
-  onDetail,
   onAdd,
   added,
   showRestaurant,
 }: {
   product: ProductWithRestaurant;
-  onDetail: () => void;
   onAdd: () => void;
   added: boolean;
   showRestaurant: boolean;
 }) {
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group">
-      <button onClick={onDetail} className="w-full text-left">
+      <Link href={`/commander/produit/${product.id}`} className="block">
         <div className="relative aspect-[4/3] overflow-hidden">
           {product.imageUrl ? (
             <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -593,11 +490,11 @@ function ProductCard({
             <span className="text-xs font-bold text-white">{formatFCFA(product.price)}</span>
           </div>
         </div>
-      </button>
-      <div className="p-3">
-        <button onClick={onDetail} className="text-left w-full">
-          <h3 className="font-bold text-stone-900 text-sm leading-tight line-clamp-2 mb-2 min-h-[2.5rem]">{product.name}</h3>
-        </button>
+        <div className="p-3 pb-1">
+          <h3 className="font-bold text-stone-900 text-sm leading-tight line-clamp-2 min-h-[2.5rem]">{product.name}</h3>
+        </div>
+      </Link>
+      <div className="px-3 pb-3">
         <div className="flex items-center justify-between">
           {showRestaurant ? (
             <div className="flex items-center gap-1.5 min-w-0">
