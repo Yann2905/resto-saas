@@ -25,11 +25,11 @@ export default async function ProductPage({
   const product = mapProduct(productRow as ProductRow);
 
   const [{ data: restaurantRow }, { data: categoryRow }] = await Promise.all([
-    supabase.from("restaurants").select("id, slug, name, logo_url, address, delivery_fee, estimated_delivery_minutes").eq("id", product.restaurantId).single(),
+    supabase.from("restaurants").select("id, slug, name, logo_url, address, delivery_fee, delivery_enabled, estimated_delivery_minutes").eq("id", product.restaurantId).single(),
     supabase.from("categories").select("id, name").eq("id", product.categoryId).single(),
   ]);
 
-  if (!restaurantRow) notFound();
+  if (!restaurantRow || !restaurantRow.delivery_enabled) notFound();
 
   const { data: similarRows } = await supabase
     .from("products")
