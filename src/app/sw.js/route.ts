@@ -92,11 +92,13 @@ self.addEventListener("push", (event) => {
     if (event.data) data = { ...data, ...event.data.json() };
   } catch {}
 
+  const origin = self.location.origin;
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
+      icon: origin + "/icon-192.png",
+      badge: origin + "/icon-192.png",
+      image: origin + "/icon-512.png",
       vibrate: [200, 100, 200, 100, 200],
       tag: "new-order",
       renotify: true,

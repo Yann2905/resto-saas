@@ -29,73 +29,61 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
-  if (!body.online && auth.ctx.restaurantId) {
-    // Going offline — reassign pending unacknowledged orders to another online waiter
-    const { data: pendingOrders } = await admin
-      .from("orders")
-      .select("id, restaurant_id, table_number, room_label, total, order_type")
-      .eq("restaurant_id", auth.ctx.restaurantId)
-      .eq("assigned_to", auth.ctx.userId)
-      .eq("status", "pending")
-      .is("acknowledged_at", null);
-
-    if (pendingOrders && pendingOrders.length > 0) {
-      // Find another online waiter
-      const { data: onlineWaiter } = await admin
-        .from("profiles")
-        .select("id")
+  try {
+    if (!body.online && auth.ctx.restaurantId) {
+      const { data: pendingOrders } = await admin
+        .from("orders")
+        .select("id, restaurant_id, table_number, room_label, total, order_type")
         .eq("restaurant_id", auth.ctx.restaurantId)
-        .eq("role", "waiter")
-        .eq("is_online", true)
-        .neq("id", auth.ctx.userId)
-        .limit(1)
-        .maybeSingle();
+        .eq("assigned_to", auth.ctx.userId)
+        .eq("status", "pending")
+        .is("acknowledged_at", null);
 
-      if (onlineWaiter) {
-        const newWaiterId = onlineWaiter.id as string;
-        const orderIds = pendingOrders.map((o) => o.id);
+      if (pendingOrders && pendingOrders.length > 0) {
+        const { data: onlineWaiter } = await admin
+          .from("profiles")
+          .select("id")
+          .eq("restaurant_id", auth.ctx.restaurantId)
+          .eq("role", "waiter")
+          .eq("is_online", true)
+          .neq("id", auth.ctx.userId)
+          .limit(1)
+          .maybeSingle();
 
-        await admin
-          .from("orders")
-          .update({ assigned_to: newWaiterId })
-          .in("id", orderIds);
+        if (onlineWaiter) {
+          const newWaiterId = onlineWaiter.id as string;
+          const orderIds = pendingOrders.map((o) => o.id);
 
-        // Notify the new waiter
-        for (const o of pendingOrders) {
-          const location = o.room_label
-            ? `Chambre ${o.room_label}`
-            : o.table_number
-            ? `Table ${o.table_number}`
-            : "Commande";
-          const typeLabel = o.order_type === "service"
-            ? "Demande de service"
-            : o.order_type === "issue"
-            ? "Signalement"
-            : "Commande transférée";
+          await admin
+            .from("orders")
+            .update({ assigned_to: newWaiterId })
+            .in("id", orderIds);
 
-          sendPushToRestaurant(auth.ctx.restaurantId, {
-            title: `${typeLabel} · ${location}`,
-            body: o.order_type === "food"
-              ? `${location} · ${(o.total as number).toLocaleString("fr-FR")} FCFA`
-              : location,
-            url: "/dashboard/orders",
-          }, newWaiterId).catch(() => {});
+          for (const o of pendingOrders) {
+            const location = o.room_label
+              ? `Chambre ${o.room_label}`
+              : o.table_number
+              ? `Table ${o.table_number}`
+              : "Commande";
+            const typeLabel = o.order_type === "service"
+              ? "Demande de service"
+              : o.order_type === "issue"
+              ? "Signalement"
+              : "Commande transférée";
+
+            sendPushToRestaurant(auth.ctx.restaurantId, {
+              title: `${typeLabel} · ${location}`,
+              body: o.order_type === "food"
+                ? `${location} · ${(o.total as number).toLocaleString("fr-FR")} FCFA`
+                : location,
+              url: "/dashboard/orders",
+            }, newWaiterId).catch(() => {});
+          }
         }
       }
     }
-  }
 
-  if (body.online && auth.ctx.restaurantId) {
-    // Going online — check for pending orders on assigned tables
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("assigned_tables")
-      .eq("id", auth.ctx.userId)
-      .maybeSingle();
-
-    if (profile) {
-      const tables = (profile.assigned_tables as number[]) ?? [];
-
+    if (body.online && auth.ctx.restaurantId) {
       const { data: pendingOrders } = await admin
         .from("orders")
         .select("id, restaurant_id, table_number, room_label, total, order_type, assigned_to")
@@ -103,13 +91,8 @@ export async function PUT(req: NextRequest) {
         .eq("status", "pending");
 
       if (pendingOrders && pendingOrders.length > 0) {
-        const myOrders = pendingOrders.filter((o) => {
-          if (o.assigned_to === auth.ctx.userId) return true;
-          if (o.table_number && tables.includes(o.table_number)) return true;
-          return false;
-        });
-
-        for (const o of myOrders) {
+        for (const o of pendingOrders) {
+          if (o.assigned_to !== auth.ctx.userId) continue;
           const location = o.room_label
             ? `Chambre ${o.room_label}`
             : o.table_number
@@ -131,6 +114,8 @@ export async function PUT(req: NextRequest) {
         }
       }
     }
+  } catch {
+    // is_online or assigned_tables columns may not exist yet
   }
 
   return NextResponse.json({ ok: true });

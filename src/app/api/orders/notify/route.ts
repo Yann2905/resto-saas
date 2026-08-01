@@ -53,27 +53,21 @@ export async function POST(request: NextRequest) {
     url: "/dashboard/orders",
   };
 
-  const sent: string[] = [];
+  // Send push to ALL restaurant staff (owners always, waiters always)
+  sendPushToRestaurant(order.restaurant_id, payload).catch((err) => {
+    console.error("[notify] push to restaurant failed:", err);
+  });
 
-  // If assigned to a waiter, check if they're online
+  // If assigned to a waiter who is offline, try reassigning to an online waiter
   if (order.assigned_to) {
-    const { data: waiterProfile } = await admin
-      .from("profiles")
-      .select("id, is_online")
-      .eq("id", order.assigned_to)
-      .maybeSingle();
+    try {
+      const { data: waiterProfile } = await admin
+        .from("profiles")
+        .select("id, is_online")
+        .eq("id", order.assigned_to)
+        .maybeSingle();
 
-    if (waiterProfile?.is_online) {
-      sendPushToRestaurant(order.restaurant_id, payload, order.assigned_to).catch((err) => {
-        console.error("[notify] push to waiter failed:", err);
-      });
-      sent.push("waiter:" + order.assigned_to);
-    } else {
-      // Waiter is offline — find another online waiter for this table
-      const tableNum = order.table_number as number | null;
-      let newWaiterId: string | null = null;
-
-      if (tableNum) {
+      if (waiterProfile && waiterProfile.is_online === false) {
         const { data: onlineWaiter } = await admin
           .from("profiles")
           .select("id")
@@ -85,26 +79,16 @@ export async function POST(request: NextRequest) {
           .maybeSingle();
 
         if (onlineWaiter) {
-          newWaiterId = onlineWaiter.id as string;
           await admin
             .from("orders")
-            .update({ assigned_to: newWaiterId })
+            .update({ assigned_to: onlineWaiter.id })
             .eq("id", orderId);
-
-          sendPushToRestaurant(order.restaurant_id, payload, newWaiterId).catch((err) => {
-            console.error("[notify] push to reassigned waiter failed:", err);
-          });
-          sent.push("reassigned:" + newWaiterId);
         }
       }
+    } catch {
+      // is_online column may not exist yet — ignore
     }
   }
 
-  // Send push to owners/managers (online only)
-  sendPushToRestaurant(order.restaurant_id, payload, null, true).catch((err) => {
-    console.error("[notify] push to restaurant failed:", err);
-  });
-  sent.push("restaurant-online");
-
-  return NextResponse.json({ ok: true, sent: sent.length });
+  return NextResponse.json({ ok: true });
 }
