@@ -7,10 +7,10 @@ export default async function OrderPage({
   searchParams,
 }: {
   params: Promise<{ slug: string; id: string }>;
-  searchParams: Promise<{ table?: string; room?: string }>;
+  searchParams: Promise<{ table?: string; room?: string; mode?: string }>;
 }) {
   const { slug, id } = await params;
-  const { table, room } = await searchParams;
+  const { table, room, mode } = await searchParams;
   const restaurant = await getRestaurantBySlug(slug);
   if (!restaurant) notFound();
 
@@ -23,6 +23,7 @@ export default async function OrderPage({
       orderId={id}
       tableNumber={table ? parseInt(table, 10) : null}
       roomLabel={room ? decodeURIComponent(room) : null}
+      deliveryMode={mode === "delivery"}
     />
   );
 }

@@ -6,13 +6,19 @@ import {
   BellRing,
   CheckCircle2,
   ChefHat,
+  Clock,
   Inbox,
+  MapPin,
+  Package,
+  Phone,
   Search,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Order, OrderRow, OrderStatus, mapOrder } from "@/types";
 import { formatFCFA } from "@/lib/format";
+import DeliveryNav from "@/app/commander/_components/delivery-nav";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "Reçue",
@@ -28,6 +34,13 @@ const STATUS_SUB: Record<OrderStatus, string> = {
   served: "Bon appétit ! Merci de votre visite.",
 };
 
+const DELIVERY_SUB: Record<OrderStatus, string> = {
+  pending: "Votre commande a été reçue. Nous la préparons bientôt.",
+  preparing: "Votre commande est en cours de préparation.",
+  ready: "Votre commande est prête ! Le livreur arrive bientôt.",
+  served: "Votre commande a été livrée. Bon appétit !",
+};
+
 type OrderWithWaiter = Order & { assignedName?: string | null; acknowledgedAt?: string | null };
 
 const STATUS_ICON: Record<OrderStatus, LucideIcon> = {
@@ -35,6 +48,13 @@ const STATUS_ICON: Record<OrderStatus, LucideIcon> = {
   preparing: ChefHat,
   ready: BellRing,
   served: CheckCircle2,
+};
+
+const DELIVERY_ICON: Record<OrderStatus, LucideIcon> = {
+  pending: Clock,
+  preparing: ChefHat,
+  ready: Truck,
+  served: Package,
 };
 
 const STATUS_ORDER: OrderStatus[] = ["pending", "preparing", "ready", "served"];
@@ -47,6 +67,7 @@ type Props = {
   orderId: string;
   tableNumber: number | null;
   roomLabel?: string | null;
+  deliveryMode?: boolean;
 };
 
 export default function OrderTracker({
@@ -56,9 +77,18 @@ export default function OrderTracker({
   orderId,
   tableNumber,
   roomLabel,
+  deliveryMode = false,
 }: Props) {
-  const locationLabel = roomLabel ? `Chambre ${roomLabel}` : tableNumber ? `Table ${tableNumber}` : null;
-  const backParam = roomLabel
+  const locationLabel = deliveryMode
+    ? "Livraison"
+    : roomLabel
+    ? `Chambre ${roomLabel}`
+    : tableNumber
+    ? `Table ${tableNumber}`
+    : null;
+  const backParam = deliveryMode
+    ? "mode=delivery"
+    : roomLabel
     ? `room=${encodeURIComponent(roomLabel)}`
     : `table=${tableNumber ?? ""}`;
   const [order, setOrder] = useState<OrderWithWaiter | null>(null);
@@ -125,7 +155,128 @@ export default function OrderTracker({
   }
 
   const currentStep = STATUS_ORDER.indexOf(order.status);
+  const statusSub = deliveryMode ? DELIVERY_SUB : STATUS_SUB;
+  const statusIcon = deliveryMode ? DELIVERY_ICON : STATUS_ICON;
 
+  if (deliveryMode) {
+    return (
+      <main className="min-h-screen bg-[#FFF8F0] pb-20">
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+          {/* Confirmation card */}
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-100 text-center">
+            <div className={`w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center ${
+              order.status === "served"
+                ? "bg-emerald-100 text-emerald-600"
+                : "bg-[#722F37]/10 text-[#722F37]"
+            }`}>
+              {(() => {
+                const Icon = statusIcon[order.status];
+                return <Icon className={`w-8 h-8 ${order.status !== "served" ? "animate-pulse" : ""}`} />;
+              })()}
+            </div>
+            <h1 className="text-xl font-bold text-stone-900 mb-1">
+              {order.status === "served" ? "Commande livrée !" : "Commande confirmée"}
+            </h1>
+            <p className="text-sm text-stone-500 mb-4">{statusSub[order.status]}</p>
+            <div className="inline-flex items-center gap-1.5 text-xs font-mono text-stone-400 bg-stone-50 rounded-full px-3 py-1.5">
+              N° #{order.id.slice(0, 6).toUpperCase()}
+            </div>
+
+            {/* Progress dots */}
+            <div className="flex gap-2 mt-5 justify-center">
+              {STATUS_ORDER.map((s, i) => (
+                <div
+                  key={s}
+                  className={`w-3 h-3 rounded-full transition-all ${
+                    i <= currentStep ? "bg-[#722F37] scale-110" : "bg-stone-200"
+                  } ${i === currentStep && order.status !== "served" ? "animate-pulse" : ""}`}
+                />
+              ))}
+            </div>
+            <div className="flex justify-between mt-2 px-2">
+              {STATUS_ORDER.map((s, i) => (
+                <span key={s} className={`text-[9px] font-medium ${i <= currentStep ? "text-[#722F37]" : "text-stone-300"}`}>
+                  {s === "pending" ? "Reçue" : s === "preparing" ? "Préparation" : s === "ready" ? "En route" : "Livrée"}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Delivery address */}
+          {order.deliveryQuartier && (
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-stone-100">
+              <div className="flex items-center gap-2 mb-3">
+                <MapPin className="w-4 h-4 text-[#722F37]" />
+                <h2 className="font-bold text-sm text-stone-900">Adresse de livraison</h2>
+              </div>
+              <div className="text-sm text-stone-700 font-medium">{order.deliveryQuartier}</div>
+              {order.deliveryCarrefour && (
+                <div className="text-xs text-stone-500 mt-0.5">{order.deliveryCarrefour}</div>
+              )}
+              {order.deliveryPhone && (
+                <a href={`tel:${order.deliveryPhone}`} className="inline-flex items-center gap-1.5 mt-2 text-sm font-semibold text-blue-600">
+                  <Phone className="w-3.5 h-3.5" />
+                  {order.deliveryPhone}
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Items */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-stone-100">
+            <h2 className="font-bold text-sm text-stone-900 mb-3">Votre commande</h2>
+            <div className="space-y-3">
+              {order.items.map((item) => (
+                <div key={item.productId} className="flex items-center gap-3">
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt="" className="w-12 h-12 rounded-xl object-cover bg-stone-100 flex-shrink-0" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-stone-100 flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-stone-900 text-sm truncate">{item.name}</div>
+                    <div className="text-xs text-stone-400">{item.quantity} × {formatFCFA(item.price)}</div>
+                  </div>
+                  <span className="font-semibold text-sm text-stone-900 tabular-nums flex-shrink-0">
+                    {formatFCFA(item.total)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-stone-100 mt-4 pt-3 space-y-1.5">
+              {order.deliveryFee > 0 && (
+                <>
+                  <div className="flex justify-between text-xs text-stone-500">
+                    <span>Sous-total</span>
+                    <span>{formatFCFA(order.total - order.deliveryFee)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-stone-500">
+                    <span>Livraison</span>
+                    <span>{formatFCFA(order.deliveryFee)}</span>
+                  </div>
+                </>
+              )}
+              <div className="flex justify-between items-baseline pt-1">
+                <span className="text-xs uppercase tracking-wider text-stone-500 font-medium">Total</span>
+                <span className="text-xl font-bold text-stone-900 tabular-nums">{formatFCFA(order.total)}</span>
+              </div>
+            </div>
+          </div>
+
+          <Link
+            href="/commander"
+            className="block w-full text-center bg-[#722F37] text-white rounded-2xl py-3.5 font-bold text-sm hover:bg-[#5a2530] transition-colors shadow-lg shadow-[#722F37]/20"
+          >
+            Commander autre chose
+          </Link>
+        </div>
+
+        <DeliveryNav activeTab="orders" />
+      </main>
+    );
+  }
+
+  // Dine-in / Hotel mode — original tracker
   return (
     <main className="min-h-screen bg-stone-50">
       <header className="bg-white/90 backdrop-blur-md border-b border-stone-200">

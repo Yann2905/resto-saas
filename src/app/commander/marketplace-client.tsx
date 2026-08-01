@@ -3,9 +3,10 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, MapPin, Minus, Plus, Search, ShoppingBag, Truck, UtensilsCrossed, X } from "lucide-react";
+import { Check, MapPin, Minus, Plus, Search, ShoppingBag, Truck, UtensilsCrossed, X } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
 import { addToCart, getCart, cartCount, cartTotal, clearCart } from "@/lib/cart";
+import DeliveryNav from "./_components/delivery-nav";
 
 type RestaurantInfo = {
   id: string;
@@ -108,28 +109,33 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
   }, [products, search, selectedResto]);
 
   return (
-    <main className="min-h-screen bg-[#FFF8F0] pb-28">
+    <main className="min-h-screen bg-[#FFF8F0] pb-20">
       {/* ── Header ─────────────────────────────────── */}
       <header className="bg-white sticky top-0 z-30 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 pt-4 pb-3">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/"
-                className="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center text-stone-600 hover:bg-stone-200 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#722F37] to-[#5a2530] flex items-center justify-center shadow-sm">
+                <Truck className="w-4 h-4 text-white" />
+              </div>
               <div>
-                <p className="text-xs text-stone-500">Livraison à domicile</p>
                 <h1 className="text-lg font-bold text-stone-900 leading-tight">
-                  Qu&apos;est-ce qui vous fait envie ?
+                  Resto SaaS
                 </h1>
+                <p className="text-[11px] text-stone-500">Livraison à domicile</p>
               </div>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#722F37]/10 flex items-center justify-center">
-              <Truck className="w-5 h-5 text-[#722F37]" />
-            </div>
+            {count > 0 && activeCartResto && (
+              <button
+                onClick={() => router.push(`/r/${activeCartResto.slug}/cart?mode=delivery`)}
+                className="relative w-10 h-10 rounded-full bg-[#722F37]/10 flex items-center justify-center hover:bg-[#722F37]/20 transition-colors"
+              >
+                <ShoppingBag className="w-5 h-5 text-[#722F37]" />
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#722F37] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                  {count}
+                </span>
+              </button>
+            )}
           </div>
 
           {/* Search bar */}
@@ -334,18 +340,18 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
 
       {/* ── Floating cart bar ──────────────────── */}
       {count > 0 && activeCartResto && (
-        <div className="fixed bottom-4 inset-x-4 z-40 max-w-3xl mx-auto">
+        <div className="fixed bottom-16 inset-x-4 z-40 max-w-3xl mx-auto" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
           <button
             onClick={() => router.push(`/r/${activeCartResto.slug}/cart?mode=delivery`)}
-            className="w-full bg-[#722F37] text-white rounded-2xl py-4 px-5 flex items-center justify-between shadow-2xl shadow-[#722F37]/40 hover:bg-[#5a2530] active:scale-[0.98] transition-all"
+            className="w-full bg-[#722F37] text-white rounded-2xl py-3.5 px-5 flex items-center justify-between shadow-2xl shadow-[#722F37]/40 hover:bg-[#5a2530] active:scale-[0.98] transition-all"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                <ShoppingBag className="w-5 h-5" />
+              <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
+                <ShoppingBag className="w-4 h-4" />
               </div>
               <div className="text-left">
                 <div className="text-sm font-bold">Voir le panier</div>
-                <div className="text-xs text-white/70">
+                <div className="text-[11px] text-white/70">
                   {count} article{count > 1 ? "s" : ""} · {activeCartResto.name}
                 </div>
               </div>
@@ -469,6 +475,9 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
           </div>
         </div>
       )}
+
+      {/* ── Bottom Nav ─────────────────────────── */}
+      <DeliveryNav cartCount={count} activeTab="home" />
 
       <style jsx>{`
         @keyframes slideUp {

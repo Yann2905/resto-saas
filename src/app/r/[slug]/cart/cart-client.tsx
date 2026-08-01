@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Check, Loader2, MapPin, Phone, ShoppingCart, Truck } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, Loader2, MapPin, Phone, ShoppingCart, Truck } from "lucide-react";
+import DeliveryNav from "@/app/commander/_components/delivery-nav";
 import { CartItem } from "@/types";
 import { supabase } from "@/lib/supabase";
 import {
@@ -158,7 +159,7 @@ export default function CartClient({ restaurant, tableNumber, roomLabel, deliver
   const total = subtotal + (deliveryMode ? deliveryFee : 0);
 
   return (
-    <main className="min-h-screen bg-stone-50 pb-40">
+    <main className={`min-h-screen bg-stone-50 ${deliveryMode ? "pb-24" : "pb-40"}`}>
       <header className="bg-white/90 backdrop-blur-md border-b border-stone-200 sticky top-0 z-20">
         <div className="max-w-2xl mx-auto px-5 py-4 flex items-center gap-3">
           <Link
@@ -166,11 +167,11 @@ export default function CartClient({ restaurant, tableNumber, roomLabel, deliver
             className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors"
             aria-label="Retour"
           >
-            ←
+            <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
             <h1 className="text-xl font-bold text-stone-900 tracking-tight">
-              Votre commande
+              Votre panier
             </h1>
             <p className="text-xs text-stone-500 flex items-center gap-1.5">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -410,6 +411,8 @@ export default function CartClient({ restaurant, tableNumber, roomLabel, deliver
           </div>
         </div>
       )}
+
+      {deliveryMode && <DeliveryNav activeTab="cart" />}
     </main>
   );
 }
