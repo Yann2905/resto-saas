@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, MapPin, Minus, Plus, ShoppingBag, Truck, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, Check, Clock, MapPin, Minus, Plus, ShoppingBag, Truck, UtensilsCrossed } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
 import { addToCart, getCart, cartCount, cartTotal } from "@/lib/cart";
 import DeliveryNav from "@/app/commander/_components/delivery-nav";
@@ -24,6 +24,7 @@ type RestaurantInfo = {
   logoUrl: string | null;
   address: string | null;
   deliveryFee: number;
+  estimatedDeliveryMinutes?: number;
 };
 
 type SimilarProduct = {
@@ -124,6 +125,10 @@ export default function ProductDetail({ product, restaurant, categoryName, simil
                 <span className="flex items-center gap-0.5">
                   <Truck className="w-3 h-3" />
                   {restaurant.deliveryFee > 0 ? formatFCFA(restaurant.deliveryFee) : "Gratuit"}
+                </span>
+                <span className="flex items-center gap-0.5">
+                  <Clock className="w-3 h-3" />
+                  ~{restaurant.estimatedDeliveryMinutes ?? 30} min
                 </span>
               </div>
             </div>

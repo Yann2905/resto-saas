@@ -1,21 +1,25 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { CashSession, CashSessionSummary } from "@/types";
+import Link from "next/link";
+import { CashSession, CashSessionSummary, CashExpense } from "@/types";
 import {
   getActiveCashSession,
   openCashSession,
   closeCashSession,
   getCashSessionSummary,
+  addCashExpense,
 } from "@/lib/cash-register";
 import { formatFCFA } from "@/lib/format";
 import {
+  ArrowDownCircle,
   Lock,
   Unlock,
   DollarSign,
   TrendingUp,
   Smartphone,
   Banknote,
+  History,
   X,
   CheckCircle,
   AlertTriangle,
@@ -34,6 +38,9 @@ export default function CashSessionBar({ restaurantId }: Props) {
   // Modals state
   const [showOpenModal, setShowOpenModal] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [expenseLabel, setExpenseLabel] = useState("");
+  const [expenseAmount, setExpenseAmount] = useState("");
 
   // Form states
   const [openingFloatInput, setOpeningFloatInput] = useState("25000");
@@ -150,6 +157,18 @@ export default function CashSessionBar({ restaurantId }: Props) {
                 </span>
               </div>
 
+              {(summary?.totalExpenses ?? 0) > 0 && (
+                <div>
+                  <span className="text-slate-400 flex items-center gap-1">
+                    <ArrowDownCircle className="w-3.5 h-3.5 text-red-400" />
+                    Sorties
+                  </span>
+                  <span className="text-sm font-semibold text-red-400">
+                    -{formatFCFA(summary?.totalExpenses || 0)}
+                  </span>
+                </div>
+              )}
+
               <div className="border-l border-slate-800 pl-6">
                 <span className="text-slate-400 block">Solde Théorique Caisse</span>
                 <span className="text-base font-extrabold text-amber-400">
@@ -180,17 +199,35 @@ export default function CashSessionBar({ restaurantId }: Props) {
             <RefreshCw className="w-4 h-4" />
           </button>
 
+          <Link
+            href="/dashboard/caisse"
+            className="p-2 rounded-xl border border-slate-800 bg-slate-800/40 hover:bg-slate-800 text-slate-300 transition"
+            title="Historique"
+          >
+            <History className="w-4 h-4" />
+          </Link>
+
           {session ? (
-            <button
-              onClick={() => {
-                setClosingCashInput((summary?.expectedCash || 0).toString());
-                setShowCloseModal(true);
-              }}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-red-950/60 border border-slate-700 hover:border-red-800/60 text-red-400 hover:text-red-300 text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Clôturer la Caisse (Z)</span>
-            </button>
+            <>
+              <button
+                onClick={() => setShowExpenseModal(true)}
+                className="px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-semibold flex items-center gap-1.5 transition"
+                title="Enregistrer une sortie"
+              >
+                <ArrowDownCircle className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Sortie</span>
+              </button>
+              <button
+                onClick={() => {
+                  setClosingCashInput((summary?.expectedCash || 0).toString());
+                  setShowCloseModal(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-red-950/60 border border-slate-700 hover:border-red-800/60 text-red-400 hover:text-red-300 text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>Clôturer (Z)</span>
+              </button>
+            </>
           ) : (
             <button
               onClick={() => setShowOpenModal(true)}
@@ -363,6 +400,59 @@ export default function CashSessionBar({ restaurantId }: Props) {
                 >
                   {actionLoading ? "Clôture..." : "Confirmer la clôture Z"}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Sortie de caisse */}
+      {showExpenseModal && session && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden text-slate-100">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/50">
+              <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                <ArrowDownCircle className="w-5 h-5 text-red-400" />
+                Sortie de caisse
+              </h3>
+              <button onClick={() => setShowExpenseModal(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const val = parseInt(expenseAmount.replace(/\D/g, "") || "0", 10);
+                if (!expenseLabel.trim() || val <= 0) { setErrorMsg("Renseignez un libellé et un montant."); return; }
+                setActionLoading(true);
+                setErrorMsg(null);
+                const res = await addCashExpense(session.id, restaurantId, expenseLabel.trim(), val);
+                if (!res.ok) { setErrorMsg(res.error || "Erreur"); setActionLoading(false); return; }
+                setShowExpenseModal(false);
+                setExpenseLabel("");
+                setExpenseAmount("");
+                setActionLoading(false);
+                loadSession();
+              }}
+              className="p-6 space-y-4"
+            >
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-300">Libellé</label>
+                <input type="text" value={expenseLabel} onChange={(e) => setExpenseLabel(e.target.value)} placeholder="Ex: Achat de boissons" className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 transition" autoFocus />
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {["Achat marchandise", "Transport", "Nettoyage", "Divers"].map((q) => (
+                    <button key={q} type="button" onClick={() => setExpenseLabel(q)} className="text-[10px] px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 transition">{q}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-300">Montant (FCFA)</label>
+                <input type="text" value={expenseAmount} onChange={(e) => setExpenseAmount(e.target.value)} placeholder="Ex: 5000" className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-lg font-bold text-white focus:outline-none focus:border-red-500 transition" />
+              </div>
+              {errorMsg && <div className="p-3 bg-red-950/50 border border-red-800/60 rounded-lg text-red-300 text-xs">{errorMsg}</div>}
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setShowExpenseModal(false)} className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 text-xs font-medium hover:bg-slate-800 transition">Annuler</button>
+                <button type="submit" disabled={actionLoading} className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-semibold transition shadow-lg">{actionLoading ? "..." : "Enregistrer"}</button>
               </div>
             </form>
           </div>

@@ -335,8 +335,10 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-xs text-stone-500 mt-6">
-          Pas de compte ? Contactez l&apos;administrateur pour créer un compte
-          propriétaire.
+          Pas de compte ?{" "}
+          <a href="/inscription" className="text-[#722F37] font-semibold hover:underline">
+            Créer mon restaurant
+          </a>
         </p>
       </div>
     </main>

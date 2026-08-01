@@ -833,6 +833,7 @@ function DeliverySettingsSection({
   const limits = getPlanLimits(restaurant.plan, restaurant.featureOverrides as FeatureOverrides, restaurant.isPartner);
   const [enabled, setEnabled] = useState(restaurant.deliveryEnabled);
   const [fee, setFee] = useState(String(restaurant.deliveryFee));
+  const [minutes, setMinutes] = useState(String(restaurant.estimatedDeliveryMinutes ?? 30));
   const [saving, setSaving] = useState(false);
 
   if (!limits.delivery) return null;
@@ -844,6 +845,7 @@ function DeliverySettingsSection({
         restaurantId: restaurant.id,
         deliveryEnabled: enabled,
         deliveryFee: parseInt(fee, 10) || 0,
+        estimatedDeliveryMinutes: parseInt(minutes, 10) || 30,
       });
       setToast("Paramètres de livraison enregistrés");
       setTimeout(() => setToast(null), 2500);
@@ -900,6 +902,24 @@ function DeliverySettingsSection({
               {formatFCFA(parseInt(fee, 10))} sera ajouté au total de chaque commande en livraison.
             </p>
           )}
+        </div>
+
+        <div className={`transition-opacity ${enabled ? "" : "opacity-50 pointer-events-none"}`}>
+          <label className="block text-sm font-semibold text-stone-700 mb-1">
+            Temps de livraison estimé (minutes)
+          </label>
+          <input
+            type="number"
+            min={5}
+            max={180}
+            value={minutes}
+            onChange={(e) => setMinutes(e.target.value)}
+            placeholder="Ex: 30"
+            className="w-full sm:w-48 rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900 font-bold focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
+          />
+          <p className="text-xs text-stone-500 mt-1">
+            Affiché aux clients sur la marketplace (~{parseInt(minutes, 10) || 30} min).
+          </p>
         </div>
       </div>
 

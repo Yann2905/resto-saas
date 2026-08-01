@@ -3,8 +3,11 @@ import {
   CashSession,
   CashSessionRow,
   CashSessionSummary,
+  CashExpense,
+  CashExpenseRow,
   OrderPaymentMethod,
   mapCashSession,
+  mapCashExpense,
 } from "@/types";
 
 export async function getActiveCashSession(
@@ -99,6 +102,7 @@ export async function getCashSessionSummary(
     totalOther: Number(res.total_other || 0),
     totalSales: Number(res.total_sales || 0),
     ordersCount: Number(res.orders_count || 0),
+    totalExpenses: Number(res.total_expenses || 0),
     expectedCash: Number(res.expected_cash || 0),
     closingCashActual: res.closing_cash_actual !== null ? Number(res.closing_cash_actual) : null,
     closingCashExpected: res.closing_cash_expected !== null ? Number(res.closing_cash_expected) : null,
@@ -146,4 +150,49 @@ export async function processOrderPayment(
       paidAt: res.paid_at as string,
     },
   };
+}
+
+export async function listCashSessions(
+  restaurantId: string
+): Promise<CashSession[]> {
+  const { data, error } = await supabase
+    .from("cash_sessions")
+    .select("*")
+    .eq("restaurant_id", restaurantId)
+    .order("opened_at", { ascending: false })
+    .limit(50);
+
+  if (error || !data) return [];
+  return (data as CashSessionRow[]).map(mapCashSession);
+}
+
+export async function addCashExpense(
+  sessionId: string,
+  restaurantId: string,
+  label: string,
+  amount: number
+): Promise<{ ok: boolean; expense?: CashExpense; error?: string }> {
+  const { data, error } = await supabase
+    .from("cash_expenses")
+    .insert({ cash_session_id: sessionId, restaurant_id: restaurantId, label, amount })
+    .select()
+    .single();
+
+  if (error || !data) {
+    return { ok: false, error: error?.message || "Erreur" };
+  }
+  return { ok: true, expense: mapCashExpense(data as CashExpenseRow) };
+}
+
+export async function listCashExpenses(
+  sessionId: string
+): Promise<CashExpense[]> {
+  const { data, error } = await supabase
+    .from("cash_expenses")
+    .select("*")
+    .eq("cash_session_id", sessionId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return (data as CashExpenseRow[]).map(mapCashExpense);
 }

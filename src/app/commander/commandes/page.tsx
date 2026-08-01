@@ -7,11 +7,14 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  Loader2,
   MapPin,
   Package,
   Phone,
   ShoppingBag,
+  Star,
   Truck,
+  X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Order, OrderRow, OrderStatus, mapOrder } from "@/types";
@@ -240,6 +243,8 @@ const OrderCard = memo(function OrderCard({
   const Icon = STATUS_ICON[order.status];
   const currentStep = STATUS_ORDER.indexOf(order.status);
   const isDelivered = order.status === "served";
+  const [showReview, setShowReview] = useState(false);
+  const [reviewed, setReviewed] = useState(false);
 
   return (
     <div className={`bg-white rounded-2xl overflow-hidden shadow-sm border transition-all ${
@@ -353,18 +358,120 @@ const OrderCard = memo(function OrderCard({
             </div>
           </div>
 
-          {/* Link to order tracker */}
-          {storedOrder && (
-            <Link
-              href={`/r/${storedOrder.slug}/order/${order.id}?mode=delivery`}
-              className="block w-full text-center bg-stone-100 text-stone-700 rounded-xl py-2.5 text-sm font-semibold hover:bg-stone-200 transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              Voir le suivi
-            </Link>
-          )}
+          {/* Actions */}
+          <div className="space-y-2">
+            {storedOrder && (
+              <Link
+                href={`/r/${storedOrder.slug}/order/${order.id}?mode=delivery`}
+                className="block w-full text-center bg-stone-100 text-stone-700 rounded-xl py-2.5 text-sm font-semibold hover:bg-stone-200 transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Voir le suivi
+              </Link>
+            )}
+            {isDelivered && !reviewed && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowReview(true); }}
+                className="w-full flex items-center justify-center gap-2 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl py-2.5 text-sm font-semibold hover:bg-amber-100 transition-colors"
+              >
+                <Star className="w-4 h-4" />
+                Donner votre avis
+              </button>
+            )}
+            {reviewed && (
+              <div className="text-center text-xs text-emerald-600 font-semibold py-2">
+                Merci pour votre avis !
+              </div>
+            )}
+          </div>
         </div>
+      )}
+
+      {showReview && (
+        <ReviewModal
+          restaurantId={order.restaurantId}
+          orderId={order.id}
+          onClose={() => setShowReview(false)}
+          onSuccess={() => { setShowReview(false); setReviewed(true); }}
+        />
       )}
     </div>
   );
 });
+
+function ReviewModal({
+  restaurantId,
+  orderId,
+  onClose,
+  onSuccess,
+}: {
+  restaurantId: string;
+  orderId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [name, setName] = useState("Client");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rating === 0) { setError("Sélectionnez une note."); return; }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurantId, orderId, customerName: name, rating, comment: comment || undefined }),
+      });
+      const json = await res.json();
+      if (!json.ok) { setError(json.error || "Erreur"); setSubmitting(false); return; }
+      onSuccess();
+    } catch { setError("Erreur réseau."); setSubmitting(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
+          <h3 className="font-bold text-stone-900">Votre avis</h3>
+          <button onClick={onClose} className="text-stone-400 hover:text-stone-700 p-1"><X className="w-5 h-5" /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div className="flex justify-center gap-2">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <button key={s} type="button" onClick={() => setRating(s)} className="transition-transform hover:scale-110">
+                <Star className={`w-9 h-9 ${s <= rating ? "fill-amber-400 text-amber-400" : "text-stone-200"}`} />
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Votre nom"
+            className="w-full rounded-xl border border-stone-200 px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#722F37]/20 focus:outline-none"
+          />
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Un commentaire ? (optionnel)"
+            rows={3}
+            className="w-full rounded-xl border border-stone-200 px-4 py-2.5 text-sm resize-none focus:ring-2 focus:ring-[#722F37]/20 focus:outline-none"
+          />
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <button
+            type="submit"
+            disabled={submitting || rating === 0}
+            className="w-full rounded-xl bg-[#722F37] text-white font-bold py-3 hover:bg-[#5a2530] disabled:bg-stone-300 transition-colors flex items-center justify-center gap-2"
+          >
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Envoyer"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

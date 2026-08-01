@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Banknote,
   ClipboardList,
   UtensilsCrossed,
   BarChart3,
@@ -15,12 +16,14 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { confirmAction } from "@/lib/swal";
+import { getPlanLimits, type FeatureOverrides } from "@/lib/plan-limits";
 
 type Tab = { href: string; label: string; Icon: LucideIcon };
 
 const OWNER_TABS: Tab[] = [
   { href: "/dashboard/orders", label: "Commandes", Icon: ClipboardList },
   { href: "/dashboard/menu", label: "Menu", Icon: UtensilsCrossed },
+  { href: "/dashboard/caisse", label: "Caisse", Icon: Banknote },
   { href: "/dashboard/stats", label: "Stats", Icon: BarChart3 },
   { href: "/dashboard/qrcodes", label: "QR codes", Icon: QrCode },
   { href: "/dashboard/team", label: "Équipe", Icon: Users },
@@ -37,12 +40,16 @@ export default function DashboardNav() {
 
   if (pathname === "/dashboard/login" || (!user && !role) || !restaurant) return null;
 
+  const limits = getPlanLimits(restaurant?.plan, restaurant?.featureOverrides as FeatureOverrides, restaurant?.isPartner);
   const waitersEnabled = restaurant?.isPartner
     || (restaurant?.featureOverrides as Record<string, unknown>)?.waiters === true
     || (restaurant?.plan !== "starter");
-  const ownerTabs = waitersEnabled
+  let ownerTabs = waitersEnabled
     ? OWNER_TABS
     : OWNER_TABS.filter((t) => t.href !== "/dashboard/team");
+  if (!limits.cashRegister) {
+    ownerTabs = ownerTabs.filter((t) => t.href !== "/dashboard/caisse");
+  }
   const TABS = role === "waiter" ? WAITER_TABS : ownerTabs;
 
   const handleLogout = async () => {

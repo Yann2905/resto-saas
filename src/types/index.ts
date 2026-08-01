@@ -42,6 +42,9 @@ export type Restaurant = {
   hotelIssues: HotelService[];
   deliveryEnabled: boolean;
   deliveryFee: number;
+  estimatedDeliveryMinutes: number;
+  avgRating: number;
+  reviewCount: number;
 };
 
 export type Category = {
@@ -204,6 +207,9 @@ export type RestaurantRow = {
   hotel_issues?: HotelService[];
   delivery_enabled?: boolean;
   delivery_fee?: number;
+  estimated_delivery_minutes?: number;
+  avg_rating?: number;
+  review_count?: number;
 };
 
 export type CategoryRow = {
@@ -304,9 +310,50 @@ export type CashSessionSummary = {
   totalOther: number;
   totalSales: number;
   ordersCount: number;
+  totalExpenses: number;
   expectedCash: number;
   closingCashActual: number | null;
   closingCashExpected: number | null;
+};
+
+export type CashExpense = {
+  id: string;
+  cashSessionId: string;
+  restaurantId: string;
+  label: string;
+  amount: number;
+  createdBy: string | null;
+  createdAt: string;
+};
+
+export type CashExpenseRow = {
+  id: string;
+  cash_session_id: string;
+  restaurant_id: string;
+  label: string;
+  amount: number;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type Review = {
+  id: string;
+  restaurantId: string;
+  orderId: string | null;
+  customerName: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+};
+
+export type ReviewRow = {
+  id: string;
+  restaurant_id: string;
+  order_id: string | null;
+  customer_name: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
 };
 
 export type PaymentTokenRow = {
@@ -369,6 +416,9 @@ export function mapRestaurant(r: RestaurantRow): Restaurant {
     hotelIssues: (r.hotel_issues as HotelService[]) ?? [],
     deliveryEnabled: r.delivery_enabled ?? false,
     deliveryFee: r.delivery_fee ?? 0,
+    estimatedDeliveryMinutes: r.estimated_delivery_minutes ?? 30,
+    avgRating: Number(r.avg_rating ?? 0),
+    reviewCount: r.review_count ?? 0,
   };
 }
 
@@ -442,6 +492,30 @@ export function mapCashSession(r: CashSessionRow): CashSession {
     closedAt: r.closed_at,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+  };
+}
+
+export function mapCashExpense(r: CashExpenseRow): CashExpense {
+  return {
+    id: r.id,
+    cashSessionId: r.cash_session_id,
+    restaurantId: r.restaurant_id,
+    label: r.label,
+    amount: r.amount,
+    createdBy: r.created_by,
+    createdAt: r.created_at,
+  };
+}
+
+export function mapReview(r: ReviewRow): Review {
+  return {
+    id: r.id,
+    restaurantId: r.restaurant_id,
+    orderId: r.order_id,
+    customerName: r.customer_name,
+    rating: r.rating,
+    comment: r.comment,
+    createdAt: r.created_at,
   };
 }
 

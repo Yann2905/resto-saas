@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     hotelRooms?: unknown;
     deliveryEnabled?: unknown;
     deliveryFee?: unknown;
+    estimatedDeliveryMinutes?: unknown;
   } | null;
 
   if (!body) {
@@ -148,6 +149,12 @@ export async function POST(req: NextRequest) {
     const fee = Number(body.deliveryFee);
     if (!isNaN(fee) && fee >= 0) {
       update.delivery_fee = Math.round(fee);
+    }
+  }
+  if (body.estimatedDeliveryMinutes !== undefined) {
+    const mins = Number(body.estimatedDeliveryMinutes);
+    if (!isNaN(mins) && mins >= 5 && mins <= 180) {
+      update.estimated_delivery_minutes = Math.round(mins);
     }
   }
 

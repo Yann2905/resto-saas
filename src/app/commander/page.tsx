@@ -12,7 +12,7 @@ export default async function CommanderPage() {
 
   const { data: restaurants } = await supabase
     .from("restaurants")
-    .select("id, slug, name, logo_url, address, delivery_fee, active, delivery_enabled, plan, subscription_expires_at, is_partner, feature_overrides, type")
+    .select("id, slug, name, logo_url, address, delivery_fee, active, delivery_enabled, plan, subscription_expires_at, is_partner, feature_overrides, type, estimated_delivery_minutes, avg_rating, review_count")
     .eq("active", true)
     .eq("delivery_enabled", true);
 
@@ -132,6 +132,9 @@ export default async function CommanderPage() {
     logoUrl: r.logoUrl ?? null,
     deliveryFee: r.deliveryFee,
     address: r.address ?? null,
+    estimatedDeliveryMinutes: r.estimatedDeliveryMinutes,
+    avgRating: r.avgRating,
+    reviewCount: r.reviewCount,
   }));
 
   const categoryList = (categories ?? []).map((c: { id: string; name: string; order: number }) => ({

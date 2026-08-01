@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useCallback, memo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowRight, Check, MapPin, Menu, Plus, Search, ShoppingBag, Truck, UtensilsCrossed, X } from "lucide-react";
+import { ArrowRight, Check, Clock, MapPin, Menu, Plus, Search, ShoppingBag, Star, Truck, UtensilsCrossed, X } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
 import { addToCart, getCart, cartCount, cartTotal, clearCart } from "@/lib/cart";
 import DeliveryNav from "./_components/delivery-nav";
@@ -16,6 +16,9 @@ type RestaurantInfo = {
   logoUrl: string | null;
   deliveryFee: number;
   address: string | null;
+  estimatedDeliveryMinutes?: number;
+  avgRating?: number;
+  reviewCount?: number;
 };
 
 type CategoryInfo = {
@@ -275,9 +278,21 @@ export default function MarketplaceClient({ products, restaurants, categories = 
                     {r.address}
                   </div>
                 )}
-                <div className="text-xs text-white/90 font-medium mt-1 flex items-center gap-1">
-                  <Truck className="w-3 h-3" />
-                  {r.deliveryFee > 0 ? `Livraison : ${formatFCFA(r.deliveryFee)}` : "Livraison gratuite"}
+                <div className="text-xs text-white/90 font-medium mt-1 flex items-center gap-3">
+                  <span className="flex items-center gap-1">
+                    <Truck className="w-3 h-3" />
+                    {r.deliveryFee > 0 ? formatFCFA(r.deliveryFee) : "Gratuit"}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    ~{r.estimatedDeliveryMinutes ?? 30} min
+                  </span>
+                  {(r.avgRating ?? 0) > 0 && (
+                    <span className="flex items-center gap-0.5">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      {(r.avgRating ?? 0).toFixed(1)}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -415,10 +430,10 @@ export default function MarketplaceClient({ products, restaurants, categories = 
                 Connexion restaurant
                 <ArrowRight className="w-4 h-4 text-stone-400" />
               </Link>
-              <a href="https://wa.me/2250575343846?text=Bonjour%2C%20je%20souhaite%20essayer%20Resto%20SaaS%20pour%20mon%20restaurant." target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="flex items-center justify-between px-4 py-3 rounded-xl text-stone-700 font-medium hover:bg-stone-50 transition-colors">
+              <Link href="/inscription" onClick={() => setMenuOpen(false)} className="flex items-center justify-between px-4 py-3 rounded-xl text-stone-700 font-medium hover:bg-stone-50 transition-colors">
                 Restaurateur ? Démarrer ici
                 <ArrowRight className="w-4 h-4 text-stone-400" />
-              </a>
+              </Link>
               <div className="border-t border-stone-100 my-3" />
               <Link href="/a-propos" onClick={() => setMenuOpen(false)} className="flex items-center px-4 py-3 rounded-xl text-stone-500 text-sm hover:bg-stone-50 transition-colors">
                 À propos
