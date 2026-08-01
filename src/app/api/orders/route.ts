@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   const orderCols = "id, restaurant_id, table_number, room_label, status, items, total, created_at, updated_at, order_type, order_mode, assigned_to, assigned_name, acknowledged_at, delivery_phone, delivery_quartier, delivery_carrefour, delivery_fee, payment_status, payment_method, amount_received, change_given, paid_at, cash_session_id";
 
-  const [activeRes, servedRes] = await Promise.all([
+  let [activeRes, servedRes] = await Promise.all([
     admin
       .from("orders")
       .select(orderCols)
@@ -40,6 +40,27 @@ export async function GET(req: NextRequest) {
       .order("created_at", { ascending: false })
       .limit(100),
   ]);
+
+  if (activeRes.error || servedRes.error) {
+    console.warn("[orders] specific cols failed, falling back to *:", activeRes.error?.message || servedRes.error?.message);
+    [activeRes, servedRes] = await Promise.all([
+      admin
+        .from("orders")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .neq("status", "served")
+        .order("created_at", { ascending: false })
+        .limit(200),
+      admin
+        .from("orders")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .eq("status", "served")
+        .gte("created_at", todayStart.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(100),
+    ]);
+  }
 
   if (activeRes.error) {
     return NextResponse.json({ ok: false, error: activeRes.error.message }, { status: 500 });

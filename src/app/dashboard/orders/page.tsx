@@ -153,8 +153,16 @@ export default function OrdersPage() {
     const fetchOrders = async () => {
       try {
         const res = await fetch(`/api/orders?restaurantId=${restaurantId}`);
+        if (!res.ok) {
+          console.error("[orders] API error:", res.status);
+          return;
+        }
         const json = await res.json();
-        if (cancelled || !json.ok) return;
+        if (cancelled) return;
+        if (!json.ok) {
+          console.error("[orders] API response not ok:", json.error);
+          return;
+        }
         const list = (json.orders as OrderRow[]).map(mapOrder);
         knownIds.current = new Set(list.map((o) => o.id));
         firstLoadDone.current = true;
@@ -168,6 +176,10 @@ export default function OrdersPage() {
     const retryTimer = setTimeout(() => {
       if (!firstLoadDone.current && !cancelled) fetchOrders();
     }, 2000);
+
+    const pollInterval = setInterval(() => {
+      if (!cancelled) fetchOrders();
+    }, 15_000);
 
     const onVisible = () => {
       if (document.visibilityState === "visible") fetchOrders();
@@ -255,6 +267,7 @@ export default function OrdersPage() {
     return () => {
       cancelled = true;
       clearTimeout(retryTimer);
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onFocus);
