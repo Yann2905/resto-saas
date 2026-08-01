@@ -14,7 +14,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
 import { confirmAction } from "@/lib/swal";
 import { getPlanLimits, type FeatureOverrides } from "@/lib/plan-limits";
 
@@ -59,13 +58,7 @@ export default function DashboardNav() {
       confirmText: "Se déconnecter",
     });
     if (!ok) return;
-    // 1. Vider notre cache (synchrone)
-    try { localStorage.removeItem("resto-saas:auth-v1"); } catch { /* */ }
-    // 2. Vider la session Supabase (async mais on attend — sinon le login
-    //    page trouvera des vieux tokens et signInWithPassword restera bloqué)
-    try { await supabase.auth.signOut({ scope: "local" }); } catch { /* */ }
-    // 3. Navigation dure — on n'a PAS touché le state React donc le
-    //    composant est toujours monté et cette ligne s'exécute à coup sûr.
+    await signOut();
     window.location.href = "/dashboard/login";
   };
 

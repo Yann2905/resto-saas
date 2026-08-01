@@ -56,7 +56,6 @@ export default function LoginPage() {
     return params.get("next");
   };
 
-  // Auto-redirect si déjà connecté (synchrone, depuis le cache localStorage)
   useEffect(() => {
     try {
       const raw = localStorage.getItem("resto-saas:auth-v1");
@@ -64,7 +63,13 @@ export default function LoginPage() {
       const cache = JSON.parse(raw) as {
         role?: string;
         restaurant?: unknown;
+        ts?: number;
       };
+      const maxAge = 7 * 24 * 60 * 60 * 1000;
+      if (cache.ts && Date.now() - cache.ts > maxAge) {
+        localStorage.removeItem("resto-saas:auth-v1");
+        return;
+      }
       const next = getNextUrl();
       if (next) {
         window.location.replace(next);

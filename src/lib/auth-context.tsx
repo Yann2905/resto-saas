@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   ReactNode,
 } from "react";
@@ -36,7 +37,7 @@ const Ctx = createContext<AuthCtx>({
 
 // Cache localStorage : restitution instantanée + survit aux refresh ratés
 const CACHE_KEY = "resto-saas:auth-v1";
-const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 type AuthCache = {
   userId: string;
@@ -51,7 +52,10 @@ function readCache(): AuthCache | null {
     const raw = window.localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as AuthCache;
-    if (Date.now() - parsed.ts > CACHE_MAX_AGE_MS) return null;
+    if (Date.now() - parsed.ts > CACHE_MAX_AGE_MS) {
+      window.localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
     return parsed;
   } catch {
     return null;
@@ -105,12 +109,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
+  const explicitSignOut = useRef(false);
+
   const refresh = useCallback(async (u: User | null) => {
     if (!u) {
-      setUser(null);
-      setRole(null);
-      setRestaurant(null);
-      clearCache();
+      if (explicitSignOut.current) {
+        setUser(null);
+        setRole(null);
+        setRestaurant(null);
+        clearCache();
+      }
       return;
     }
     setUser(u);
@@ -245,6 +253,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    explicitSignOut.current = true;
     clearCache();
     setUser(null);
     setRole(null);
