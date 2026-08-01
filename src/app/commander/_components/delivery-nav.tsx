@@ -85,7 +85,7 @@ export default function DeliveryNav({ cartCount: propCount, ordersCount: propOrd
 
   const cartHref = cartInfo.count > 0 && cartInfo.slug
     ? `/r/${cartInfo.slug}/cart?mode=delivery`
-    : "/commander";
+    : "/commander/panier";
 
   const tabs: { key: string; label: string; icon: typeof Home; href: string; badge?: number }[] = [
     { key: "home", label: "Accueil", icon: Home, href: "/commander" },
