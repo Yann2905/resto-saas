@@ -239,6 +239,39 @@ function ActiveSessionCard({
         <MiniStat label="Sorties" value={`-${formatFCFA(summary?.totalExpenses ?? 0)}`} color="text-red-400" icon={<ArrowDownCircle className="w-3 h-3" />} />
       </div>
 
+      {/* MoMo breakdown */}
+      {summary && summary.totalMomo > 0 && (
+        <div className="bg-blue-500/5 border border-blue-500/10 rounded-xl p-3 mb-4">
+          <div className="text-[10px] text-blue-300/70 font-semibold uppercase tracking-wider mb-2">Détail Mobile Money</div>
+          <div className="grid grid-cols-2 gap-2">
+            {summary.momoOrange > 0 && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-slate-300"><span className="w-2 h-2 rounded-full bg-orange-500" />Orange Money</span>
+                <span className="text-orange-400 font-bold">{formatFCFA(summary.momoOrange)}</span>
+              </div>
+            )}
+            {summary.momoWave > 0 && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-slate-300"><span className="w-2 h-2 rounded-full bg-blue-500" />Wave</span>
+                <span className="text-blue-300 font-bold">{formatFCFA(summary.momoWave)}</span>
+              </div>
+            )}
+            {summary.momoMtn > 0 && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-slate-300"><span className="w-2 h-2 rounded-full bg-yellow-500" />MTN Money</span>
+                <span className="text-yellow-400 font-bold">{formatFCFA(summary.momoMtn)}</span>
+              </div>
+            )}
+            {summary.momoMoov > 0 && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-slate-300"><span className="w-2 h-2 rounded-full bg-cyan-500" />Moov Money</span>
+                <span className="text-cyan-400 font-bold">{formatFCFA(summary.momoMoov)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between bg-slate-800/60 rounded-xl p-3">
         <span className="text-xs text-slate-400 font-medium">Solde théorique caisse</span>
         <span className="text-lg font-extrabold text-amber-400">{formatFCFA(summary?.expectedCash ?? 0)}</span>
@@ -454,6 +487,39 @@ const ClosedSessionCard = memo(function ClosedSessionCard({
             <DetailStat label="Mobile Money" value={formatFCFA(summary.totalMomo)} accent="blue" />
             <DetailStat label="Total ventes" value={formatFCFA(summary.totalSales)} accent="stone" />
           </div>
+
+          {/* MoMo breakdown */}
+          {summary.totalMomo > 0 && (
+            <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+              <div className="text-[10px] font-semibold text-blue-800 uppercase tracking-wider mb-2">Détail Mobile Money</div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                {summary.momoOrange > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-stone-600"><span className="w-2 h-2 rounded-full bg-orange-500" />Orange Money</span>
+                    <span className="text-orange-700 font-bold">{formatFCFA(summary.momoOrange)}</span>
+                  </div>
+                )}
+                {summary.momoWave > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-stone-600"><span className="w-2 h-2 rounded-full bg-blue-500" />Wave</span>
+                    <span className="text-blue-700 font-bold">{formatFCFA(summary.momoWave)}</span>
+                  </div>
+                )}
+                {summary.momoMtn > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-stone-600"><span className="w-2 h-2 rounded-full bg-yellow-500" />MTN Money</span>
+                    <span className="text-yellow-700 font-bold">{formatFCFA(summary.momoMtn)}</span>
+                  </div>
+                )}
+                {summary.momoMoov > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-stone-600"><span className="w-2 h-2 rounded-full bg-cyan-500" />Moov Money</span>
+                    <span className="text-cyan-700 font-bold">{formatFCFA(summary.momoMoov)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {(summary.totalExpenses > 0 || expenses.length > 0) && (
             <div className="bg-red-50 rounded-xl p-3 border border-red-100">

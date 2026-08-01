@@ -171,6 +171,34 @@ export default function CashSessionBar({ restaurantId }: Props) {
                 <span className="text-sm font-semibold text-blue-400">
                   {formatFCFA(summary?.totalMomo || 0)}
                 </span>
+                {summary && summary.totalMomo > 0 && (
+                  <div className="mt-1.5 space-y-0.5">
+                    {summary.momoOrange > 0 && (
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-orange-500" />Orange</span>
+                        <span className="text-orange-400 font-medium">{formatFCFA(summary.momoOrange)}</span>
+                      </div>
+                    )}
+                    {summary.momoWave > 0 && (
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-blue-500" />Wave</span>
+                        <span className="text-blue-300 font-medium">{formatFCFA(summary.momoWave)}</span>
+                      </div>
+                    )}
+                    {summary.momoMtn > 0 && (
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />MTN</span>
+                        <span className="text-yellow-400 font-medium">{formatFCFA(summary.momoMtn)}</span>
+                      </div>
+                    )}
+                    {summary.momoMoov > 0 && (
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />Moov</span>
+                        <span className="text-cyan-400 font-medium">{formatFCFA(summary.momoMoov)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               {(summary?.totalExpenses ?? 0) > 0 ? (
                 <div className="bg-slate-800/50 rounded-xl p-2.5">

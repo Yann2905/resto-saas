@@ -1,10 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Order, OrderPaymentMethod } from "@/types";
+import { Order, OrderPaymentMethod, MobileMoneyProvider } from "@/types";
 import { formatFCFA } from "@/lib/format";
 import { processOrderPayment } from "@/lib/cash-register";
 import { CreditCard, Banknote, Smartphone, CheckCircle, X, AlertCircle } from "lucide-react";
+
+const MOMO_PROVIDERS: { value: MobileMoneyProvider; label: string; color: string }[] = [
+  { value: "orange_money", label: "Orange Money", color: "bg-orange-500" },
+  { value: "wave", label: "Wave", color: "bg-blue-500" },
+  { value: "mtn_money", label: "MTN Money", color: "bg-yellow-500" },
+  { value: "moov_money", label: "Moov Money", color: "bg-cyan-500" },
+];
 
 type Props = {
   order: Order;
@@ -24,6 +31,7 @@ export default function OrderPaymentModal({
   onSuccess,
 }: Props) {
   const [method, setMethod] = useState<OrderPaymentMethod>("cash");
+  const [provider, setProvider] = useState<MobileMoneyProvider>("orange_money");
   const [amountReceivedInput, setAmountReceivedInput] = useState<string>(
     order.total.toString()
   );
@@ -59,7 +67,8 @@ export default function OrderPaymentModal({
       const res = await processOrderPayment(
         order.id,
         method,
-        method === "cash" ? numReceived : order.total
+        method === "cash" ? numReceived : order.total,
+        method === "mobile_money" ? provider : undefined
       );
 
       if (!res.ok) {
@@ -156,6 +165,32 @@ export default function OrderPaymentModal({
               </button>
             </div>
           </div>
+
+          {/* Mobile Money provider selector */}
+          {method === "mobile_money" && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                Opérateur Mobile Money
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {MOMO_PROVIDERS.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => setProvider(p.value)}
+                    className={`flex items-center gap-2.5 px-3 py-3 rounded-xl border transition-all text-left ${
+                      provider === p.value
+                        ? "bg-blue-500/10 border-blue-500 text-blue-300 font-semibold"
+                        : "bg-slate-800/50 border-slate-700/60 text-slate-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    <span className={`w-3 h-3 rounded-full shrink-0 ${p.color}`} />
+                    <span className="text-sm">{p.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Formulaire spécifique Espèces */}
           {method === "cash" && (

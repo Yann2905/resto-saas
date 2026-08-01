@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const orderCols = "id, restaurant_id, table_number, room_label, status, items, total, created_at, updated_at, order_type, order_mode, assigned_to, assigned_name, acknowledged_at, delivery_phone, delivery_quartier, delivery_carrefour, delivery_fee, payment_status, payment_method, amount_received, change_given, paid_at, cash_session_id";
+  const orderCols = "id, restaurant_id, table_number, room_label, status, items, total, created_at, updated_at, order_type, order_mode, assigned_to, assigned_name, acknowledged_at, delivery_phone, delivery_quartier, delivery_carrefour, delivery_fee, payment_status, payment_method, payment_provider, amount_received, change_given, paid_at, cash_session_id";
 
   let [activeRes, servedRes] = await Promise.all([
     admin

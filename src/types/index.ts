@@ -87,6 +87,7 @@ export type OrderItem = {
 
 export type OrderPaymentStatus = "unpaid" | "paid";
 export type OrderPaymentMethod = "cash" | "mobile_money" | "card" | "room_bill" | "other";
+export type MobileMoneyProvider = "orange_money" | "wave" | "mtn_money" | "moov_money";
 
 export type Order = {
   id: string;
@@ -99,6 +100,7 @@ export type Order = {
   status: OrderStatus;
   paymentStatus: OrderPaymentStatus;
   paymentMethod: OrderPaymentMethod | null;
+  paymentProvider: MobileMoneyProvider | null;
   paidAt: string | null;
   amountReceived: number | null;
   changeGiven: number | null;
@@ -250,6 +252,7 @@ export type OrderRow = {
   status: OrderStatus;
   payment_status?: OrderPaymentStatus;
   payment_method?: OrderPaymentMethod | null;
+  payment_provider?: MobileMoneyProvider | null;
   paid_at?: string | null;
   amount_received?: number | null;
   change_given?: number | null;
@@ -306,6 +309,10 @@ export type CashSessionSummary = {
   closedAt: string | null;
   totalCash: number;
   totalMomo: number;
+  momoOrange: number;
+  momoWave: number;
+  momoMtn: number;
+  momoMoov: number;
   totalCard: number;
   totalOther: number;
   totalSales: number;
@@ -461,6 +468,7 @@ export function mapOrder(o: OrderRow & { assigned_name?: string | null }): Order
     status: o.status,
     paymentStatus: o.payment_status ?? "unpaid",
     paymentMethod: o.payment_method ?? null,
+    paymentProvider: (o.payment_provider as MobileMoneyProvider) ?? null,
     paidAt: o.paid_at ?? null,
     amountReceived: o.amount_received ?? null,
     changeGiven: o.change_given ?? null,

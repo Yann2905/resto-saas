@@ -6,6 +6,7 @@ import {
   CashExpense,
   CashExpenseRow,
   OrderPaymentMethod,
+  MobileMoneyProvider,
   mapCashSession,
   mapCashExpense,
 } from "@/types";
@@ -98,6 +99,10 @@ export async function getCashSessionSummary(
     closedAt: (res.closed_at as string) || null,
     totalCash: Number(res.total_cash || 0),
     totalMomo: Number(res.total_momo || 0),
+    momoOrange: Number(res.momo_orange || 0),
+    momoWave: Number(res.momo_wave || 0),
+    momoMtn: Number(res.momo_mtn || 0),
+    momoMoov: Number(res.momo_moov || 0),
     totalCard: Number(res.total_card || 0),
     totalOther: Number(res.total_other || 0),
     totalSales: Number(res.total_sales || 0),
@@ -126,12 +131,14 @@ export type ProcessPaymentResult =
 export async function processOrderPayment(
   orderId: string,
   paymentMethod: OrderPaymentMethod,
-  amountReceived?: number
+  amountReceived?: number,
+  paymentProvider?: MobileMoneyProvider
 ): Promise<ProcessPaymentResult> {
   const { data, error } = await supabase.rpc("process_order_payment", {
     p_order_id: orderId,
     p_payment_method: paymentMethod,
     p_amount_received: amountReceived ?? null,
+    p_payment_provider: paymentProvider ?? null,
   });
 
   if (error) {
