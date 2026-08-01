@@ -434,6 +434,10 @@ export default function MarketplaceClient({ products, restaurants, categories = 
                 Restaurateur ? Contactez-nous
                 <ArrowRight className="w-4 h-4 text-stone-400" />
               </a>
+              <Link href="/prix" onClick={() => setMenuOpen(false)} className="flex items-center justify-between px-4 py-3 rounded-xl text-stone-700 font-medium hover:bg-stone-50 transition-colors">
+                Nos tarifs
+                <ArrowRight className="w-4 h-4 text-stone-400" />
+              </Link>
               <div className="border-t border-stone-100 my-3" />
               <Link href="/a-propos" onClick={() => setMenuOpen(false)} className="flex items-center px-4 py-3 rounded-xl text-stone-500 text-sm hover:bg-stone-50 transition-colors">
                 À propos
