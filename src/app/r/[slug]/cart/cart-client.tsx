@@ -147,6 +147,22 @@ export default function CartClient({ restaurant, tableNumber, roomLabel, deliver
       return;
     }
     clearCart(restaurant.id, tableKey);
+    if (deliveryMode && res.orderId) {
+      try {
+        const raw = localStorage.getItem("delivery_orders");
+        const orders: { id: string; slug: string; status: string; restaurantName: string; createdAt: string }[] = raw ? JSON.parse(raw) : [];
+        orders.unshift({
+          id: res.orderId,
+          slug: restaurant.slug,
+          status: "pending",
+          restaurantName: restaurant.name,
+          createdAt: new Date().toISOString(),
+        });
+        localStorage.setItem("delivery_orders", JSON.stringify(orders));
+        localStorage.removeItem("delivery_cart_slug");
+        window.dispatchEvent(new Event("orders:updated"));
+      } catch { /* ignore */ }
+    }
     fetch("/api/orders/notify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

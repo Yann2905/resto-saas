@@ -85,6 +85,8 @@ export default function MarketplaceClient({ products, restaurants }: Props) {
       });
     }
 
+    localStorage.setItem("delivery_cart_slug", product.restaurant.slug);
+
     setJustAdded(product.id);
     setTimeout(() => setJustAdded((prev) => (prev === product.id ? null : prev)), 800);
 

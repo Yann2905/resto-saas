@@ -1,54 +1,100 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Receipt, ShoppingBag } from "lucide-react";
 
 type Props = {
   cartCount?: number;
+  ordersCount?: number;
   activeTab?: "home" | "cart" | "orders";
 };
 
-export default function DeliveryNav({ cartCount: propCount, activeTab: propActive }: Props) {
+function getDeliveryCartInfo(): { count: number; slug: string | null } {
+  if (typeof window === "undefined") return { count: 0, slug: null };
+  let total = 0;
+  let slug: string | null = null;
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.includes(":delivery")) {
+      try {
+        const items = JSON.parse(localStorage.getItem(key) ?? "[]");
+        for (const item of items) total += item.quantity ?? 1;
+        if (items.length > 0 && !slug) {
+          const cartSlug = localStorage.getItem("delivery_cart_slug");
+          if (cartSlug) slug = cartSlug;
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  return { count: total, slug };
+}
+
+function getPendingOrdersCount(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = localStorage.getItem("delivery_orders");
+    if (!raw) return 0;
+    const orders = JSON.parse(raw) as { id: string; status: string }[];
+    return orders.filter((o) => o.status !== "served").length;
+  } catch { return 0; }
+}
+
+export default function DeliveryNav({ cartCount: propCount, ordersCount: propOrdersCount, activeTab: propActive }: Props) {
   const pathname = usePathname();
-  const [count, setCount] = useState(propCount ?? 0);
+  const [cartInfo, setCartInfo] = useState({ count: propCount ?? 0, slug: null as string | null });
+  const [ordersCount, setOrdersCount] = useState(propOrdersCount ?? 0);
 
   const active = propActive ?? (
-    pathname.includes("/cart") ? "cart" : pathname.includes("/order") ? "orders" : "home"
+    pathname.includes("/cart") ? "cart"
+    : pathname === "/commander/commandes" || pathname.includes("/order") ? "orders"
+    : "home"
   );
+
+  const refresh = useCallback(() => {
+    if (propCount === undefined) {
+      setCartInfo(getDeliveryCartInfo());
+    }
+    if (propOrdersCount === undefined) {
+      setOrdersCount(getPendingOrdersCount());
+    }
+  }, [propCount, propOrdersCount]);
 
   useEffect(() => {
     if (propCount !== undefined) {
-      setCount(propCount);
-      return;
+      setCartInfo((prev) => ({ ...prev, count: propCount }));
     }
-    const refresh = () => {
-      let total = 0;
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.includes(":delivery")) {
-          try {
-            const items = JSON.parse(localStorage.getItem(key) ?? "[]");
-            for (const item of items) total += item.quantity ?? 1;
-          } catch { /* ignore */ }
-        }
-      }
-      setCount(total);
-    };
+  }, [propCount]);
+
+  useEffect(() => {
+    if (propOrdersCount !== undefined) {
+      setOrdersCount(propOrdersCount);
+    }
+  }, [propOrdersCount]);
+
+  useEffect(() => {
     refresh();
     window.addEventListener("cart:updated", refresh);
-    return () => window.removeEventListener("cart:updated", refresh);
-  }, [propCount]);
+    window.addEventListener("orders:updated", refresh);
+    return () => {
+      window.removeEventListener("cart:updated", refresh);
+      window.removeEventListener("orders:updated", refresh);
+    };
+  }, [refresh]);
+
+  const cartHref = cartInfo.count > 0 && cartInfo.slug
+    ? `/r/${cartInfo.slug}/cart?mode=delivery`
+    : "/commander";
 
   const tabs: { key: string; label: string; icon: typeof Home; href: string; badge?: number }[] = [
     { key: "home", label: "Accueil", icon: Home, href: "/commander" },
-    { key: "cart", label: "Panier", icon: ShoppingBag, href: "/commander", badge: count },
-    { key: "orders", label: "Commandes", icon: Receipt, href: "/commander" },
+    { key: "cart", label: "Panier", icon: ShoppingBag, href: cartHref, badge: cartInfo.count },
+    { key: "orders", label: "Commandes", icon: Receipt, href: "/commander/commandes", badge: ordersCount },
   ];
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-stone-200 safe-area-pb">
+    <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-stone-200" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
       <div className="max-w-3xl mx-auto flex items-center justify-around py-2">
         {tabs.map((tab) => {
           const isActive = active === tab.key;
@@ -63,7 +109,7 @@ export default function DeliveryNav({ cartCount: propCount, activeTab: propActiv
             >
               <div className="relative">
                 <Icon className={`w-6 h-6 ${isActive ? "stroke-[2.5]" : ""}`} />
-                {tab.badge && tab.badge > 0 && (
+                {tab.badge !== undefined && tab.badge > 0 && (
                   <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] bg-[#722F37] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
                     {tab.badge}
                   </span>
@@ -79,11 +125,6 @@ export default function DeliveryNav({ cartCount: propCount, activeTab: propActiv
           );
         })}
       </div>
-      <style jsx>{`
-        .safe-area-pb {
-          padding-bottom: env(safe-area-inset-bottom, 0px);
-        }
-      `}</style>
     </nav>
   );
 }
