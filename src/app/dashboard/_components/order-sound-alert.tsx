@@ -264,17 +264,18 @@ export default function OrderSoundAlert() {
           filter: `restaurant_id=eq.${restaurantId}`,
         },
         (payload) => {
-          const oldProd = payload.old as { stock_quantity?: number } | null;
-          const newProd = payload.new as { id: string; name: string; stock_quantity: number };
+          const oldProd = payload.old as { stock_quantity?: number | null } | null;
+          const newProd = payload.new as { id: string; name: string; stock_quantity: number | null };
 
           const threshold = thresholdRef.current;
           const oldStock = oldProd?.stock_quantity;
           const newStock = newProd.stock_quantity;
           const pId = newProd.id;
 
+          if (newStock === null) return; // pas de suivi de stock
           if (newStock <= threshold) {
             let shouldAlert = false;
-            if (oldStock !== undefined) {
+            if (oldStock !== undefined && oldStock !== null) {
               // Si on a l'ancien stock (grâce à REPLICA IDENTITY FULL), on alerte
               // uniquement au moment du franchissement descendant du seuil.
               shouldAlert = oldStock > threshold;

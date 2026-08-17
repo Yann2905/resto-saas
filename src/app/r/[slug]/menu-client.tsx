@@ -226,7 +226,7 @@ export default function MenuClient({
                       product={p}
                       onAdd={() => handleAdd(p)}
                       justAdded={justAdded === p.id}
-                      categoryStock={cat?.stock ?? null}
+                      categories={categories}
                       onDetail={(prod) => { setSelectedProduct(prod); setDetailQty(1); }}
                     />
                   );
@@ -261,7 +261,7 @@ export default function MenuClient({
                               product={p}
                               onAdd={() => handleAdd(p)}
                               justAdded={justAdded === p.id}
-                              categoryStock={cat.stock}
+                              categories={categories}
                               onDetail={(prod) => { setSelectedProduct(prod); setDetailQty(1); }}
                             />
                           ))}
@@ -290,15 +290,20 @@ export default function MenuClient({
 
       {/* Product Detail Modal */}
       {selectedProduct && (() => {
-        const cat = categories.find((c) => c.id === selectedProduct.categoryId);
-        const catStock = cat?.stock ?? null;
-        const hasCatStock = catStock !== null;
-        const disabled = !selectedProduct.available || (hasCatStock
-          ? catStock < selectedProduct.stockConsumption
-          : selectedProduct.stockQuantity <= 0);
-        const remaining = hasCatStock
-          ? Math.floor((catStock ?? 0) / selectedProduct.stockConsumption)
-          : selectedProduct.stockQuantity;
+        const links = selectedProduct.categoryLinks ?? [];
+        const hasProductStock = selectedProduct.stockQuantity !== null;
+        const catInsufficient = links.length > 0
+          ? links.some((l) => {
+              const c = categories.find((ct) => ct.id === l.categoryId);
+              return c?.stock !== null && c?.stock !== undefined && c.stock < l.quantityPerUnit;
+            })
+          : (() => {
+              const c = categories.find((ct) => ct.id === selectedProduct.categoryId);
+              return c?.stock !== null && c?.stock !== undefined && c.stock < selectedProduct.stockConsumption;
+            })();
+        const disabled = !selectedProduct.available || catInsufficient
+          || (hasProductStock && selectedProduct.stockQuantity! <= 0);
+        const remaining = hasProductStock ? selectedProduct.stockQuantity! : 999;
         const maxQty = disabled ? 0 : remaining;
 
         return (
@@ -350,7 +355,7 @@ export default function MenuClient({
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
                     Produit indisponible
                   </div>
-                ) : remaining > 0 && remaining <= 5 ? (
+                ) : remaining !== null && remaining > 0 && remaining <= 5 ? (
                   <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8a6828] bg-[#C8963E]/10 rounded-full px-3 py-1 mb-4">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#C8963E]" />
                     Plus que {remaining} disponible{remaining > 1 ? "s" : ""}
@@ -403,19 +408,28 @@ function ProductCard({
   product,
   onAdd,
   justAdded,
-  categoryStock,
+  categories,
   onDetail,
 }: {
   product: Product;
   onAdd: () => void;
   justAdded: boolean;
-  categoryStock?: number | null;
+  categories: Category[];
   onDetail?: (product: Product) => void;
 }) {
-  const hasCatStock = categoryStock !== null && categoryStock !== undefined;
-  const disabled = !product.available || (hasCatStock
-    ? categoryStock < product.stockConsumption
-    : product.stockQuantity <= 0);
+  const links = product.categoryLinks ?? [];
+  const hasProductStock = product.stockQuantity !== null;
+  const catInsufficient = links.length > 0
+    ? links.some((l) => {
+        const cat = categories.find((c) => c.id === l.categoryId);
+        return cat?.stock !== null && cat?.stock !== undefined && cat.stock < l.quantityPerUnit;
+      })
+    : (() => {
+        const cat = categories.find((c) => c.id === product.categoryId);
+        return cat?.stock !== null && cat?.stock !== undefined && cat.stock < product.stockConsumption;
+      })();
+  const disabled = !product.available || catInsufficient
+    || (hasProductStock && product.stockQuantity! <= 0);
   return (
     <div className={`group relative bg-white rounded-2xl p-3 flex gap-4 items-center border transition-all ${disabled ? "border-stone-200/50" : "border-stone-200/80 hover:border-stone-300 hover:shadow-md hover:shadow-stone-900/5"}`}>
       <div
@@ -456,10 +470,8 @@ function ProductCard({
             {formatFCFA(product.price)}
           </div>
           {!disabled && (() => {
-            const remaining = hasCatStock
-              ? Math.floor(categoryStock / product.stockConsumption)
-              : product.stockQuantity;
-            return remaining > 0 && remaining <= 5 ? (
+            const remaining = hasProductStock ? product.stockQuantity! : null;
+            return remaining !== null && remaining > 0 && remaining <= 5 ? (
               <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-[#8a6828]">
                 <span className="w-1 h-1 rounded-full bg-[#C8963E]" />
                 Plus que {remaining}

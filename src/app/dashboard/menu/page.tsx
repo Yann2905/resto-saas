@@ -14,9 +14,14 @@ import {
   mapCategory,
   mapProduct,
 } from "@/types";
-import { UtensilsCrossed, X } from "lucide-react";
+import { UtensilsCrossed, X, Plus, Link2 } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
 import { confirmDanger, toastError, toastSuccess } from "@/lib/swal";
+
+type CategoryLinkForm = {
+  categoryId: string;
+  quantityPerUnit: string;
+};
 
 type ProductForm = {
   name: string;
@@ -27,6 +32,7 @@ type ProductForm = {
   imageUrl: string;
   available: boolean;
   description: string;
+  categoryLinks: CategoryLinkForm[];
 };
 
 const emptyProductForm: ProductForm = {
@@ -38,6 +44,7 @@ const emptyProductForm: ProductForm = {
   imageUrl: "",
   available: true,
   description: "",
+  categoryLinks: [],
 };
 
 type CategoryForm = {
@@ -149,6 +156,17 @@ export default function MenuAdminPage() {
     if (!restaurant) return;
     setSaving(true);
     try {
+      const stockQty = form.stockQuantity.trim() === ""
+        ? null
+        : parseInt(form.stockQuantity, 10);
+
+      const categoryLinks = form.categoryLinks
+        .filter((l) => l.categoryId)
+        .map((l) => ({
+          category_id: l.categoryId,
+          quantity_per_unit: parseFloat(l.quantityPerUnit) || 1,
+        }));
+
       const res = await fetch("/api/menu/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -158,7 +176,7 @@ export default function MenuAdminPage() {
           name: form.name.trim(),
           price: parseInt(form.price, 10) || 0,
           category_id: form.categoryId,
-          stock_quantity: parseInt(form.stockQuantity, 10) || 0,
+          stock_quantity: stockQty,
           stock_consumption: parseFloat(form.stockConsumption) || 1,
           image_url: form.imageUrl.trim() || null,
           available: form.available,
@@ -166,6 +184,7 @@ export default function MenuAdminPage() {
           order: id
             ? products.find((p) => p.id === id)?.order ?? products.length + 1
             : products.length + 1,
+          category_links: categoryLinks,
         }),
       });
       const json = await res.json();
@@ -514,11 +533,15 @@ export default function MenuAdminPage() {
                       name: p.name,
                       price: String(p.price),
                       categoryId: p.categoryId,
-                      stockQuantity: String(p.stockQuantity),
+                      stockQuantity: p.stockQuantity !== null ? String(p.stockQuantity) : "",
                       stockConsumption: String(p.stockConsumption),
                       imageUrl: p.imageUrl ?? "",
                       available: p.available,
                       description: p.description ?? "",
+                      categoryLinks: (p.categoryLinks ?? []).map((l) => ({
+                        categoryId: l.categoryId,
+                        quantityPerUnit: String(l.quantityPerUnit),
+                      })),
                     }}
                     leafCategories={leafCategories}
                     allCategories={categories}
@@ -532,7 +555,7 @@ export default function MenuAdminPage() {
                     key={p.id}
                     product={p}
                     categoryLabel={categoryName(p.categoryId)}
-                    categoryStock={categories.find((c) => c.id === p.categoryId)?.stock ?? null}
+                    categories={categories}
                     onEdit={() => {
                       setEditingProductId(p.id);
                       setShowAddProduct(false);
@@ -554,20 +577,22 @@ export default function MenuAdminPage() {
 function ProductRowView({
   product,
   categoryLabel,
-  categoryStock,
+  categories,
   onEdit,
   onDelete,
   onToggleAvailable,
 }: {
   product: Product;
   categoryLabel: string;
-  categoryStock: number | null;
+  categories: Category[];
   onEdit: () => void;
   onDelete: () => void;
   onToggleAvailable: () => void;
 }) {
-  const hasCatStock = categoryStock !== null;
-  const out = !product.available || (hasCatStock ? categoryStock <= 0 : product.stockQuantity <= 0);
+  const links = product.categoryLinks ?? [];
+  const hasLinks = links.length > 0;
+  const hasProductStock = product.stockQuantity !== null;
+  const out = !product.available || (hasProductStock && product.stockQuantity! <= 0);
   return (
     <div className="rounded-xl border border-stone-200 bg-white p-3 flex flex-col sm:flex-row sm:items-center gap-3 hover:border-stone-300 transition-colors">
       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -595,13 +620,23 @@ function ProductRowView({
             <span className="font-semibold text-stone-700">
               {formatFCFA(product.price)}
             </span>
-            <span className="text-stone-500">
-              {hasCatStock ? (
-                <>Consomme : <span className="font-semibold">{product.stockConsumption}</span></>
-              ) : (
-                <>Stock : <span className="font-semibold">{product.stockQuantity}</span></>
-              )}
-            </span>
+            {hasProductStock && (
+              <span className="text-stone-500">
+                Plats : <span className="font-semibold">{product.stockQuantity}</span>
+              </span>
+            )}
+            {hasLinks && (
+              <span className="text-blue-600 flex items-center gap-1">
+                <Link2 className="w-3 h-3" aria-hidden />
+                {links.map((l) => {
+                  const cat = categories.find((c) => c.id === l.categoryId);
+                  return cat ? `${cat.name} (×${l.quantityPerUnit})` : null;
+                }).filter(Boolean).join(", ")}
+              </span>
+            )}
+            {!hasLinks && !hasProductStock && (
+              <span className="text-stone-400">Pas de stock</span>
+            )}
             {out && (
               <span className="inline-flex items-center gap-1 text-red-600 font-medium">
                 <span className="w-1 h-1 rounded-full bg-red-500" />
@@ -800,42 +835,114 @@ function ProductFormInline({
               className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
             />
           </Field>
-          {(() => {
-            const selectedCat = allCategories.find((c) => c.id === form.categoryId);
-            const catHasStock = selectedCat?.stock !== null && selectedCat?.stock !== undefined;
-            return catHasStock ? (
-              <Field label={`Qté consommée (stock catégorie: ${selectedCat!.stock})`}>
-                <input
-                  required
-                  type="number"
-                  inputMode="decimal"
-                  step="0.5"
-                  min="0.5"
-                  value={form.stockConsumption}
-                  onChange={(e) =>
-                    setForm({ ...form, stockConsumption: e.target.value })
-                  }
-                  placeholder="1 (0.5 pour un demi)"
-                  className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
-                />
-              </Field>
+          <Field label="Nombre de plats (optionnel)">
+            <input
+              type="number"
+              inputMode="numeric"
+              min="0"
+              value={form.stockQuantity}
+              onChange={(e) =>
+                setForm({ ...form, stockQuantity: e.target.value })
+              }
+              placeholder="Vide = pas de suivi"
+              className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
+            />
+          </Field>
+
+          {/* Liens catégories pour déduction de stock */}
+          <div className="sm:col-span-2">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-500">
+                Déduction stock catégories
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setForm((f) => ({
+                    ...f,
+                    categoryLinks: [
+                      ...f.categoryLinks,
+                      { categoryId: "", quantityPerUnit: "1" },
+                    ],
+                  }))
+                }
+                className="flex items-center gap-1 text-xs font-semibold text-[#722F37] hover:text-[#5a2530] transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" aria-hidden />
+                Ajouter
+              </button>
+            </div>
+            {form.categoryLinks.length === 0 ? (
+              <p className="text-xs text-stone-400 italic">
+                Aucun lien — le stock catégorie ne sera pas impacté.
+              </p>
             ) : (
-              <Field label="Stock">
-                <input
-                  required
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  value={form.stockQuantity}
-                  onChange={(e) =>
-                    setForm({ ...form, stockQuantity: e.target.value })
-                  }
-                  placeholder="20"
-                  className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
-                />
-              </Field>
-            );
-          })()}
+              <div className="space-y-2">
+                {form.categoryLinks.map((link, idx) => {
+                  const linkedCat = allCategories.find((c) => c.id === link.categoryId);
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-2 rounded-lg bg-blue-50 border border-blue-200 p-2"
+                    >
+                      <Link2 className="w-4 h-4 text-blue-500 flex-shrink-0" aria-hidden />
+                      <select
+                        value={link.categoryId}
+                        onChange={(e) => {
+                          const updated = [...form.categoryLinks];
+                          updated[idx] = { ...updated[idx], categoryId: e.target.value };
+                          setForm({ ...form, categoryLinks: updated });
+                        }}
+                        className="flex-1 rounded-lg border border-blue-200 px-2 py-1.5 text-sm bg-white focus:border-[#722F37] focus:outline-none"
+                      >
+                        <option value="">— Catégorie —</option>
+                        {allCategories
+                          .filter((c) => c.stock !== null)
+                          .map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} (stock: {c.stock})
+                            </option>
+                          ))}
+                      </select>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-stone-500">×</span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.25"
+                          min="0.01"
+                          value={link.quantityPerUnit}
+                          onChange={(e) => {
+                            const updated = [...form.categoryLinks];
+                            updated[idx] = { ...updated[idx], quantityPerUnit: e.target.value };
+                            setForm({ ...form, categoryLinks: updated });
+                          }}
+                          className="w-16 rounded-lg border border-blue-200 px-2 py-1.5 text-sm text-center focus:border-[#722F37] focus:outline-none"
+                          title="Quantité consommée par plat"
+                        />
+                      </div>
+                      {linkedCat && (
+                        <span className="text-[10px] text-blue-600 whitespace-nowrap">
+                          /plat
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = form.categoryLinks.filter((_, i) => i !== idx);
+                          setForm({ ...form, categoryLinks: updated });
+                        }}
+                        className="p-1 text-red-400 hover:text-red-600 transition-colors"
+                        aria-label="Retirer"
+                      >
+                        <X className="w-3.5 h-3.5" aria-hidden />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           <label className="sm:col-span-2 flex items-center gap-2 text-sm text-stone-700 mt-1">
             <input
               type="checkbox"

@@ -64,10 +64,25 @@ export type Product = {
   imageUrl?: string | null;
   categoryId: string;
   available: boolean;
-  stockQuantity: number;
+  stockQuantity: number | null;
   stockConsumption: number;
   order: number;
   description: string | null;
+  categoryLinks?: ProductCategoryLink[];
+};
+
+export type ProductCategoryLink = {
+  id?: string;
+  productId: string;
+  categoryId: string;
+  quantityPerUnit: number;
+};
+
+export type ProductCategoryLinkRow = {
+  id: string;
+  product_id: string;
+  category_id: string;
+  quantity_per_unit: number;
 };
 
 export type UserRole = "owner" | "superadmin" | "waiter";
@@ -233,12 +248,13 @@ export type ProductRow = {
   image_url: string | null;
   category_id: string;
   available: boolean;
-  stock_quantity: number;
+  stock_quantity: number | null;
   stock_consumption: number;
   order: number;
   description: string | null;
   created_at: string;
   updated_at: string;
+  product_category_links?: ProductCategoryLinkRow[];
 };
 
 export type OrderRow = {
@@ -449,10 +465,25 @@ export function mapProduct(p: ProductRow): Product {
     imageUrl: p.image_url,
     categoryId: p.category_id,
     available: p.available,
-    stockQuantity: p.stock_quantity,
+    stockQuantity: p.stock_quantity ?? null,
     stockConsumption: p.stock_consumption ?? 1,
     order: p.order,
     description: p.description ?? null,
+    categoryLinks: p.product_category_links?.map((l) => ({
+      id: l.id,
+      productId: l.product_id,
+      categoryId: l.category_id,
+      quantityPerUnit: l.quantity_per_unit,
+    })),
+  };
+}
+
+export function mapProductCategoryLink(l: ProductCategoryLinkRow): ProductCategoryLink {
+  return {
+    id: l.id,
+    productId: l.product_id,
+    categoryId: l.category_id,
+    quantityPerUnit: l.quantity_per_unit,
   };
 }
 

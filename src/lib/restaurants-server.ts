@@ -58,7 +58,7 @@ export const getProducts = (restaurantId: string) =>
       const supabase = createSupabaseAdminClient();
       const { data, error } = await supabase
         .from("products")
-        .select("id, restaurant_id, name, price, image_url, category_id, available, stock_quantity, stock_consumption, \"order\", description")
+        .select("id, restaurant_id, name, price, image_url, category_id, available, stock_quantity, stock_consumption, \"order\", description, product_category_links(id, product_id, category_id, quantity_per_unit)")
         .eq("restaurant_id", restaurantId)
         .eq("available", true)
         .order("order", { ascending: true });

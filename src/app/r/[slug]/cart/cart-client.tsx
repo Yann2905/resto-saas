@@ -65,7 +65,7 @@ export default function CartClient({ restaurant, tableNumber, roomLabel, deliver
     const productIds = items.map((i) => i.productId);
     const { data: products } = await supabase
       .from("products")
-      .select("id, name, stock_quantity, stock_consumption, category_id")
+      .select("id, name, stock_quantity, stock_consumption, category_id, product_category_links(category_id, quantity_per_unit)")
       .in("id", productIds);
     setCheckingStock(false);
     if (!products) {
@@ -73,13 +73,20 @@ export default function CartClient({ restaurant, tableNumber, roomLabel, deliver
       return;
     }
 
-    const categoryIds = [...new Set(products.map((p) => p.category_id).filter(Boolean))];
-    let catStockMap = new Map<string, number | null>();
-    if (categoryIds.length > 0) {
+    // Collect all category IDs (from primary + links)
+    const categoryIds = new Set<string>();
+    for (const p of products) {
+      if (p.category_id) categoryIds.add(p.category_id);
+      const pLinks = (p.product_category_links ?? []) as { category_id: string; quantity_per_unit: number }[];
+      for (const l of pLinks) categoryIds.add(l.category_id);
+    }
+
+    const catStockMap = new Map<string, number | null>();
+    if (categoryIds.size > 0) {
       const { data: cats } = await supabase
         .from("categories")
         .select("id, stock")
-        .in("id", categoryIds);
+        .in("id", [...categoryIds]);
       for (const c of cats ?? []) catStockMap.set(c.id, c.stock);
     }
 
@@ -89,21 +96,33 @@ export default function CartClient({ restaurant, tableNumber, roomLabel, deliver
     for (const item of items) {
       const p = products.find((pr) => pr.id === item.productId);
       if (!p) continue;
-      const catStock = p.category_id ? catStockMap.get(p.category_id) : null;
 
-      if (catStock !== null && catStock !== undefined) {
-        const consumption = (p.stock_consumption ?? 1) * item.quantity;
-        const alreadyUsed = catConsumption.get(p.category_id) ?? 0;
+      // Check product-level stock
+      if (p.stock_quantity !== null && p.stock_quantity < item.quantity) {
+        issues.push({ name: p.name, requested: item.quantity, available: p.stock_quantity });
+        continue;
+      }
+
+      // Check category stock via links
+      const pLinks = (p.product_category_links ?? []) as { category_id: string; quantity_per_unit: number }[];
+      const effectiveLinks = pLinks.length > 0
+        ? pLinks
+        : p.category_id && catStockMap.get(p.category_id) !== null && catStockMap.get(p.category_id) !== undefined
+          ? [{ category_id: p.category_id, quantity_per_unit: p.stock_consumption ?? 1 }]
+          : [];
+
+      for (const link of effectiveLinks) {
+        const catStock = catStockMap.get(link.category_id);
+        if (catStock === null || catStock === undefined) continue;
+        const consumption = link.quantity_per_unit * item.quantity;
+        const alreadyUsed = catConsumption.get(link.category_id) ?? 0;
         const totalNeeded = alreadyUsed + consumption;
         if (totalNeeded > catStock) {
-          const availableUnits = Math.floor((catStock - alreadyUsed) / (p.stock_consumption ?? 1));
+          const availableUnits = Math.floor((catStock - alreadyUsed) / link.quantity_per_unit);
           issues.push({ name: p.name, requested: item.quantity, available: Math.max(0, availableUnits) });
+          break;
         }
-        catConsumption.set(p.category_id, totalNeeded);
-      } else {
-        if (p.stock_quantity < item.quantity) {
-          issues.push({ name: p.name, requested: item.quantity, available: p.stock_quantity });
-        }
+        catConsumption.set(link.category_id, totalNeeded);
       }
     }
 
