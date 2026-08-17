@@ -343,11 +343,41 @@ export default function MenuAdminPage() {
     const cat = categories.find((c) => c.id === id);
     if (!cat) return;
 
-    // Get siblings (same parent)
-    const siblings = categories
+    // Get siblings (same parent), sorted by current order
+    let siblings = categories
       .filter((c) => c.parentId === cat.parentId)
       .sort((a, b) => a.order - b.order);
 
+    // If all siblings have the same order (e.g. all 0), normalize them first
+    const allSameOrder = siblings.every((s) => s.order === siblings[0].order);
+    if (allSameOrder && siblings.length > 1) {
+      const normalized = categories.map((c) => {
+        const idx = siblings.findIndex((s) => s.id === c.id);
+        return idx >= 0 ? { ...c, order: idx + 1 } : c;
+      });
+      setCategories(normalized);
+      siblings = normalized
+        .filter((c) => c.parentId === cat.parentId)
+        .sort((a, b) => a.order - b.order);
+      // Save normalized orders in background
+      for (let i = 0; i < siblings.length; i++) {
+        fetch("/api/menu/categories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: siblings[i].id,
+            restaurantId: restaurant.id,
+            name: siblings[i].name,
+            parentId: siblings[i].parentId,
+            order: i + 1,
+            stock: siblings[i].stock,
+          }),
+        });
+      }
+    }
+
+    // Re-find cat after possible normalization
+    const updatedCat = siblings.find((c) => c.id === id) ?? cat;
     const idx = siblings.findIndex((c) => c.id === id);
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= siblings.length) return;
@@ -358,8 +388,8 @@ export default function MenuAdminPage() {
     const previous = categories;
     setCategories((prev) =>
       prev.map((c) => {
-        if (c.id === cat.id) return { ...c, order: other.order };
-        if (c.id === other.id) return { ...c, order: cat.order };
+        if (c.id === updatedCat.id) return { ...c, order: other.order };
+        if (c.id === other.id) return { ...c, order: updatedCat.order };
         return c;
       })
     );
@@ -368,12 +398,26 @@ export default function MenuAdminPage() {
       const res1 = fetch("/api/menu/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: cat.id, restaurantId: restaurant.id, order: other.order }),
+        body: JSON.stringify({
+          id: updatedCat.id,
+          restaurantId: restaurant.id,
+          name: updatedCat.name,
+          parentId: updatedCat.parentId,
+          order: other.order,
+          stock: updatedCat.stock,
+        }),
       });
       const res2 = fetch("/api/menu/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: other.id, restaurantId: restaurant.id, order: cat.order }),
+        body: JSON.stringify({
+          id: other.id,
+          restaurantId: restaurant.id,
+          name: other.name,
+          parentId: other.parentId,
+          order: updatedCat.order,
+          stock: other.stock,
+        }),
       });
       const [r1, r2] = await Promise.all([res1, res2]);
       const [j1, j2] = await Promise.all([r1.json(), r2.json()]);
