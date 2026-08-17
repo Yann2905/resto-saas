@@ -14,7 +14,7 @@ import {
   mapCategory,
   mapProduct,
 } from "@/types";
-import { UtensilsCrossed, X, Plus, Link2 } from "lucide-react";
+import { UtensilsCrossed, X, Plus, Link2, ChevronUp, ChevronDown } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
 import { confirmDanger, toastError, toastSuccess } from "@/lib/swal";
 
@@ -127,7 +127,7 @@ export default function MenuAdminPage() {
   }, [restaurantId]);
 
   const parentCategories = useMemo(
-    () => categories.filter((c) => c.parentId === null),
+    () => categories.filter((c) => c.parentId === null).sort((a, b) => a.order - b.order),
     [categories]
   );
   const leafCategories = useMemo(() => {
@@ -337,6 +337,56 @@ export default function MenuAdminPage() {
     await toastSuccess(`« ${cat.name} » supprimée`);
   };
 
+  const moveCategory = async (id: string, direction: "up" | "down") => {
+    if (!restaurant) return;
+
+    const cat = categories.find((c) => c.id === id);
+    if (!cat) return;
+
+    // Get siblings (same parent)
+    const siblings = categories
+      .filter((c) => c.parentId === cat.parentId)
+      .sort((a, b) => a.order - b.order);
+
+    const idx = siblings.findIndex((c) => c.id === id);
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= siblings.length) return;
+
+    const other = siblings[swapIdx];
+
+    // Optimistic UI: swap order values
+    const previous = categories;
+    setCategories((prev) =>
+      prev.map((c) => {
+        if (c.id === cat.id) return { ...c, order: other.order };
+        if (c.id === other.id) return { ...c, order: cat.order };
+        return c;
+      })
+    );
+
+    try {
+      const res1 = fetch("/api/menu/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: cat.id, restaurantId: restaurant.id, order: other.order }),
+      });
+      const res2 = fetch("/api/menu/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: other.id, restaurantId: restaurant.id, order: cat.order }),
+      });
+      const [r1, r2] = await Promise.all([res1, res2]);
+      const [j1, j2] = await Promise.all([r1.json(), r2.json()]);
+      if (!j1.ok || !j2.ok) {
+        setCategories(previous);
+        await toastError("Impossible de réordonner");
+      }
+    } catch {
+      setCategories(previous);
+      await toastError("Erreur réseau");
+    }
+  };
+
   if (loading || !restaurant) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-stone-50">
@@ -398,8 +448,10 @@ export default function MenuAdminPage() {
             </p>
           ) : (
             <div className="space-y-2 mt-2">
-              {parentCategories.map((parent) => {
-                const subs = categories.filter((c) => c.parentId === parent.id);
+              {parentCategories.map((parent, pIdx) => {
+                const subs = categories
+                  .filter((c) => c.parentId === parent.id)
+                  .sort((a, b) => a.order - b.order);
                 return (
                   <div
                     key={parent.id}
@@ -418,12 +470,16 @@ export default function MenuAdminPage() {
                       onCancel={() => setEditingCategoryId(null)}
                       onSave={(f) => saveCategory(parent.id, f)}
                       onDelete={() => deleteCategory(parent.id)}
+                      onMoveUp={() => moveCategory(parent.id, "up")}
+                      onMoveDown={() => moveCategory(parent.id, "down")}
                       saving={saving}
                       isParent
+                      isFirst={pIdx === 0}
+                      isLast={pIdx === parentCategories.length - 1}
                     />
                     {subs.length > 0 && (
                       <div className="pl-6 pr-3 pb-3 space-y-1">
-                        {subs.map((sub) => (
+                        {subs.map((sub, sIdx) => (
                           <CategoryRowView
                             key={sub.id}
                             category={sub}
@@ -436,7 +492,11 @@ export default function MenuAdminPage() {
                             onCancel={() => setEditingCategoryId(null)}
                             onSave={(f) => saveCategory(sub.id, f)}
                             onDelete={() => deleteCategory(sub.id)}
+                            onMoveUp={() => moveCategory(sub.id, "up")}
+                            onMoveDown={() => moveCategory(sub.id, "down")}
                             saving={saving}
+                            isFirst={sIdx === 0}
+                            isLast={sIdx === subs.length - 1}
                           />
                         ))}
                       </div>
@@ -984,8 +1044,12 @@ function CategoryRowView({
   onCancel,
   onSave,
   onDelete,
+  onMoveUp,
+  onMoveDown,
   saving,
   isParent = false,
+  isFirst = false,
+  isLast = false,
 }: {
   category: Category;
   editing: boolean;
@@ -994,8 +1058,12 @@ function CategoryRowView({
   onCancel: () => void;
   onSave: (form: CategoryForm) => void;
   onDelete: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
   saving: boolean;
   isParent?: boolean;
+  isFirst?: boolean;
+  isLast?: boolean;
 }) {
   if (editing) {
     return (
@@ -1023,6 +1091,24 @@ function CategoryRowView({
       }`}
     >
       <div className="flex items-center gap-2 min-w-0">
+        <div className="flex flex-col flex-shrink-0">
+          <button
+            onClick={onMoveUp}
+            disabled={isFirst}
+            className="p-0.5 text-stone-400 hover:text-stone-700 disabled:opacity-20 disabled:cursor-default transition-colors"
+            aria-label="Monter"
+          >
+            <ChevronUp className="w-3.5 h-3.5" aria-hidden />
+          </button>
+          <button
+            onClick={onMoveDown}
+            disabled={isLast}
+            className="p-0.5 text-stone-400 hover:text-stone-700 disabled:opacity-20 disabled:cursor-default transition-colors"
+            aria-label="Descendre"
+          >
+            <ChevronDown className="w-3.5 h-3.5" aria-hidden />
+          </button>
+        </div>
         <span
           className={`truncate ${
             isParent ? "font-bold text-stone-900" : "text-sm text-stone-700"
