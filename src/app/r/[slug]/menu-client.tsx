@@ -64,6 +64,7 @@ export default function MenuClient({
   const productsByCategory = useMemo(() => {
     const map = new Map<string, Product[]>();
     for (const p of products) {
+      if (!p.available) continue;
       if (!map.has(p.categoryId)) map.set(p.categoryId, []);
       map.get(p.categoryId)!.push(p);
     }
