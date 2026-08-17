@@ -54,13 +54,14 @@ export default function MenuClient({
     return () => window.removeEventListener("cart:updated", refresh);
   }, [restaurant.id, tableKey]);
 
-  const parentCategories = useMemo(
+  const allParentCategories = useMemo(
     () => categories.filter((c) => c.parentId === null),
     [categories]
   );
 
   // No auto-select needed — "all" shows everything by default
 
+  // Map products by category — only available ones
   const productsByCategory = useMemo(() => {
     const map = new Map<string, Product[]>();
     for (const p of products) {
@@ -73,6 +74,15 @@ export default function MenuClient({
 
   const subCategories = (parentId: string) =>
     categories.filter((c) => c.parentId === parentId);
+
+  // Only show parent categories that have at least one available product
+  const parentCategories = useMemo(() => {
+    return allParentCategories.filter((parent) => {
+      const subs = categories.filter((c) => c.parentId === parent.id);
+      const catsToCheck = subs.length > 0 ? subs : [parent];
+      return catsToCheck.some((c) => (productsByCategory.get(c.id)?.length ?? 0) > 0);
+    });
+  }, [allParentCategories, categories, productsByCategory]);
 
   const searchTerm = search.trim().toLowerCase();
   const searchResults = useMemo(() => {
