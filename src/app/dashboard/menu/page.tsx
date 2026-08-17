@@ -909,7 +909,7 @@ function ProductFormInline({
                         <input
                           type="number"
                           inputMode="decimal"
-                          step="0.25"
+                          step="any"
                           min="0.01"
                           value={link.quantityPerUnit}
                           onChange={(e) => {
