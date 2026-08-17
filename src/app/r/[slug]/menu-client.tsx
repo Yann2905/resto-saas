@@ -30,7 +30,7 @@ export default function MenuClient({
   const router = useRouter();
   const [count, setCount] = useState(0);
   const [total, setTotal] = useState(0);
-  const [activeParent, setActiveParent] = useState<string | null>(null);
+  const [activeParent, setActiveParent] = useState<string | null>("all");
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -59,11 +59,7 @@ export default function MenuClient({
     [categories]
   );
 
-  useEffect(() => {
-    if (!activeParent && parentCategories.length > 0) {
-      setActiveParent(parentCategories[0].id);
-    }
-  }, [activeParent, parentCategories]);
+  // No auto-select needed — "all" shows everything by default
 
   const productsByCategory = useMemo(() => {
     const map = new Map<string, Product[]>();
@@ -117,7 +113,7 @@ export default function MenuClient({
   }
 
   const visibleParents =
-    activeParent === null
+    activeParent === "all"
       ? parentCategories
       : parentCategories.filter((p) => p.id === activeParent);
 
@@ -176,12 +172,29 @@ export default function MenuClient({
           {!searchTerm && parentCategories.length > 1 && (
             <div className="mt-4 -mx-5 px-5 overflow-x-auto">
               <div className="flex gap-2 pb-1">
+                <button
+                  onClick={() => {
+                    setActiveParent("all");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                    activeParent === "all"
+                      ? "bg-[#722F37] text-white shadow-sm"
+                      : "bg-stone-100 text-stone-700 hover:bg-stone-200"
+                  }`}
+                >
+                  Tout
+                </button>
                 {parentCategories.map((p) => {
                   const active = activeParent === p.id;
                   return (
                     <button
                       key={p.id}
-                      onClick={() => setActiveParent(p.id)}
+                      onClick={() => {
+                        setActiveParent("all");
+                        const el = document.getElementById(`section-${p.id}`);
+                        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
                       className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all ${
                         active
                           ? "bg-[#722F37] text-white shadow-sm"
@@ -238,22 +251,37 @@ export default function MenuClient({
           visibleParents.map((parent) => {
             const subs = subCategories(parent.id);
             const displayCats = subs.length > 0 ? subs : [parent];
+            const totalItems = displayCats.reduce((sum, c) => sum + (productsByCategory.get(c.id)?.length ?? 0), 0);
+            if (totalItems === 0) return null;
             return (
-              <section key={parent.id} className="animate-fade-in-up">
+              <section key={parent.id} id={`section-${parent.id}`} className="animate-fade-in-up scroll-mt-40">
+                {visibleParents.length > 1 && (
+                  <div className="flex items-center gap-3 mb-5">
+                    <h2 className="text-lg font-bold text-stone-900 tracking-tight">
+                      {parent.name}
+                    </h2>
+                    <div className="flex-1 h-px bg-stone-200" />
+                    <span className="text-xs text-stone-400 font-medium">
+                      {totalItems} article{totalItems > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                )}
                 <div className="space-y-8">
                   {displayCats.map((cat) => {
                     const items = productsByCategory.get(cat.id) ?? [];
                     if (items.length === 0) return null;
                     return (
                       <div key={cat.id}>
-                        <div className="flex items-baseline justify-between mb-3">
-                          <h3 className="text-[11px] font-bold text-stone-500 uppercase tracking-[0.12em]">
-                            {cat.name}
-                          </h3>
-                          <span className="text-[11px] text-stone-400">
-                            {items.length} plat{items.length > 1 ? "s" : ""}
-                          </span>
-                        </div>
+                        {(subs.length > 0 || visibleParents.length === 1) && (
+                          <div className="flex items-baseline justify-between mb-3">
+                            <h3 className="text-[11px] font-bold text-stone-500 uppercase tracking-[0.12em]">
+                              {cat.name}
+                            </h3>
+                            <span className="text-[11px] text-stone-400">
+                              {items.length} plat{items.length > 1 ? "s" : ""}
+                            </span>
+                          </div>
+                        )}
                         <div className="space-y-3">
                           {items.map((p) => (
                             <ProductCard
