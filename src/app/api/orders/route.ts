@@ -23,12 +23,12 @@ export async function GET(req: NextRequest) {
 
   const orderCols = "id, restaurant_id, table_number, room_label, status, items, total, created_at, updated_at, order_type, order_mode, assigned_to, assigned_name, acknowledged_at, delivery_phone, delivery_quartier, delivery_carrefour, delivery_fee, payment_status, payment_method, payment_provider, amount_received, change_given, paid_at, cash_session_id";
 
-  let [activeRes, servedRes] = await Promise.all([
+  let [activeRes, servedRes, cancelledRes] = await Promise.all([
     admin
       .from("orders")
       .select(orderCols)
       .eq("restaurant_id", restaurantId)
-      .neq("status", "served")
+      .not("status", "in", '("served","cancelled")')
       .order("created_at", { ascending: false })
       .limit(200),
     admin
@@ -39,16 +39,24 @@ export async function GET(req: NextRequest) {
       .gte("created_at", todayStart.toISOString())
       .order("created_at", { ascending: false })
       .limit(100),
+    admin
+      .from("orders")
+      .select(orderCols)
+      .eq("restaurant_id", restaurantId)
+      .eq("status", "cancelled")
+      .gte("created_at", todayStart.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(50),
   ]);
 
-  if (activeRes.error || servedRes.error) {
-    console.warn("[orders] specific cols failed, falling back to *:", activeRes.error?.message || servedRes.error?.message);
-    [activeRes, servedRes] = await Promise.all([
+  if (activeRes.error || servedRes.error || cancelledRes.error) {
+    console.warn("[orders] specific cols failed, falling back to *:", activeRes.error?.message || servedRes.error?.message || cancelledRes.error?.message);
+    [activeRes, servedRes, cancelledRes] = await Promise.all([
       admin
         .from("orders")
         .select("*")
         .eq("restaurant_id", restaurantId)
-        .neq("status", "served")
+        .not("status", "in", '("served","cancelled")')
         .order("created_at", { ascending: false })
         .limit(200),
       admin
@@ -59,6 +67,14 @@ export async function GET(req: NextRequest) {
         .gte("created_at", todayStart.toISOString())
         .order("created_at", { ascending: false })
         .limit(100),
+      admin
+        .from("orders")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .eq("status", "cancelled")
+        .gte("created_at", todayStart.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
   }
 
@@ -69,7 +85,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: servedRes.error.message }, { status: 500 });
   }
 
-  const allOrders = [...(activeRes.data ?? []), ...(servedRes.data ?? [])];
+  const allOrders = [...(activeRes.data ?? []), ...(servedRes.data ?? []), ...(cancelledRes.data ?? [])];
 
   // Enrich items missing imageUrl by looking up the product table
   const productIdsNeeded = new Set<string>();

@@ -91,7 +91,7 @@ export type UserRole = "owner" | "superadmin" | "waiter";
 
 export type OrderMode = "dine_in" | "delivery";
 
-export type OrderStatus = "pending" | "preparing" | "ready" | "served";
+export type OrderStatus = "pending" | "preparing" | "ready" | "served" | "cancelled";
 
 export type OrderItem = {
   productId: string;

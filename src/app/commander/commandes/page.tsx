@@ -34,6 +34,7 @@ const STATUS_INFO: Record<OrderStatus, { label: string; color: string; bg: strin
   preparing: { label: "En préparation", color: "text-blue-700", bg: "bg-blue-50" },
   ready: { label: "En route", color: "text-purple-700", bg: "bg-purple-50" },
   served: { label: "Livrée", color: "text-emerald-700", bg: "bg-emerald-50" },
+  cancelled: { label: "Annulée", color: "text-red-700", bg: "bg-red-50" },
 };
 
 const STATUS_ICON: Record<OrderStatus, typeof Clock> = {
@@ -41,6 +42,7 @@ const STATUS_ICON: Record<OrderStatus, typeof Clock> = {
   preparing: ChefHat,
   ready: Truck,
   served: Package,
+  cancelled: Clock,
 };
 
 const STATUS_ORDER: OrderStatus[] = ["pending", "preparing", "ready", "served"];

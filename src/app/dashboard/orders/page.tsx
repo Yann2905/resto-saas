@@ -2,14 +2,14 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { ArrowRight, Banknote, Bell, CheckCircle2, ChevronDown, ChevronUp, MapPin, Phone, Printer, Truck, Volume2 } from "lucide-react";
+import { ArrowRight, Ban, Banknote, Bell, CheckCircle2, ChevronDown, ChevronUp, MapPin, Phone, Printer, Truck, Volume2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { Order, OrderPaymentMethod, OrderRow, OrderStatus, OrderType, isHotelType, mapOrder } from "@/types";
 import { getPlanLimits, type FeatureOverrides } from "@/lib/plan-limits";
 import { formatFCFA } from "@/lib/format";
 import { playChime } from "../_components/order-sound-alert";
-import { toastSuccess } from "@/lib/swal";
+import { confirmDanger, toastError, toastSuccess } from "@/lib/swal";
 import CashSessionBar from "./_components/cash-session-bar";
 import OrderPaymentModal from "./_components/order-payment-modal";
 import ReceiptPrintModal from "./_components/receipt-modal";
@@ -19,6 +19,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   preparing: "En préparation",
   ready: "Prêt",
   served: "Servi",
+  cancelled: "Annulée",
 };
 
 const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
@@ -26,6 +27,7 @@ const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
   preparing: "ready",
   ready: "served",
   served: null,
+  cancelled: null,
 };
 
 const STATUS_STYLES: Record<
@@ -62,6 +64,14 @@ const STATUS_STYLES: Record<
     dot: "bg-stone-300",
     accent: "from-transparent to-transparent",
     card: "border-stone-200 opacity-60",
+    dotPulse: false,
+  },
+  cancelled: {
+    ring: "ring-red-200",
+    badge: "bg-red-50 text-red-700 border-red-200",
+    dot: "bg-red-500",
+    accent: "from-red-400/10 to-transparent",
+    card: "border-red-200 opacity-50",
     dotPulse: false,
   },
 };
@@ -328,19 +338,51 @@ export default function OrdersPage() {
     setTogglingOnline(false);
   };
 
+  const cancelOrder = useCallback(async (order: Order) => {
+    const ok = await confirmDanger({
+      title: `Annuler la commande #${order.id.slice(0, 6).toUpperCase()} ?`,
+      text: "Le stock sera remis et cette commande ne comptera pas dans les statistiques.",
+      confirmText: "Oui, annuler",
+    });
+    if (!ok) return;
+
+    const previous = orders;
+    setOrders((prev) =>
+      prev.map((o) => (o.id === order.id ? { ...o, status: "cancelled" as OrderStatus } : o))
+    );
+    try {
+      const res = await fetch("/api/orders/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        setOrders(previous);
+        await toastError(json.error || "Impossible d'annuler");
+      } else {
+        await toastSuccess("Commande annulée — stock remis");
+      }
+    } catch {
+      setOrders(previous);
+      await toastError("Erreur réseau");
+    }
+  }, [orders]);
+
   const counts = useMemo(() => {
     const c: Record<OrderStatus, number> = {
       pending: 0,
       preparing: 0,
       ready: 0,
       served: 0,
+      cancelled: 0,
     };
     for (const o of orders) c[o.status]++;
     return c;
   }, [orders]);
 
   const revenueEnCours = useMemo(
-    () => orders.filter((o) => o.status !== "served").reduce((sum, o) => sum + o.total, 0),
+    () => orders.filter((o) => o.status !== "served" && o.status !== "cancelled").reduce((sum, o) => sum + o.total, 0),
     [orders]
   );
 
@@ -510,6 +552,7 @@ export default function OrdersPage() {
               { key: "preparing", label: `Préparation (${counts.preparing})` },
               { key: "ready", label: `Prêt (${counts.ready})` },
               { key: "served", label: `Servi (${counts.served})` },
+              ...(counts.cancelled > 0 ? [{ key: "cancelled" as const, label: `Annulées (${counts.cancelled})` }] : []),
             ] as const
           ).map((f) => {
             const active = filter === f.key;
@@ -579,6 +622,7 @@ export default function OrdersPage() {
                 onAcknowledge={() => acknowledge(order.id)}
                 onPayment={() => setSelectedPaymentOrder(order)}
                 onReceipt={() => setSelectedReceiptOrder(order)}
+                onCancel={() => cancelOrder(order)}
               />
             ))}
           </div>
@@ -615,6 +659,7 @@ const OrderCard = memo(function OrderCard({
   onAcknowledge,
   onPayment,
   onReceipt,
+  onCancel,
 }: {
   order: Order;
   escalated: boolean;
@@ -623,6 +668,7 @@ const OrderCard = memo(function OrderCard({
   onAcknowledge: () => void;
   onPayment: () => void;
   onReceipt: () => void;
+  onCancel: () => void;
 }) {
   const [expanded, setExpanded] = useState(order.status !== "served");
   const st = STATUS_STYLES[order.status];
@@ -832,42 +878,56 @@ const OrderCard = memo(function OrderCard({
           )}
 
           {/* Action buttons */}
-          <div className="flex gap-2 p-4 pt-2">
-            {order.status === "pending" && !order.acknowledgedAt && (
+          {order.status !== "cancelled" ? (
+            <div className="flex gap-2 p-4 pt-2">
+              {order.status === "pending" && !order.acknowledgedAt && (
+                <button
+                  onClick={onAcknowledge}
+                  className="flex-1 bg-emerald-600 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  J&apos;ai reçu
+                </button>
+              )}
+              {nextStatus && (
+                <button
+                  onClick={onAdvance}
+                  className="flex-1 bg-[#722F37] text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors flex items-center justify-center gap-1.5"
+                >
+                  {STATUS_LABELS[nextStatus]}
+                </button>
+              )}
+              {showCashRegister && (order.paymentStatus === "paid" ? (
+                <button
+                  onClick={onReceipt}
+                  className="px-3.5 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-semibold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Printer className="w-4 h-4 text-emerald-600" />
+                  Reçu
+                </button>
+              ) : (
+                <button
+                  onClick={onPayment}
+                  className="px-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-950/20 flex items-center justify-center gap-1.5"
+                >
+                  <Banknote className="w-4 h-4" />
+                  Encaisser
+                </button>
+              ))}
               <button
-                onClick={onAcknowledge}
-                className="flex-1 bg-emerald-600 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5"
+                onClick={onCancel}
+                className="px-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-semibold hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
+                title="Annuler la commande"
               >
-                <CheckCircle2 className="w-4 h-4" />
-                J&apos;ai reçu
+                <Ban className="w-3.5 h-3.5" />
               </button>
-            )}
-            {nextStatus && (
-              <button
-                onClick={onAdvance}
-                className="flex-1 bg-[#722F37] text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors flex items-center justify-center gap-1.5"
-              >
-                {STATUS_LABELS[nextStatus]}
-              </button>
-            )}
-            {showCashRegister && (order.paymentStatus === "paid" ? (
-              <button
-                onClick={onReceipt}
-                className="px-3.5 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-semibold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1.5"
-              >
-                <Printer className="w-4 h-4 text-emerald-600" />
-                Reçu
-              </button>
-            ) : (
-              <button
-                onClick={onPayment}
-                className="px-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-950/20 flex items-center justify-center gap-1.5"
-              >
-                <Banknote className="w-4 h-4" />
-                Encaisser
-              </button>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="p-4 pt-2 text-center text-sm text-red-600 font-semibold flex items-center justify-center gap-2">
+              <Ban className="w-4 h-4" />
+              Commande annulée — stock remis
+            </div>
+          )}
         </div>
       </div>
     </SwipeableCard>

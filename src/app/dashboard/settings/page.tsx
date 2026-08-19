@@ -247,6 +247,14 @@ export default function SettingsPage() {
           restaurant={restaurant}
           setToast={setToast}
         />
+
+        {/* ── Zone Superadmin ─────────────────────────────────── */}
+        {role === "superadmin" && (
+          <ResetStatsSection
+            restaurant={restaurant}
+            setToast={setToast}
+          />
+        )}
       </div>
 
       {toast && (
@@ -930,6 +938,82 @@ function DeliverySettingsSection({
           className="rounded-full bg-[#722F37] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#5a2530] transition-colors disabled:bg-stone-400"
         >
           {saving ? "Enregistrement..." : "Enregistrer la livraison"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────── Zone Superadmin : Reset Stats ───────────────── */
+
+function ResetStatsSection({
+  restaurant,
+  setToast,
+}: {
+  restaurant: Restaurant;
+  setToast: (v: string | null) => void;
+}) {
+  const [resetting, setResetting] = useState(false);
+
+  const handleReset = async () => {
+    const { confirmDanger } = await import("@/lib/swal");
+    const confirmed = await confirmDanger({
+      title: "Remettre les stats à zéro ?",
+      text: `Toutes les commandes, sessions de caisse et dépenses de « ${restaurant.name} » seront supprimées. Les avis clients seront conservés. Cette action est irréversible.`,
+      confirmText: "Tout effacer",
+      cancelText: "Annuler",
+    });
+    if (!confirmed) return;
+
+    setResetting(true);
+    try {
+      const res = await fetch("/api/admin/reset-stats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurantId: restaurant.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setToast(data.error || "Erreur lors du reset");
+        setTimeout(() => setToast(null), 4000);
+        return;
+      }
+      setToast("✅ Statistiques remises à zéro");
+      setTimeout(() => setToast(null), 4000);
+    } catch {
+      setToast("Erreur réseau");
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  return (
+    <section className="bg-red-50/60 rounded-2xl border border-red-200 p-5 mt-6">
+      <div className="mb-4">
+        <h3 className="font-bold text-red-800 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4" aria-hidden />
+          Zone Danger — Superadmin
+        </h3>
+        <p className="text-xs text-red-600/80 mt-0.5">
+          Actions irréversibles réservées au superadmin.
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-red-200 bg-white p-4">
+        <p className="text-sm text-stone-700 mb-1 font-semibold">
+          Remettre les statistiques à zéro
+        </p>
+        <p className="text-xs text-stone-500 mb-3">
+          Supprime toutes les commandes, sessions de caisse et dépenses.
+          Les avis clients ne seront <strong>pas</strong> supprimés.
+        </p>
+        <button
+          onClick={handleReset}
+          disabled={resetting}
+          className="rounded-full bg-red-600 text-white px-5 py-2.5 text-sm font-semibold hover:bg-red-700 transition-colors disabled:bg-stone-400"
+        >
+          {resetting ? "Suppression en cours..." : "Remettre à zéro"}
         </button>
       </div>
     </section>

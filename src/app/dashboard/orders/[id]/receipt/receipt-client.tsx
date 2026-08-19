@@ -11,6 +11,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   preparing: "EN PRÉPARATION",
   ready: "PRÊT",
   served: "SERVI",
+  cancelled: "ANNULÉE",
 };
 
 export default function ReceiptClient({

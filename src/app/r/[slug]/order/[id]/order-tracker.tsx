@@ -25,6 +25,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   preparing: "En préparation",
   ready: "Prête à servir",
   served: "Servie",
+  cancelled: "Annulée",
 };
 
 const STATUS_SUB: Record<OrderStatus, string> = {
@@ -32,6 +33,7 @@ const STATUS_SUB: Record<OrderStatus, string> = {
   preparing: "Nos chefs préparent votre commande.",
   ready: "Un serveur arrive à votre table.",
   served: "Bon appétit ! Merci de votre visite.",
+  cancelled: "Cette commande a été annulée.",
 };
 
 const DELIVERY_SUB: Record<OrderStatus, string> = {
@@ -39,6 +41,7 @@ const DELIVERY_SUB: Record<OrderStatus, string> = {
   preparing: "Votre commande est en cours de préparation.",
   ready: "Votre commande est prête ! Le livreur arrive bientôt.",
   served: "Votre commande a été livrée. Bon appétit !",
+  cancelled: "Cette commande a été annulée.",
 };
 
 type OrderWithWaiter = Order & { assignedName?: string | null; acknowledgedAt?: string | null };
@@ -48,6 +51,7 @@ const STATUS_ICON: Record<OrderStatus, LucideIcon> = {
   preparing: ChefHat,
   ready: BellRing,
   served: CheckCircle2,
+  cancelled: Inbox,
 };
 
 const DELIVERY_ICON: Record<OrderStatus, LucideIcon> = {
@@ -55,6 +59,7 @@ const DELIVERY_ICON: Record<OrderStatus, LucideIcon> = {
   preparing: ChefHat,
   ready: Truck,
   served: Package,
+  cancelled: Clock,
 };
 
 const STATUS_ORDER: OrderStatus[] = ["pending", "preparing", "ready", "served"];
