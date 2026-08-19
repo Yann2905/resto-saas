@@ -191,6 +191,20 @@ export async function addCashExpense(
   return { ok: true, expense: mapCashExpense(data as CashExpenseRow) };
 }
 
+export async function listSessionOrders(
+  sessionId: string
+): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("id, table_number, room_label, status, items, total, created_at, payment_status, payment_method, payment_provider, amount_received, change_given, paid_at, order_type, order_mode, delivery_phone, delivery_quartier, delivery_carrefour, delivery_fee, cash_session_id")
+    .eq("cash_session_id", sessionId)
+    .neq("status", "cancelled")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return data as Record<string, unknown>[];
+}
+
 export async function listCashExpenses(
   sessionId: string
 ): Promise<CashExpense[]> {

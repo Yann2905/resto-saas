@@ -11,25 +11,29 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  FileText,
   Lock,
   Minus,
   Plus,
+  Printer,
   Smartphone,
   TrendingUp,
   Unlock,
   X,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { CashSession, CashSessionSummary, CashExpense } from "@/types";
+import { CashSession, CashSessionSummary, CashExpense, Order, OrderRow, mapOrder } from "@/types";
 import {
   listCashSessions,
   getCashSessionSummary,
   getActiveCashSession,
   addCashExpense,
   listCashExpenses,
+  listSessionOrders,
 } from "@/lib/cash-register";
 import { formatFCFA } from "@/lib/format";
 import { getPlanLimits, type FeatureOverrides } from "@/lib/plan-limits";
+import ReceiptPrintModal from "@/app/dashboard/orders/_components/receipt-modal";
 
 type SessionWithSummary = {
   session: CashSession;
@@ -193,6 +197,10 @@ function ActiveSessionCard({
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [expenses, setExpenses] = useState<CashExpense[]>([]);
   const [showExpenses, setShowExpenses] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [showOrders, setShowOrders] = useState(false);
+  const [loadedOrders, setLoadedOrders] = useState(false);
+  const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
 
   const loadExpenses = useCallback(async () => {
     const list = await listCashExpenses(data.session.id);
@@ -202,6 +210,15 @@ function ActiveSessionCard({
   useEffect(() => {
     loadExpenses();
   }, [loadExpenses]);
+
+  useEffect(() => {
+    if (showOrders && !loadedOrders) {
+      listSessionOrders(data.session.id).then((rows) => {
+        setOrders(rows.map((r) => mapOrder(r as OrderRow)));
+        setLoadedOrders(true);
+      });
+    }
+  }, [showOrders, loadedOrders, data.session.id]);
 
   const handleExpenseAdded = () => {
     setShowExpenseModal(false);
@@ -277,6 +294,35 @@ function ActiveSessionCard({
         <span className="text-lg font-extrabold text-amber-400">{formatFCFA(summary?.expectedCash ?? 0)}</span>
       </div>
 
+      {/* Orders history */}
+      <div className="mt-3">
+        <button
+          onClick={() => setShowOrders(!showOrders)}
+          className="w-full flex items-center justify-between text-xs text-slate-400 hover:text-slate-300 transition py-1"
+        >
+          <span className="flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5" />
+            {summary?.ordersCount ?? 0} commande{(summary?.ordersCount ?? 0) > 1 ? "s" : ""}
+          </span>
+          {showOrders ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
+        {showOrders && (
+          <div className="space-y-1.5 mt-2">
+            {!loadedOrders ? (
+              <div className="text-center py-3">
+                <span className="w-4 h-4 border-2 border-slate-600 border-t-slate-300 rounded-full animate-spin inline-block" />
+              </div>
+            ) : orders.length === 0 ? (
+              <p className="text-xs text-slate-500 text-center py-2">Aucune commande</p>
+            ) : (
+              orders.map((o) => (
+                <OrderHistoryRow key={o.id} order={o} onViewReceipt={() => setReceiptOrder(o)} dark />
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Expenses list */}
       {expenses.length > 0 && (
         <div className="mt-3">
@@ -311,6 +357,15 @@ function ActiveSessionCard({
           restaurantId={restaurantId}
           onClose={() => setShowExpenseModal(false)}
           onSuccess={handleExpenseAdded}
+        />
+      )}
+
+      {receiptOrder && (
+        <ReceiptPrintModal
+          order={receiptOrder}
+          restaurant={null}
+          isOpen
+          onClose={() => setReceiptOrder(null)}
         />
       )}
     </div>
@@ -423,6 +478,10 @@ const ClosedSessionCard = memo(function ClosedSessionCard({
   const { session, summary } = data;
   const [expenses, setExpenses] = useState<CashExpense[]>([]);
   const [loadedExpenses, setLoadedExpenses] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [showOrders, setShowOrders] = useState(false);
+  const [loadedOrders, setLoadedOrders] = useState(false);
+  const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     if (expanded && !loadedExpenses) {
@@ -432,6 +491,15 @@ const ClosedSessionCard = memo(function ClosedSessionCard({
       });
     }
   }, [expanded, loadedExpenses, session.id]);
+
+  useEffect(() => {
+    if (showOrders && !loadedOrders) {
+      listSessionOrders(session.id).then((rows) => {
+        setOrders(rows.map((r) => mapOrder(r as OrderRow)));
+        setLoadedOrders(true);
+      });
+    }
+  }, [showOrders, loadedOrders, session.id]);
 
   const diff = summary
     ? (summary.closingCashActual ?? 0) - summary.expectedCash
@@ -543,6 +611,35 @@ const ClosedSessionCard = memo(function ClosedSessionCard({
             </div>
           )}
 
+          {/* Order history */}
+          <div className="bg-stone-50 rounded-xl p-3 border border-stone-200">
+            <button
+              onClick={() => setShowOrders(!showOrders)}
+              className="w-full flex items-center justify-between text-xs text-stone-600 hover:text-stone-800 transition"
+            >
+              <span className="font-semibold flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" />
+                {summary.ordersCount} commande{summary.ordersCount > 1 ? "s" : ""} — Voir les reçus
+              </span>
+              {showOrders ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+            {showOrders && (
+              <div className="space-y-1.5 mt-3">
+                {!loadedOrders ? (
+                  <div className="text-center py-3">
+                    <span className="w-4 h-4 border-2 border-stone-300 border-t-stone-700 rounded-full animate-spin inline-block" />
+                  </div>
+                ) : orders.length === 0 ? (
+                  <p className="text-xs text-stone-400 text-center py-2">Aucune commande</p>
+                ) : (
+                  orders.map((o) => (
+                    <OrderHistoryRow key={o.id} order={o} onViewReceipt={() => setReceiptOrder(o)} />
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="bg-stone-50 rounded-xl p-3 border border-stone-200 space-y-1.5">
             <div className="flex justify-between text-xs text-stone-600">
               <span>Solde théorique</span>
@@ -560,6 +657,15 @@ const ClosedSessionCard = memo(function ClosedSessionCard({
             </div>
           </div>
         </div>
+      )}
+
+      {receiptOrder && (
+        <ReceiptPrintModal
+          order={receiptOrder}
+          restaurant={null}
+          isOpen
+          onClose={() => setReceiptOrder(null)}
+        />
       )}
     </div>
   );
@@ -584,6 +690,78 @@ function DetailStat({ label, value, accent }: { label: string; value: string; ac
     <div className="bg-stone-50 rounded-lg p-2 border border-stone-100">
       <div className="text-[10px] text-stone-500 font-medium">{label}</div>
       <div className={`text-sm font-bold ${accent ? colorMap[accent] ?? "text-stone-900" : "text-stone-900"}`}>{value}</div>
+    </div>
+  );
+}
+
+/* ─── Ligne de commande dans l'historique de caisse ─────────────────── */
+
+const PAYMENT_LABELS: Record<string, string> = {
+  cash: "Espèces",
+  mobile_money: "MoMo",
+  card: "Carte",
+  room_bill: "Chambre",
+  other: "Autre",
+};
+
+function OrderHistoryRow({
+  order,
+  onViewReceipt,
+  dark,
+}: {
+  order: Order;
+  onViewReceipt: () => void;
+  dark?: boolean;
+}) {
+  const time = new Date(order.createdAt).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const itemCount = order.items.reduce((s, i) => s + i.quantity, 0);
+  const location = order.roomLabel
+    ? `Ch. ${order.roomLabel}`
+    : order.tableNumber
+    ? `Table ${order.tableNumber}`
+    : "Comptoir";
+  const payLabel = PAYMENT_LABELS[order.paymentMethod ?? ""] ?? "—";
+  const isPaid = order.paymentStatus === "paid";
+
+  const bg = dark ? "bg-slate-800/40" : "bg-white";
+  const textPrimary = dark ? "text-slate-100" : "text-stone-900";
+  const textSecondary = dark ? "text-slate-400" : "text-stone-500";
+  const btnClass = dark
+    ? "text-slate-400 hover:text-emerald-400 hover:bg-slate-700/50"
+    : "text-stone-400 hover:text-[#722F37] hover:bg-stone-100";
+
+  return (
+    <div className={`flex items-center justify-between ${bg} rounded-lg px-3 py-2`}>
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex-shrink-0">
+          <div className={`text-xs font-bold ${textPrimary}`}>{time}</div>
+          <div className={`text-[10px] ${textSecondary}`}>{location}</div>
+        </div>
+        <div className="min-w-0">
+          <div className={`text-xs font-semibold ${textPrimary} truncate`}>
+            {itemCount} article{itemCount > 1 ? "s" : ""} · {formatFCFA(order.total)}
+          </div>
+          <div className={`text-[10px] ${textSecondary} flex items-center gap-1.5`}>
+            <span>{payLabel}</span>
+            {isPaid && (
+              <span className="text-emerald-500 flex items-center gap-0.5">
+                <CheckCircle className="w-2.5 h-2.5" />
+                Payé
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      <button
+        onClick={onViewReceipt}
+        className={`flex-shrink-0 p-2 rounded-lg transition ${btnClass}`}
+        title="Voir le reçu"
+      >
+        <Printer className="w-4 h-4" />
+      </button>
     </div>
   );
 }
