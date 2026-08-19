@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Minus, Plus, QrCode, Search, UtensilsCrossed, X } from "lucide-react";
+import { Check, Minus, Plus, QrCode, Search, Sun, UtensilsCrossed, X } from "lucide-react";
 import { Category, Product } from "@/types";
 import { formatFCFA } from "@/lib/format";
 import { addToCart, cartCount, cartTotal, getCart } from "@/lib/cart";
@@ -30,7 +30,6 @@ export default function MenuClient({
   const router = useRouter();
   const [count, setCount] = useState(0);
   const [total, setTotal] = useState(0);
-  const [activeParent, setActiveParent] = useState<string | null>("all");
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -54,45 +53,87 @@ export default function MenuClient({
     return () => window.removeEventListener("cart:updated", refresh);
   }, [restaurant.id, tableKey]);
 
-  const allParentCategories = useMemo(
-    () => categories.filter((c) => c.parentId === null),
-    [categories]
+  // Available products only
+  const availableProducts = useMemo(
+    () => products.filter((p) => p.available),
+    [products]
   );
 
-  // No auto-select needed — "all" shows everything by default
+  // Determine which categories (or their parents) are visible to client
+  const visibleCategoryIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const cat of categories) {
+      if (cat.visibleToClient) ids.add(cat.id);
+    }
+    return ids;
+  }, [categories]);
 
-  // Map products by category — only available ones
-  const productsByCategory = useMemo(() => {
+  // Check if a product belongs to a visible category (directly or via parent)
+  const isInVisibleCategory = (product: Product) => {
+    if (visibleCategoryIds.has(product.categoryId)) return true;
+    // Check if the product's category's parent is visible
+    const cat = categories.find((c) => c.id === product.categoryId);
+    if (cat?.parentId && visibleCategoryIds.has(cat.parentId)) return true;
+    return false;
+  };
+
+  // SECTION 1: Menu du jour — all daily products
+  const dailyProducts = useMemo(
+    () => availableProducts.filter((p) => p.isDaily),
+    [availableProducts]
+  );
+
+  // SECTION 2: Autres plats — non-daily products from non-visible categories
+  const otherPlats = useMemo(
+    () => availableProducts.filter((p) => !p.isDaily && !isInVisibleCategory(p)),
+    [availableProducts, visibleCategoryIds, categories]
+  );
+
+  // SECTION 3+: Visible parent categories with their products
+  const visibleParents = useMemo(() => {
+    return categories
+      .filter((c) => c.parentId === null && c.visibleToClient)
+      .sort((a, b) => a.order - b.order);
+  }, [categories]);
+
+  // Products grouped by visible category
+  const productsByVisibleCategory = useMemo(() => {
     const map = new Map<string, Product[]>();
-    for (const p of products) {
-      if (!p.available) continue;
-      if (!map.has(p.categoryId)) map.set(p.categoryId, []);
-      map.get(p.categoryId)!.push(p);
+    for (const p of availableProducts) {
+      const cat = categories.find((c) => c.id === p.categoryId);
+      if (!cat) continue;
+      // Assign to parent if parent is visible, else to own category if visible
+      const targetId = cat.parentId && visibleCategoryIds.has(cat.parentId)
+        ? cat.parentId
+        : visibleCategoryIds.has(cat.id)
+        ? cat.id
+        : null;
+      if (targetId) {
+        if (!map.has(targetId)) map.set(targetId, []);
+        map.get(targetId)!.push(p);
+      }
     }
     return map;
-  }, [products]);
+  }, [availableProducts, categories, visibleCategoryIds]);
 
-  const subCategories = (parentId: string) =>
-    categories.filter((c) => c.parentId === parentId);
-
-  // Only show parent categories that have at least one available product
-  const parentCategories = useMemo(() => {
-    return allParentCategories.filter((parent) => {
-      const subs = categories.filter((c) => c.parentId === parent.id);
-      const catsToCheck = subs.length > 0 ? subs : [parent];
-      return catsToCheck.some((c) => (productsByCategory.get(c.id)?.length ?? 0) > 0);
-    });
-  }, [allParentCategories, categories, productsByCategory]);
+  // Build section list for tab navigation
+  type MenuSection = { id: string; label: string; count: number };
+  const sections = useMemo(() => {
+    const list: MenuSection[] = [];
+    if (dailyProducts.length > 0) list.push({ id: "daily", label: "Menu du jour", count: dailyProducts.length });
+    if (otherPlats.length > 0) list.push({ id: "others", label: "Autres plats", count: otherPlats.length });
+    for (const parent of visibleParents) {
+      const items = productsByVisibleCategory.get(parent.id) ?? [];
+      if (items.length > 0) list.push({ id: parent.id, label: parent.name, count: items.length });
+    }
+    return list;
+  }, [dailyProducts, otherPlats, visibleParents, productsByVisibleCategory]);
 
   const searchTerm = search.trim().toLowerCase();
   const searchResults = useMemo(() => {
     if (!searchTerm) return null;
-    return products.filter(
-      (p) =>
-        p.available &&
-        p.name.toLowerCase().includes(searchTerm)
-    );
-  }, [products, searchTerm]);
+    return availableProducts.filter((p) => p.name.toLowerCase().includes(searchTerm));
+  }, [availableProducts, searchTerm]);
 
   const handleAdd = (p: Product) => {
     addToCart(restaurant.id, tableKey, {
@@ -122,11 +163,6 @@ export default function MenuClient({
       </main>
     );
   }
-
-  const visibleParents =
-    activeParent === "all"
-      ? parentCategories
-      : parentCategories.filter((p) => p.id === activeParent);
 
   return (
     <main className="min-h-screen bg-stone-50 pb-32">
@@ -180,42 +216,22 @@ export default function MenuClient({
             )}
           </div>
 
-          {!searchTerm && parentCategories.length > 1 && (
+          {/* Section tabs — scroll to section on tap */}
+          {!searchTerm && sections.length > 1 && (
             <div className="mt-4 -mx-5 px-5 overflow-x-auto">
               <div className="flex gap-2 pb-1">
-                <button
-                  onClick={() => {
-                    setActiveParent("all");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all ${
-                    activeParent === "all"
-                      ? "bg-[#722F37] text-white shadow-sm"
-                      : "bg-stone-100 text-stone-700 hover:bg-stone-200"
-                  }`}
-                >
-                  Tout
-                </button>
-                {parentCategories.map((p) => {
-                  const active = activeParent === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        setActiveParent("all");
-                        const el = document.getElementById(`section-${p.id}`);
-                        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }}
-                      className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all ${
-                        active
-                          ? "bg-[#722F37] text-white shadow-sm"
-                          : "bg-stone-100 text-stone-700 hover:bg-stone-200"
-                      }`}
-                    >
-                      {p.name}
-                    </button>
-                  );
-                })}
+                {sections.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      const el = document.getElementById(`section-${s.id}`);
+                      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                    className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-all bg-stone-100 text-stone-700 hover:bg-stone-200"
+                  >
+                    {s.label}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -242,9 +258,36 @@ export default function MenuClient({
                 </span>
               </div>
               <div className="space-y-3">
-                {searchResults.map((p) => {
-                  const cat = categories.find((c) => c.id === p.categoryId);
-                  return (
+                {searchResults.map((p) => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    onAdd={() => handleAdd(p)}
+                    justAdded={justAdded === p.id}
+                    categories={categories}
+                    onDetail={(prod) => { setSelectedProduct(prod); setDetailQty(1); }}
+                  />
+                ))}
+              </div>
+            </section>
+          )
+        ) : (
+          <>
+            {/* Menu du jour */}
+            {dailyProducts.length > 0 && (
+              <section id="section-daily" className="animate-fade-in-up scroll-mt-40">
+                <div className="flex items-center gap-3 mb-5">
+                  <h2 className="text-lg font-bold text-stone-900 tracking-tight flex items-center gap-2">
+                    <Sun className="w-5 h-5 text-amber-500" aria-hidden />
+                    Menu du jour
+                  </h2>
+                  <div className="flex-1 h-px bg-amber-200" />
+                  <span className="text-xs text-amber-600 font-medium">
+                    {dailyProducts.length} plat{dailyProducts.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {dailyProducts.map((p) => (
                     <ProductCard
                       key={p.id}
                       product={p}
@@ -253,65 +296,118 @@ export default function MenuClient({
                       categories={categories}
                       onDetail={(prod) => { setSelectedProduct(prod); setDetailQty(1); }}
                     />
-                  );
-                })}
-              </div>
-            </section>
-          )
-        ) : (
-          visibleParents.map((parent) => {
-            const subs = subCategories(parent.id);
-            const displayCats = subs.length > 0 ? subs : [parent];
-            const totalItems = displayCats.reduce((sum, c) => sum + (productsByCategory.get(c.id)?.length ?? 0), 0);
-            if (totalItems === 0) return null;
-            return (
-              <section key={parent.id} id={`section-${parent.id}`} className="animate-fade-in-up scroll-mt-40">
-                {visibleParents.length > 1 && (
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Autres plats */}
+            {otherPlats.length > 0 && (
+              <section id="section-others" className="animate-fade-in-up scroll-mt-40">
+                <div className="flex items-center gap-3 mb-5">
+                  <h2 className="text-lg font-bold text-stone-900 tracking-tight">
+                    Autres plats
+                  </h2>
+                  <div className="flex-1 h-px bg-stone-200" />
+                  <span className="text-xs text-stone-400 font-medium">
+                    {otherPlats.length} plat{otherPlats.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {otherPlats.map((p) => (
+                    <ProductCard
+                      key={p.id}
+                      product={p}
+                      onAdd={() => handleAdd(p)}
+                      justAdded={justAdded === p.id}
+                      categories={categories}
+                      onDetail={(prod) => { setSelectedProduct(prod); setDetailQty(1); }}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Visible categories (drinks, etc.) */}
+            {visibleParents.map((parent) => {
+              const items = productsByVisibleCategory.get(parent.id) ?? [];
+              if (items.length === 0) return null;
+
+              // Group by sub-categories if any
+              const subs = categories
+                .filter((c) => c.parentId === parent.id)
+                .sort((a, b) => a.order - b.order);
+
+              return (
+                <section key={parent.id} id={`section-${parent.id}`} className="animate-fade-in-up scroll-mt-40">
                   <div className="flex items-center gap-3 mb-5">
                     <h2 className="text-lg font-bold text-stone-900 tracking-tight">
                       {parent.name}
                     </h2>
                     <div className="flex-1 h-px bg-stone-200" />
                     <span className="text-xs text-stone-400 font-medium">
-                      {totalItems} article{totalItems > 1 ? "s" : ""}
+                      {items.length} article{items.length > 1 ? "s" : ""}
                     </span>
                   </div>
-                )}
-                <div className="space-y-8">
-                  {displayCats.map((cat) => {
-                    const items = productsByCategory.get(cat.id) ?? [];
-                    if (items.length === 0) return null;
-                    return (
-                      <div key={cat.id}>
-                        {(subs.length > 0 || visibleParents.length === 1) && (
-                          <div className="flex items-baseline justify-between mb-3">
-                            <h3 className="text-[11px] font-bold text-stone-500 uppercase tracking-[0.12em]">
-                              {cat.name}
-                            </h3>
-                            <span className="text-[11px] text-stone-400">
-                              {items.length} plat{items.length > 1 ? "s" : ""}
-                            </span>
+                  {subs.length > 0 ? (
+                    <div className="space-y-8">
+                      {subs.map((sub) => {
+                        const subItems = items.filter((p) => p.categoryId === sub.id);
+                        if (subItems.length === 0) return null;
+                        return (
+                          <div key={sub.id}>
+                            <div className="flex items-baseline justify-between mb-3">
+                              <h3 className="text-[11px] font-bold text-stone-500 uppercase tracking-[0.12em]">
+                                {sub.name}
+                              </h3>
+                              <span className="text-[11px] text-stone-400">
+                                {subItems.length} article{subItems.length > 1 ? "s" : ""}
+                              </span>
+                            </div>
+                            <div className="space-y-3">
+                              {subItems.map((p) => (
+                                <ProductCard
+                                  key={p.id}
+                                  product={p}
+                                  onAdd={() => handleAdd(p)}
+                                  justAdded={justAdded === p.id}
+                                  categories={categories}
+                                  onDetail={(prod) => { setSelectedProduct(prod); setDetailQty(1); }}
+                                />
+                              ))}
+                            </div>
                           </div>
-                        )}
-                        <div className="space-y-3">
-                          {items.map((p) => (
-                            <ProductCard
-                              key={p.id}
-                              product={p}
-                              onAdd={() => handleAdd(p)}
-                              justAdded={justAdded === p.id}
-                              categories={categories}
-                              onDetail={(prod) => { setSelectedProduct(prod); setDetailQty(1); }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {items.map((p) => (
+                        <ProductCard
+                          key={p.id}
+                          product={p}
+                          onAdd={() => handleAdd(p)}
+                          justAdded={justAdded === p.id}
+                          categories={categories}
+                          onDetail={(prod) => { setSelectedProduct(prod); setDetailQty(1); }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+
+            {/* Empty state */}
+            {dailyProducts.length === 0 && otherPlats.length === 0 && visibleParents.every((p) => (productsByVisibleCategory.get(p.id)?.length ?? 0) === 0) && (
+              <div className="text-center py-16 animate-fade-in-up">
+                <UtensilsCrossed className="w-10 h-10 text-stone-300 mx-auto mb-3" aria-hidden />
+                <p className="text-sm text-stone-500">
+                  Aucun plat disponible pour le moment.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -352,7 +448,6 @@ export default function MenuClient({
               onClick={() => setSelectedProduct(null)}
             />
             <div className="relative bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md mx-auto overflow-hidden animate-fade-in-up">
-              {/* Close button */}
               <button
                 onClick={() => setSelectedProduct(null)}
                 className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/60 transition-colors"
@@ -361,7 +456,6 @@ export default function MenuClient({
                 <X className="w-4 h-4" />
               </button>
 
-              {/* Image */}
               {selectedProduct.imageUrl ? (
                 <img
                   src={selectedProduct.imageUrl}
@@ -374,7 +468,6 @@ export default function MenuClient({
                 </div>
               )}
 
-              {/* Content */}
               <div className="p-5 pb-8">
                 <h2 className="text-xl font-bold text-stone-900 mb-1">
                   {selectedProduct.name}
@@ -388,7 +481,6 @@ export default function MenuClient({
                   {formatFCFA(selectedProduct.price)}
                 </div>
 
-                {/* Stock indicator */}
                 {disabled ? (
                   <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 rounded-full px-3 py-1 mb-4">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
@@ -401,7 +493,6 @@ export default function MenuClient({
                   </div>
                 ) : null}
 
-                {/* Quantity selector + Add button */}
                 {!disabled && (
                   <div className="flex items-center gap-4 mt-2">
                     <div className="flex items-center gap-1 bg-stone-100 rounded-full p-1">

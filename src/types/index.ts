@@ -54,6 +54,7 @@ export type Category = {
   parentId: string | null;
   order: number;
   stock: number | null;
+  visibleToClient: boolean;
 };
 
 export type Product = {
@@ -68,6 +69,7 @@ export type Product = {
   stockConsumption: number;
   order: number;
   description: string | null;
+  isDaily: boolean;
   categoryLinks?: ProductCategoryLink[];
 };
 
@@ -236,6 +238,7 @@ export type CategoryRow = {
   parent_id: string | null;
   order: number;
   stock: number | null;
+  visible_to_client?: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -252,6 +255,7 @@ export type ProductRow = {
   stock_consumption: number;
   order: number;
   description: string | null;
+  is_daily?: boolean;
   created_at: string;
   updated_at: string;
   product_category_links?: ProductCategoryLinkRow[];
@@ -453,6 +457,7 @@ export function mapCategory(c: CategoryRow): Category {
     parentId: c.parent_id,
     order: c.order,
     stock: c.stock ?? null,
+    visibleToClient: c.visible_to_client ?? true,
   };
 }
 
@@ -469,6 +474,7 @@ export function mapProduct(p: ProductRow): Product {
     stockConsumption: p.stock_consumption ?? 1,
     order: p.order,
     description: p.description ?? null,
+    isDaily: p.is_daily ?? false,
     categoryLinks: p.product_category_links?.map((l) => ({
       id: l.id,
       productId: l.product_id,

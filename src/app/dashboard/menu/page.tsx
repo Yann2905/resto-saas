@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import PinGuard from "../_components/pin-guard";
 import { supabase } from "@/lib/supabase";
@@ -14,7 +14,7 @@ import {
   mapCategory,
   mapProduct,
 } from "@/types";
-import { UtensilsCrossed, X, Plus, Link2, ChevronUp, ChevronDown } from "lucide-react";
+import { UtensilsCrossed, X, Plus, Link2, ChevronUp, ChevronDown, Search, Eye, EyeOff, Sun } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
 import { confirmDanger, toastError, toastSuccess } from "@/lib/swal";
 
@@ -65,6 +65,9 @@ export default function MenuAdminPage() {
     null
   );
   const [saving, setSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  // Pause realtime refresh during reorder to prevent flicker
+  const pauseRealtimeRef = useRef(false);
 
   useEffect(() => {
     if (!loading && !user && !role) window.location.href = "/dashboard/login";
@@ -77,6 +80,7 @@ export default function MenuAdminPage() {
     let cancelled = false;
 
     const fetchCategories = async () => {
+      if (pauseRealtimeRef.current) return;
       try {
         const res = await fetch(`/api/menu/categories?restaurantId=${restaurantId}`);
         const json = await res.json();
@@ -85,6 +89,7 @@ export default function MenuAdminPage() {
       } catch { /* ignore */ }
     };
     const fetchProducts = async () => {
+      if (pauseRealtimeRef.current) return;
       try {
         const res = await fetch(`/api/menu/products?restaurantId=${restaurantId}`);
         const json = await res.json();
@@ -147,10 +152,23 @@ export default function MenuAdminPage() {
     return cat.name;
   };
 
-  const filteredProducts =
-    filterCat === "all"
+  // Search filter
+  const searchTerm = searchQuery.trim().toLowerCase();
+
+  const filteredProducts = useMemo(() => {
+    let list = filterCat === "all"
       ? products
       : products.filter((p) => p.categoryId === filterCat);
+    if (searchTerm) {
+      list = list.filter((p) => p.name.toLowerCase().includes(searchTerm));
+    }
+    return list;
+  }, [products, filterCat, searchTerm]);
+
+  const filteredCategories = useMemo(() => {
+    if (!searchTerm) return null; // null = not searching
+    return categories.filter((c) => c.name.toLowerCase().includes(searchTerm));
+  }, [categories, searchTerm]);
 
   const saveProduct = async (id: string | null, form: ProductForm) => {
     if (!restaurant) return;
@@ -209,7 +227,6 @@ export default function MenuAdminPage() {
     });
     if (!ok) return;
 
-    // Optimistic UI : retire tout de suite
     const previous = products;
     setProducts((prev) => prev.filter((p) => p.id !== id));
 
@@ -221,7 +238,7 @@ export default function MenuAdminPage() {
       });
       const json = await res.json();
       if (!json.ok) {
-        setProducts(previous); // rollback
+        setProducts(previous);
         await toastError(json.error || "Suppression impossible");
         return;
       }
@@ -234,7 +251,6 @@ export default function MenuAdminPage() {
   };
 
   const toggleAvailable = async (p: Product) => {
-    // Optimistic UI
     const previous = products;
     setProducts((prev) =>
       prev.map((x) => (x.id === p.id ? { ...x, available: !p.available } : x))
@@ -256,6 +272,62 @@ export default function MenuAdminPage() {
       }
     } catch {
       setProducts(previous);
+      await toastError("Erreur réseau");
+    }
+  };
+
+  const toggleDaily = async (p: Product) => {
+    const previous = products;
+    setProducts((prev) =>
+      prev.map((x) => (x.id === p.id ? { ...x, isDaily: !p.isDaily } : x))
+    );
+    try {
+      const res = await fetch("/api/menu/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: p.id,
+          restaurantId: restaurant!.id,
+          is_daily: !p.isDaily,
+        }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        setProducts(previous);
+        await toastError(json.error || "Mise à jour impossible");
+      }
+    } catch {
+      setProducts(previous);
+      await toastError("Erreur réseau");
+    }
+  };
+
+  const toggleCategoryVisibility = async (cat: Category) => {
+    const previous = categories;
+    setCategories((prev) =>
+      prev.map((c) => (c.id === cat.id ? { ...c, visibleToClient: !cat.visibleToClient } : c))
+    );
+    try {
+      const res = await fetch("/api/menu/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: cat.id,
+          restaurantId: restaurant!.id,
+          name: cat.name,
+          parentId: cat.parentId,
+          order: cat.order,
+          stock: cat.stock,
+          visible_to_client: !cat.visibleToClient,
+        }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        setCategories(previous);
+        await toastError(json.error || "Mise à jour impossible");
+      }
+    } catch {
+      setCategories(previous);
       await toastError("Erreur réseau");
     }
   };
@@ -343,6 +415,9 @@ export default function MenuAdminPage() {
     const cat = categories.find((c) => c.id === id);
     if (!cat) return;
 
+    // Pause realtime to prevent flicker during reorder
+    pauseRealtimeRef.current = true;
+
     // Get siblings (same parent), sorted by current order
     let siblings = categories
       .filter((c) => c.parentId === cat.parentId)
@@ -352,35 +427,40 @@ export default function MenuAdminPage() {
     const allSameOrder = siblings.every((s) => s.order === siblings[0].order);
     if (allSameOrder && siblings.length > 1) {
       const normalized = categories.map((c) => {
-        const idx = siblings.findIndex((s) => s.id === c.id);
-        return idx >= 0 ? { ...c, order: idx + 1 } : c;
+        const sIdx = siblings.findIndex((s) => s.id === c.id);
+        return sIdx >= 0 ? { ...c, order: sIdx + 1 } : c;
       });
       setCategories(normalized);
       siblings = normalized
         .filter((c) => c.parentId === cat.parentId)
         .sort((a, b) => a.order - b.order);
       // Save normalized orders in background
-      for (let i = 0; i < siblings.length; i++) {
+      const normalizePromises = siblings.map((s, i) =>
         fetch("/api/menu/categories", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            id: siblings[i].id,
+            id: s.id,
             restaurantId: restaurant.id,
-            name: siblings[i].name,
-            parentId: siblings[i].parentId,
+            name: s.name,
+            parentId: s.parentId,
             order: i + 1,
-            stock: siblings[i].stock,
+            stock: s.stock,
+            visible_to_client: s.visibleToClient,
           }),
-        });
-      }
+        })
+      );
+      await Promise.all(normalizePromises);
     }
 
     // Re-find cat after possible normalization
     const updatedCat = siblings.find((c) => c.id === id) ?? cat;
     const idx = siblings.findIndex((c) => c.id === id);
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= siblings.length) return;
+    if (swapIdx < 0 || swapIdx >= siblings.length) {
+      pauseRealtimeRef.current = false;
+      return;
+    }
 
     const other = siblings[swapIdx];
 
@@ -405,6 +485,7 @@ export default function MenuAdminPage() {
           parentId: updatedCat.parentId,
           order: other.order,
           stock: updatedCat.stock,
+          visible_to_client: updatedCat.visibleToClient,
         }),
       });
       const res2 = fetch("/api/menu/categories", {
@@ -417,6 +498,7 @@ export default function MenuAdminPage() {
           parentId: other.parentId,
           order: updatedCat.order,
           stock: other.stock,
+          visible_to_client: other.visibleToClient,
         }),
       });
       const [r1, r2] = await Promise.all([res1, res2]);
@@ -428,6 +510,9 @@ export default function MenuAdminPage() {
     } catch {
       setCategories(previous);
       await toastError("Erreur réseau");
+    } finally {
+      // Re-enable realtime after a short delay to let DB settle
+      setTimeout(() => { pauseRealtimeRef.current = false; }, 1500);
     }
   };
 
@@ -446,24 +531,69 @@ export default function MenuAdminPage() {
     <PinGuard>
     <main className="min-h-screen bg-stone-50 pb-20 md:pb-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
-        <div className="mb-6 flex items-baseline justify-between">
+        <div className="mb-4 flex items-baseline justify-between">
           <div>
             <h2 className="text-2xl font-bold text-stone-900 tracking-tight">
               Gestion du menu
             </h2>
             <p className="text-sm text-stone-500 mt-0.5">
-              Ajoutez vos catégories puis vos plats. Les modifications
-              apparaissent instantanément côté client.
+              Gérez vos catégories, plats et le menu du jour.
             </p>
           </div>
         </div>
+
+        {/* Search bar */}
+        <div className="mb-6 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" aria-hidden />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Rechercher un plat ou une catégorie…"
+            className="w-full rounded-xl border border-stone-200 bg-white pl-9 pr-9 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 transition-colors"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
+              aria-label="Effacer"
+            >
+              <X className="w-4 h-4" aria-hidden />
+            </button>
+          )}
+        </div>
+
+        {/* Search results for categories */}
+        {filteredCategories && filteredCategories.length > 0 && (
+          <section className="mb-6 bg-white rounded-2xl border border-stone-200 p-4">
+            <h3 className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-3">
+              Catégories trouvées
+            </h3>
+            <div className="space-y-1">
+              {filteredCategories.map((cat) => (
+                <div key={cat.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-stone-50">
+                  <span className="text-sm font-medium text-stone-900">{categoryName(cat.id)}</span>
+                  <button
+                    onClick={() => {
+                      setEditingCategoryId(cat.id);
+                      setSearchQuery("");
+                    }}
+                    className="text-xs font-medium text-[#722F37] hover:underline"
+                  >
+                    Éditer
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="mb-8 bg-white rounded-2xl border border-stone-200 p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-bold text-stone-900">Catégories</h3>
               <p className="text-xs text-stone-500 mt-0.5">
-                Ex : « Nourriture » → sous-catégorie « Plats locaux »
+                Utilisez 👁 pour masquer/afficher côté client et ↑↓ pour réordonner.
               </p>
             </div>
             <button
@@ -499,7 +629,7 @@ export default function MenuAdminPage() {
                 return (
                   <div
                     key={parent.id}
-                    className="rounded-xl border border-stone-200 bg-stone-50/60"
+                    className={`rounded-xl border bg-stone-50/60 ${parent.visibleToClient ? "border-stone-200" : "border-stone-200/50 opacity-60"}`}
                   >
                     <CategoryRowView
                       category={parent}
@@ -516,6 +646,7 @@ export default function MenuAdminPage() {
                       onDelete={() => deleteCategory(parent.id)}
                       onMoveUp={() => moveCategory(parent.id, "up")}
                       onMoveDown={() => moveCategory(parent.id, "down")}
+                      onToggleVisibility={() => toggleCategoryVisibility(parent)}
                       saving={saving}
                       isParent
                       isFirst={pIdx === 0}
@@ -538,6 +669,7 @@ export default function MenuAdminPage() {
                             onDelete={() => deleteCategory(sub.id)}
                             onMoveUp={() => moveCategory(sub.id, "up")}
                             onMoveDown={() => moveCategory(sub.id, "down")}
+                            onToggleVisibility={() => toggleCategoryVisibility(sub)}
                             saving={saving}
                             isFirst={sIdx === 0}
                             isLast={sIdx === subs.length - 1}
@@ -557,7 +689,7 @@ export default function MenuAdminPage() {
             <div>
               <h3 className="font-bold text-stone-900">Plats & Boissons</h3>
               <p className="text-xs text-stone-500 mt-0.5">
-                {products.length} produit{products.length > 1 ? "s" : ""}
+                {products.length} produit{products.length > 1 ? "s" : ""} · ☀️ = menu du jour
               </p>
             </div>
             <button
@@ -590,7 +722,7 @@ export default function MenuAdminPage() {
             />
           )}
 
-          {categories.length > 0 && (
+          {categories.length > 0 && !searchTerm && (
             <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
               <button
                 onClick={() => setFilterCat("all")}
@@ -624,7 +756,7 @@ export default function MenuAdminPage() {
 
           {filteredProducts.length === 0 ? (
             <p className="text-sm text-stone-500 text-center py-8">
-              Aucun produit dans cette catégorie.
+              {searchTerm ? `Aucun produit pour « ${searchQuery.trim()} »` : "Aucun produit dans cette catégorie."}
             </p>
           ) : (
             <div className="space-y-2">
@@ -666,6 +798,7 @@ export default function MenuAdminPage() {
                     }}
                     onDelete={() => deleteProduct(p.id)}
                     onToggleAvailable={() => toggleAvailable(p)}
+                    onToggleDaily={() => toggleDaily(p)}
                   />
                 )
               )}
@@ -685,6 +818,7 @@ function ProductRowView({
   onEdit,
   onDelete,
   onToggleAvailable,
+  onToggleDaily,
 }: {
   product: Product;
   categoryLabel: string;
@@ -692,13 +826,14 @@ function ProductRowView({
   onEdit: () => void;
   onDelete: () => void;
   onToggleAvailable: () => void;
+  onToggleDaily: () => void;
 }) {
   const links = product.categoryLinks ?? [];
   const hasLinks = links.length > 0;
   const hasProductStock = product.stockQuantity !== null;
   const out = !product.available || (hasProductStock && product.stockQuantity! <= 0);
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-3 flex flex-col sm:flex-row sm:items-center gap-3 hover:border-stone-300 transition-colors">
+    <div className={`rounded-xl border border-stone-200 bg-white p-3 flex flex-col sm:flex-row sm:items-center gap-3 hover:border-stone-300 transition-colors ${product.isDaily ? "ring-2 ring-amber-300/50" : ""}`}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {product.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -713,7 +848,8 @@ function ProductRowView({
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-stone-900 truncate">
+          <div className="font-semibold text-stone-900 truncate flex items-center gap-1.5">
+            {product.isDaily && <span title="Menu du jour">☀️</span>}
             {product.name}
           </div>
           {product.description && (
@@ -752,8 +888,19 @@ function ProductRowView({
       </div>
       <div className="flex items-center gap-1 flex-shrink-0 sm:ml-2">
         <button
+          onClick={onToggleDaily}
+          title={product.isDaily ? "Retirer du menu du jour" : "Ajouter au menu du jour"}
+          className={`flex-none rounded-lg px-2.5 py-2 text-xs font-medium transition-colors ${
+            product.isDaily
+              ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+              : "bg-stone-100 text-stone-400 hover:bg-stone-200"
+          }`}
+        >
+          <Sun className="w-4 h-4" aria-hidden />
+        </button>
+        <button
           onClick={onToggleAvailable}
-          className={`flex-1 sm:flex-none rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+          className={`flex-none rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
             product.available
               ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
               : "bg-stone-100 text-stone-500 hover:bg-stone-200"
@@ -763,7 +910,7 @@ function ProductRowView({
         </button>
         <button
           onClick={onEdit}
-          className="flex-1 sm:flex-none rounded-lg px-3 py-2 text-xs font-medium bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors"
+          className="flex-none rounded-lg px-3 py-2 text-xs font-medium bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors"
         >
           Éditer
         </button>
@@ -819,7 +966,6 @@ function ProductFormInline({
     setUploading(true);
     setUploadStep("Compression…");
     try {
-      // Petit yield pour que le label s'affiche avant le travail bloquant
       await new Promise((r) => setTimeout(r, 30));
       setUploadStep("Envoi…");
       const url = await uploadProductImage(restaurantId, file);
@@ -1090,6 +1236,7 @@ function CategoryRowView({
   onDelete,
   onMoveUp,
   onMoveDown,
+  onToggleVisibility,
   saving,
   isParent = false,
   isFirst = false,
@@ -1104,6 +1251,7 @@ function CategoryRowView({
   onDelete: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  onToggleVisibility: () => void;
   saving: boolean;
   isParent?: boolean;
   isFirst?: boolean;
@@ -1173,6 +1321,21 @@ function CategoryRowView({
         )}
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
+        <button
+          onClick={onToggleVisibility}
+          title={category.visibleToClient ? "Masquer côté client" : "Afficher côté client"}
+          className={`rounded-lg px-2 py-1 text-xs font-medium transition-colors ${
+            category.visibleToClient
+              ? "bg-blue-50 text-blue-600 hover:bg-blue-100"
+              : "bg-stone-100 text-stone-400 hover:bg-stone-200"
+          }`}
+        >
+          {category.visibleToClient ? (
+            <Eye className="w-3.5 h-3.5" aria-hidden />
+          ) : (
+            <EyeOff className="w-3.5 h-3.5" aria-hidden />
+          )}
+        </button>
         <button
           onClick={onEdit}
           className="rounded-lg px-2 py-1 text-xs font-medium bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors"

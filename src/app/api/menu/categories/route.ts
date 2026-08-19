@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
   const stock = body.stock === null || body.stock === undefined || body.stock === ""
     ? null
     : parseFloat(body.stock);
+  const visibleToClient = body.visible_to_client ?? body.visibleToClient;
 
   if (!restaurantId || !name)
     return NextResponse.json({ ok: false, error: "Missing fields" }, { status: 400 });
@@ -45,13 +46,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Accès refusé" }, { status: 403 });
 
   const admin = createSupabaseAdminClient();
-  const payload = {
+  const payload: Record<string, unknown> = {
     restaurant_id: restaurantId,
     name,
     parent_id: parentId ?? null,
     order: order ?? 0,
     stock: stock !== null && !isNaN(stock) ? stock : null,
   };
+  if (visibleToClient !== undefined) {
+    payload.visible_to_client = !!visibleToClient;
+  }
 
   if (id) {
     const { error } = await admin.from("categories").update(payload).eq("id", id);
