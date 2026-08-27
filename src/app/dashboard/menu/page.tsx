@@ -394,6 +394,12 @@ export default function MenuAdminPage() {
         await toastError(json.error || "Erreur lors de l'enregistrement");
         return;
       }
+      // Re-fetch categories to pick up the updated category_type
+      try {
+        const catRes = await fetch(`/api/menu/categories?restaurantId=${restaurant.id}`);
+        const catJson = await catRes.json();
+        if (catJson.ok) setCategories((catJson.categories as CategoryRow[]).map(mapCategory));
+      } catch { /* realtime will catch up */ }
       if (id) setEditingCategoryId(null);
       else setShowAddCategory(false);
     } finally {
