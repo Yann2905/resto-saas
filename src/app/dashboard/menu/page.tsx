@@ -165,11 +165,6 @@ export default function MenuAdminPage() {
     return list;
   }, [products, filterCat, searchTerm]);
 
-  const filteredCategories = useMemo(() => {
-    if (!searchTerm) return null; // null = not searching
-    return categories.filter((c) => c.name.toLowerCase().includes(searchTerm));
-  }, [categories, searchTerm]);
-
   const saveProduct = async (id: string | null, form: ProductForm) => {
     if (!restaurant) return;
     setSaving(true);
@@ -542,52 +537,6 @@ export default function MenuAdminPage() {
           </div>
         </div>
 
-        {/* Search bar */}
-        <div className="mb-6 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" aria-hidden />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Rechercher un plat ou une catégorie…"
-            className="w-full rounded-xl border border-stone-200 bg-white pl-9 pr-9 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 transition-colors"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
-              aria-label="Effacer"
-            >
-              <X className="w-4 h-4" aria-hidden />
-            </button>
-          )}
-        </div>
-
-        {/* Search results for categories */}
-        {filteredCategories && filteredCategories.length > 0 && (
-          <section className="mb-6 bg-white rounded-2xl border border-stone-200 p-4">
-            <h3 className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-3">
-              Catégories trouvées
-            </h3>
-            <div className="space-y-1">
-              {filteredCategories.map((cat) => (
-                <div key={cat.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-stone-50">
-                  <span className="text-sm font-medium text-stone-900">{categoryName(cat.id)}</span>
-                  <button
-                    onClick={() => {
-                      setEditingCategoryId(cat.id);
-                      setSearchQuery("");
-                    }}
-                    className="text-xs font-medium text-[#722F37] hover:underline"
-                  >
-                    Éditer
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
         <section className="mb-8 bg-white rounded-2xl border border-stone-200 p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -721,6 +670,27 @@ export default function MenuAdminPage() {
               saving={saving}
             />
           )}
+
+          {/* Search bar */}
+          <div className="mb-4 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" aria-hidden />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher un plat ou une boisson…"
+              className="w-full rounded-xl border border-stone-200 bg-stone-50 pl-9 pr-9 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-[#722F37] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
+                aria-label="Effacer"
+              >
+                <X className="w-4 h-4" aria-hidden />
+              </button>
+            )}
+          </div>
 
           {categories.length > 0 && !searchTerm && (
             <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
