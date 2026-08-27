@@ -1117,19 +1117,14 @@ function ProductFormInline({
             />
           </Field>
           <Field label="Catégorie" className="sm:col-span-2">
-            <select
-              required
+            <SearchableSelect
               value={form.categoryId}
-              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-              className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 bg-white"
-            >
-              <option value="">— Choisir —</option>
-              {leafCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {categoryName(c.id)}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setForm({ ...form, categoryId: v })}
+              options={leafCategories
+                .map((c) => ({ value: c.id, label: categoryName(c.id) }))
+                .sort((a, b) => a.label.localeCompare(b.label, "fr"))}
+              placeholder="— Choisir une catégorie —"
+            />
           </Field>
           <Field label="Prix (FCFA)">
             <input
@@ -1194,24 +1189,20 @@ function ProductFormInline({
                       className="flex items-center gap-2 rounded-lg bg-blue-50 border border-blue-200 p-2"
                     >
                       <Link2 className="w-4 h-4 text-blue-500 flex-shrink-0" aria-hidden />
-                      <select
+                      <SearchableSelect
                         value={link.categoryId}
-                        onChange={(e) => {
+                        onChange={(v) => {
                           const updated = [...form.categoryLinks];
-                          updated[idx] = { ...updated[idx], categoryId: e.target.value };
+                          updated[idx] = { ...updated[idx], categoryId: v };
                           setForm({ ...form, categoryLinks: updated });
                         }}
-                        className="flex-1 rounded-lg border border-blue-200 px-2 py-1.5 text-sm bg-white focus:border-[#722F37] focus:outline-none"
-                      >
-                        <option value="">— Catégorie —</option>
-                        {allCategories
+                        options={allCategories
                           .filter((c) => c.stock !== null)
-                          .map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name} (stock: {c.stock})
-                            </option>
-                          ))}
-                      </select>
+                          .map((c) => ({ value: c.id, label: `${c.name} (stock: ${c.stock})` }))
+                          .sort((a, b) => a.label.localeCompare(b.label, "fr"))}
+                        placeholder="— Catégorie —"
+                        className="flex-1"
+                      />
                       <div className="flex items-center gap-1">
                         <span className="text-xs text-stone-500">×</span>
                         <input
@@ -1525,5 +1516,108 @@ function Field({
       </span>
       {children}
     </label>
+  );
+}
+
+/* ── Select avec recherche ──────────────────────────────────────── */
+
+function SearchableSelect({
+  value,
+  onChange,
+  options,
+  placeholder = "— Choisir —",
+  className = "",
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const selectedLabel = options.find((o) => o.value === value)?.label ?? "";
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => o.label.toLowerCase().includes(q));
+  }, [options, query]);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => {
+          setOpen(!open);
+          setQuery("");
+          setTimeout(() => inputRef.current?.focus(), 50);
+        }}
+        className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm text-left bg-white focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 flex items-center justify-between gap-2"
+      >
+        <span className={selectedLabel ? "text-stone-900 truncate" : "text-stone-400 truncate"}>
+          {selectedLabel || placeholder}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-stone-400 flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white rounded-xl border border-stone-200 shadow-xl max-h-64 overflow-hidden flex flex-col">
+          <div className="p-2 border-b border-stone-100">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400 pointer-events-none" />
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Rechercher…"
+                className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-stone-200 bg-stone-50 focus:border-[#722F37] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
+              />
+            </div>
+          </div>
+          <div className="overflow-y-auto flex-1">
+            {filtered.length === 0 ? (
+              <p className="text-xs text-stone-400 text-center py-4">Aucun résultat</p>
+            ) : (
+              filtered.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  className={`w-full text-left px-3 py-2.5 text-sm hover:bg-stone-50 transition-colors ${
+                    opt.value === value
+                      ? "bg-[#722F37]/5 text-[#722F37] font-semibold"
+                      : "text-stone-700"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
