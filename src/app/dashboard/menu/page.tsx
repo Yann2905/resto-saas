@@ -1536,8 +1536,10 @@ function SearchableSelect({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [dropStyle, setDropStyle] = useState<React.CSSProperties>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
 
   const selectedLabel = options.find((o) => o.value === value)?.label ?? "";
 
@@ -1547,11 +1549,38 @@ function SearchableSelect({
     return options.filter((o) => o.label.toLowerCase().includes(q));
   }, [options, query]);
 
+  // Position the dropdown using fixed positioning to avoid overflow clipping
+  const updatePosition = () => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const maxH = 256; // max-h-64 = 16rem = 256px
+    const spaceBelow = window.innerHeight - rect.bottom - 8;
+    const spaceAbove = rect.top - 8;
+    const openUp = spaceBelow < maxH && spaceAbove > spaceBelow;
+
+    const style: React.CSSProperties = {
+      position: "fixed",
+      left: rect.left,
+      width: rect.width,
+      maxHeight: Math.min(maxH, openUp ? spaceAbove : spaceBelow),
+      zIndex: 9999,
+    };
+    if (openUp) {
+      style.bottom = window.innerHeight - rect.top + 4;
+    } else {
+      style.top = rect.bottom + 4;
+    }
+    setDropStyle(style);
+  };
+
   // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current && !containerRef.current.contains(e.target as Node) &&
+        dropRef.current && !dropRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
         setQuery("");
       }
@@ -1560,14 +1589,36 @@ function SearchableSelect({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
+  // Recalculate position on scroll / resize while open
+  useEffect(() => {
+    if (!open) return;
+    updatePosition();
+    const onScroll = () => updatePosition();
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       <button
         type="button"
         onClick={() => {
-          setOpen(!open);
-          setQuery("");
-          setTimeout(() => inputRef.current?.focus(), 50);
+          if (!open) {
+            setOpen(true);
+            setQuery("");
+            setTimeout(() => {
+              updatePosition();
+              inputRef.current?.focus();
+            }, 0);
+          } else {
+            setOpen(false);
+            setQuery("");
+          }
         }}
         className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-sm text-left bg-white focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 flex items-center justify-between gap-2"
       >
@@ -1578,8 +1629,12 @@ function SearchableSelect({
       </button>
 
       {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white rounded-xl border border-stone-200 shadow-xl max-h-64 overflow-hidden flex flex-col">
-          <div className="p-2 border-b border-stone-100">
+        <div
+          ref={dropRef}
+          style={dropStyle}
+          className="bg-white rounded-xl border border-stone-200 shadow-xl overflow-hidden flex flex-col"
+        >
+          <div className="p-2 border-b border-stone-100 flex-shrink-0">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400 pointer-events-none" />
               <input
