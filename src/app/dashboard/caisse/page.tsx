@@ -702,6 +702,7 @@ const PAYMENT_LABELS: Record<string, string> = {
   card: "Carte",
   room_bill: "Chambre",
   other: "Autre",
+  mixed: "Mixte",
 };
 
 function OrderHistoryRow({

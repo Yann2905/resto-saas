@@ -132,13 +132,17 @@ export async function processOrderPayment(
   orderId: string,
   paymentMethod: OrderPaymentMethod,
   amountReceived?: number,
-  paymentProvider?: MobileMoneyProvider
+  paymentProvider?: MobileMoneyProvider,
+  cashAmount?: number,
+  momoAmount?: number
 ): Promise<ProcessPaymentResult> {
   const { data, error } = await supabase.rpc("process_order_payment", {
     p_order_id: orderId,
     p_payment_method: paymentMethod,
     p_amount_received: amountReceived ?? null,
     p_payment_provider: paymentProvider ?? null,
+    p_cash_amount: cashAmount ?? null,
+    p_momo_amount: momoAmount ?? null,
   });
 
   if (error) {
@@ -196,7 +200,7 @@ export async function listSessionOrders(
 ): Promise<Record<string, unknown>[]> {
   const { data, error } = await supabase
     .from("orders")
-    .select("id, table_number, room_label, status, items, total, created_at, payment_status, payment_method, payment_provider, amount_received, change_given, paid_at, order_type, order_mode, delivery_phone, delivery_quartier, delivery_carrefour, delivery_fee, cash_session_id")
+    .select("id, table_number, room_label, status, items, total, created_at, payment_status, payment_method, payment_provider, amount_received, change_given, cash_amount, momo_amount, paid_at, order_type, order_mode, delivery_phone, delivery_quartier, delivery_carrefour, delivery_fee, cash_session_id")
     .eq("cash_session_id", sessionId)
     .neq("status", "cancelled")
     .order("created_at", { ascending: false });

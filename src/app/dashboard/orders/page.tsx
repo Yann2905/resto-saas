@@ -731,7 +731,7 @@ const OrderCard = memo(function OrderCard({
             <div className="flex flex-wrap gap-1.5 mt-2.5">
               {order.paymentStatus === "paid" ? (
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                  Payé {order.paymentMethod === "cash" ? "(Cash)" : order.paymentMethod === "mobile_money" ? "(MoMo)" : ""}
+                  Payé {order.paymentMethod === "cash" ? "(Cash)" : order.paymentMethod === "mobile_money" ? "(MoMo)" : order.paymentMethod === "mixed" ? "(Mixte)" : ""}
                 </span>
               ) : (
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">

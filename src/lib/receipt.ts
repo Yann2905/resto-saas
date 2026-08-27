@@ -48,6 +48,7 @@ export function generateReceiptData(
   else if (order.paymentMethod === "card") paymentMethodLabel = "Carte Bancaire";
   else if (order.paymentMethod === "room_bill") paymentMethodLabel = "Note de Chambre";
   else if (order.paymentMethod === "other") paymentMethodLabel = "Autre";
+  else if (order.paymentMethod === "mixed") paymentMethodLabel = "Mixte (Cash + MoMo)";
 
   return {
     restaurantName: restaurant?.name || "Resto SaaS",
