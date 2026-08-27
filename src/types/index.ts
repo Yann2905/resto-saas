@@ -47,6 +47,8 @@ export type Restaurant = {
   reviewCount: number;
 };
 
+export type CategoryType = "food" | "drink";
+
 export type Category = {
   id: string;
   restaurantId: string;
@@ -55,6 +57,7 @@ export type Category = {
   order: number;
   stock: number | null;
   visibleToClient: boolean;
+  categoryType: CategoryType;
 };
 
 export type Product = {
@@ -239,6 +242,7 @@ export type CategoryRow = {
   order: number;
   stock: number | null;
   visible_to_client?: boolean;
+  category_type?: string;
   created_at: string;
   updated_at: string;
 };
@@ -458,6 +462,7 @@ export function mapCategory(c: CategoryRow): Category {
     order: c.order,
     stock: c.stock ?? null,
     visibleToClient: c.visible_to_client ?? true,
+    categoryType: (c.category_type as CategoryType) ?? "food",
   };
 }
 

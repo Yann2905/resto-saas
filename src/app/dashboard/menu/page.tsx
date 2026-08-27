@@ -51,6 +51,7 @@ type CategoryForm = {
   name: string;
   parentId: string; // "" = parent principal
   stock: string; // "" = pas de gestion de stock
+  categoryType: "food" | "drink";
 };
 
 export default function MenuAdminPage() {
@@ -66,6 +67,7 @@ export default function MenuAdminPage() {
   );
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"stock" | "plats" | "boissons">("stock");
   // Pause realtime refresh during reorder to prevent flicker
   const pauseRealtimeRef = useRef(false);
 
@@ -152,18 +154,50 @@ export default function MenuAdminPage() {
     return cat.name;
   };
 
+  // Determine a product's type via its category's root parent
+  const getCategoryType = (categoryId: string): "food" | "drink" => {
+    const cat = categories.find((c) => c.id === categoryId);
+    if (!cat) return "food";
+    if (cat.parentId) {
+      const parent = categories.find((c) => c.id === cat.parentId);
+      return parent?.categoryType ?? "food";
+    }
+    return cat.categoryType ?? "food";
+  };
+
+  const foodProducts = useMemo(
+    () => products.filter((p) => getCategoryType(p.categoryId) === "food"),
+    [products, categories]
+  );
+  const drinkProducts = useMemo(
+    () => products.filter((p) => getCategoryType(p.categoryId) === "drink"),
+    [products, categories]
+  );
+
+  const foodLeafCategories = useMemo(
+    () => leafCategories.filter((c) => getCategoryType(c.id) === "food"),
+    [leafCategories, categories]
+  );
+  const drinkLeafCategories = useMemo(
+    () => leafCategories.filter((c) => getCategoryType(c.id) === "drink"),
+    [leafCategories, categories]
+  );
+
   // Search filter
   const searchTerm = searchQuery.trim().toLowerCase();
 
+  const currentProducts = activeTab === "plats" ? foodProducts : drinkProducts;
+  const currentLeafCategories = activeTab === "plats" ? foodLeafCategories : drinkLeafCategories;
+
   const filteredProducts = useMemo(() => {
     let list = filterCat === "all"
-      ? products
-      : products.filter((p) => p.categoryId === filterCat);
+      ? currentProducts
+      : currentProducts.filter((p) => p.categoryId === filterCat);
     if (searchTerm) {
       list = list.filter((p) => p.name.toLowerCase().includes(searchTerm));
     }
     return list;
-  }, [products, filterCat, searchTerm]);
+  }, [currentProducts, filterCat, searchTerm]);
 
   const saveProduct = async (id: string | null, form: ProductForm) => {
     if (!restaurant) return;
@@ -314,6 +348,7 @@ export default function MenuAdminPage() {
           order: cat.order,
           stock: cat.stock,
           visible_to_client: !cat.visibleToClient,
+          category_type: cat.categoryType,
         }),
       });
       const json = await res.json();
@@ -337,17 +372,22 @@ export default function MenuAdminPage() {
         ? categories.find((c) => c.id === id)?.order ?? siblings.length + 1
         : siblings.length + 1;
       const stock = form.stock.trim() === "" ? null : parseFloat(form.stock);
+      const payload: Record<string, unknown> = {
+        id,
+        restaurantId: restaurant.id,
+        name: form.name.trim(),
+        parentId,
+        order,
+        stock: stock !== null && !isNaN(stock) ? stock : null,
+      };
+      // Only send category_type for parent categories
+      if (!parentId) {
+        payload.category_type = form.categoryType ?? "food";
+      }
       const res = await fetch("/api/menu/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id,
-          restaurantId: restaurant.id,
-          name: form.name.trim(),
-          parentId,
-          order,
-          stock: stock !== null && !isNaN(stock) ? stock : null,
-        }),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!json.ok) {
@@ -481,6 +521,7 @@ export default function MenuAdminPage() {
           order: other.order,
           stock: updatedCat.stock,
           visible_to_client: updatedCat.visibleToClient,
+          category_type: updatedCat.categoryType,
         }),
       });
       const res2 = fetch("/api/menu/categories", {
@@ -494,6 +535,7 @@ export default function MenuAdminPage() {
           order: updatedCat.order,
           stock: other.stock,
           visible_to_client: other.visibleToClient,
+          category_type: other.categoryType,
         }),
       });
       const [r1, r2] = await Promise.all([res1, res2]);
@@ -526,23 +568,52 @@ export default function MenuAdminPage() {
     <PinGuard>
     <main className="min-h-screen bg-stone-50 pb-20 md:pb-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
-        <div className="mb-4 flex items-baseline justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-stone-900 tracking-tight">
-              Gestion du menu
-            </h2>
-            <p className="text-sm text-stone-500 mt-0.5">
-              Gérez vos catégories, plats et le menu du jour.
-            </p>
-          </div>
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold text-stone-900 tracking-tight">
+            Gestion du menu
+          </h2>
+          <p className="text-sm text-stone-500 mt-0.5">
+            Gérez vos stocks, plats et boissons.
+          </p>
         </div>
 
-        <section className="mb-8 bg-white rounded-2xl border border-stone-200 p-5">
+        {/* ── Onglets ──────────────────────────────────────────── */}
+        <div className="flex gap-1 mb-5 bg-stone-100 rounded-xl p-1">
+          {([
+            { key: "stock" as const, label: "Stock", count: parentCategories.length },
+            { key: "plats" as const, label: "Plats", count: foodProducts.length },
+            { key: "boissons" as const, label: "Boissons", count: drinkProducts.length },
+          ]).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => {
+                setActiveTab(tab.key);
+                setSearchQuery("");
+                setFilterCat("all");
+                setShowAddProduct(false);
+                setShowAddCategory(false);
+                setEditingProductId(null);
+                setEditingCategoryId(null);
+              }}
+              className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all ${
+                activeTab === tab.key
+                  ? "bg-white text-[#722F37] shadow-sm"
+                  : "text-stone-500 hover:text-stone-700"
+              }`}
+            >
+              {tab.label} <span className="text-xs font-normal">({tab.count})</span>
+            </button>
+          ))}
+        </div>
+
+        {/* ════════════════ ONGLET STOCK ════════════════ */}
+        {activeTab === "stock" && (
+        <section className="bg-white rounded-2xl border border-stone-200 p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-bold text-stone-900">Catégories</h3>
+              <h3 className="font-bold text-stone-900">Catégories & Stock</h3>
               <p className="text-xs text-stone-500 mt-0.5">
-                Utilisez 👁 pour masquer/afficher côté client et ↑↓ pour réordonner.
+                👁 masquer/afficher côté client · ↑↓ réordonner
               </p>
             </div>
             <button
@@ -632,13 +703,18 @@ export default function MenuAdminPage() {
             </div>
           )}
         </section>
+        )}
 
+        {/* ════════════════ ONGLET PLATS / BOISSONS ════════════════ */}
+        {(activeTab === "plats" || activeTab === "boissons") && (
         <section className="bg-white rounded-2xl border border-stone-200 p-5">
           <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
             <div>
-              <h3 className="font-bold text-stone-900">Plats & Boissons</h3>
+              <h3 className="font-bold text-stone-900">
+                {activeTab === "plats" ? "Plats" : "Boissons"}
+              </h3>
               <p className="text-xs text-stone-500 mt-0.5">
-                {products.length} produit{products.length > 1 ? "s" : ""} · ☀️ = menu du jour
+                {currentProducts.length} produit{currentProducts.length > 1 ? "s" : ""} · ☀️ = menu du jour
               </p>
             </div>
             <button
@@ -646,23 +722,25 @@ export default function MenuAdminPage() {
                 setShowAddProduct((v) => !v);
                 setEditingProductId(null);
               }}
-              disabled={leafCategories.length === 0}
+              disabled={currentLeafCategories.length === 0}
               className="rounded-full bg-[#722F37] text-white px-4 py-2 text-sm font-semibold hover:bg-[#5a2530] disabled:bg-stone-300 transition-colors"
             >
               {showAddProduct ? "Annuler" : "+ Produit"}
             </button>
           </div>
 
-          {leafCategories.length === 0 && (
+          {currentLeafCategories.length === 0 && (
             <div className="rounded-xl bg-[#C8963E]/5 border border-[#e0c07a] p-3 text-sm text-[#6e5a20] mb-4">
-              Créez au moins une catégorie avant d'ajouter un produit.
+              {activeTab === "plats"
+                ? "Aucune catégorie de type « Plat ». Allez dans l'onglet Stock pour marquer une catégorie comme plat."
+                : "Aucune catégorie de type « Boisson ». Allez dans l'onglet Stock pour marquer une catégorie comme boisson."}
             </div>
           )}
 
-          {showAddProduct && leafCategories.length > 0 && (
+          {showAddProduct && currentLeafCategories.length > 0 && (
             <ProductFormInline
               restaurantId={restaurant.id}
-              leafCategories={leafCategories}
+              leafCategories={currentLeafCategories}
               allCategories={categories}
               categoryName={categoryName}
               onCancel={() => setShowAddProduct(false)}
@@ -678,7 +756,7 @@ export default function MenuAdminPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher un plat ou une boisson…"
+              placeholder={activeTab === "plats" ? "Rechercher un plat…" : "Rechercher une boisson…"}
               className="w-full rounded-xl border border-stone-200 bg-stone-50 pl-9 pr-9 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-[#722F37] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 transition-colors"
             />
             {searchQuery && (
@@ -692,7 +770,7 @@ export default function MenuAdminPage() {
             )}
           </div>
 
-          {categories.length > 0 && !searchTerm && (
+          {currentLeafCategories.length > 0 && !searchTerm && (
             <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
               <button
                 onClick={() => setFilterCat("all")}
@@ -702,11 +780,10 @@ export default function MenuAdminPage() {
                     : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                 }`}
               >
-                Toutes ({products.length})
+                Toutes ({currentProducts.length})
               </button>
-              {leafCategories.map((cat) => {
-                const n = products.filter((p) => p.categoryId === cat.id)
-                  .length;
+              {currentLeafCategories.map((cat) => {
+                const n = currentProducts.filter((p) => p.categoryId === cat.id).length;
                 return (
                   <button
                     key={cat.id}
@@ -726,7 +803,11 @@ export default function MenuAdminPage() {
 
           {filteredProducts.length === 0 ? (
             <p className="text-sm text-stone-500 text-center py-8">
-              {searchTerm ? `Aucun produit pour « ${searchQuery.trim()} »` : "Aucun produit dans cette catégorie."}
+              {searchTerm
+                ? `Aucun résultat pour « ${searchQuery.trim()} »`
+                : activeTab === "plats"
+                ? "Aucun plat dans cette catégorie."
+                : "Aucune boisson dans cette catégorie."}
             </p>
           ) : (
             <div className="space-y-2">
@@ -749,7 +830,7 @@ export default function MenuAdminPage() {
                         quantityPerUnit: String(l.quantityPerUnit),
                       })),
                     }}
-                    leafCategories={leafCategories}
+                    leafCategories={currentLeafCategories}
                     allCategories={categories}
                     categoryName={categoryName}
                     onCancel={() => setEditingProductId(null)}
@@ -775,6 +856,7 @@ export default function MenuAdminPage() {
             </div>
           )}
         </section>
+        )}
       </div>
     </main>
     </PinGuard>
@@ -1236,6 +1318,7 @@ function CategoryRowView({
             name: category.name,
             parentId: category.parentId ?? "",
             stock: category.stock !== null ? String(category.stock) : "",
+            categoryType: category.categoryType ?? "food",
           }}
           onCancel={onCancel}
           onSave={onSave}
@@ -1276,6 +1359,7 @@ function CategoryRowView({
             isParent ? "font-bold text-stone-900" : "text-sm text-stone-700"
           }`}
         >
+          {isParent && <span className="mr-1">{category.categoryType === "drink" ? "🥤" : "🍽️"}</span>}
           {category.name}
         </span>
         {category.stock !== null && (
@@ -1338,7 +1422,7 @@ function CategoryFormInline({
   saving: boolean;
 }) {
   const [form, setForm] = useState<CategoryForm>(
-    initial ?? { name: "", parentId: "", stock: "" }
+    initial ?? { name: "", parentId: "", stock: "", categoryType: "food" }
   );
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1387,6 +1471,18 @@ function CategoryFormInline({
             className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10"
           />
         </Field>
+        {!form.parentId && (
+          <Field label="Type">
+            <select
+              value={form.categoryType}
+              onChange={(e) => setForm({ ...form, categoryType: e.target.value as "food" | "drink" })}
+              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-[#722F37] focus:outline-none focus:ring-2 focus:ring-[#722F37]/10 bg-white"
+            >
+              <option value="food">🍽️ Plat</option>
+              <option value="drink">🥤 Boisson</option>
+            </select>
+          </Field>
+        )}
       </div>
       <div className="mt-4 flex gap-2 justify-end">
         <button

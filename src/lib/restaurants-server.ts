@@ -41,7 +41,7 @@ export const getCategories = (restaurantId: string) =>
       const supabase = createSupabaseAdminClient();
       const { data, error } = await supabase
         .from("categories")
-        .select("id, restaurant_id, name, parent_id, \"order\", stock, visible_to_client")
+        .select("id, restaurant_id, name, parent_id, \"order\", stock, visible_to_client, category_type")
         .eq("restaurant_id", restaurantId)
         .order("order", { ascending: true });
 

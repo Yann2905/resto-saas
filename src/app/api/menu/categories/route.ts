@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     ? null
     : parseFloat(body.stock);
   const visibleToClient = body.visible_to_client ?? body.visibleToClient;
+  const categoryType = body.category_type ?? body.categoryType;
 
   if (!restaurantId || !name)
     return NextResponse.json({ ok: false, error: "Missing fields" }, { status: 400 });
@@ -55,6 +56,9 @@ export async function POST(req: NextRequest) {
   };
   if (visibleToClient !== undefined) {
     payload.visible_to_client = !!visibleToClient;
+  }
+  if (categoryType !== undefined) {
+    payload.category_type = categoryType;
   }
 
   if (id) {
