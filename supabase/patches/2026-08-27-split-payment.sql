@@ -1,4 +1,10 @@
 -- Paiement mixte : une partie en espèces, l'autre en mobile money
+
+-- 0. Mettre à jour la contrainte payment_method pour inclure 'mixed'
+ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_payment_method_check;
+ALTER TABLE public.orders ADD CONSTRAINT orders_payment_method_check
+  CHECK (payment_method IN ('cash', 'mobile_money', 'card', 'room_bill', 'other', 'mixed'));
+
 -- 1. Ajouter les colonnes de répartition
 ALTER TABLE public.orders
   ADD COLUMN IF NOT EXISTS cash_amount integer DEFAULT NULL,
