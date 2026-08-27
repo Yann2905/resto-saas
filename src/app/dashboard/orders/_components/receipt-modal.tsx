@@ -106,6 +106,19 @@ export default function ReceiptPrintModal({
                 <span>Règlement :</span>
                 <span className="font-semibold">{data.paymentMethodLabel}</span>
               </div>
+              {/* Détail paiement mixte */}
+              {data.cashAmount !== null && data.cashAmount > 0 && data.momoAmount !== null && data.momoAmount > 0 && (
+                <>
+                  <div className="flex justify-between text-[11px]">
+                    <span>Part Espèces :</span>
+                    <span>{formatFCFA(data.cashAmount)}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span>Part MoMo :</span>
+                    <span>{formatFCFA(data.momoAmount)}</span>
+                  </div>
+                </>
+              )}
               {data.amountReceived !== null && data.amountReceived > 0 && (
                 <div className="flex justify-between text-[11px]">
                   <span>Montant Reçu :</span>

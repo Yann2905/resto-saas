@@ -26,6 +26,8 @@ export type ReceiptData = {
   paymentMethodLabel: string;
   amountReceived: number | null;
   changeGiven: number | null;
+  cashAmount: number | null;
+  momoAmount: number | null;
   paidAtStr: string | null;
 };
 
@@ -75,6 +77,8 @@ export function generateReceiptData(
     paymentMethodLabel,
     amountReceived: order.amountReceived,
     changeGiven: order.changeGiven,
+    cashAmount: order.cashAmount ?? null,
+    momoAmount: order.momoAmount ?? null,
     paidAtStr: order.paidAt
       ? new Date(order.paidAt).toLocaleTimeString("fr-FR", {
           hour: "2-digit",
