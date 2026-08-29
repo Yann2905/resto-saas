@@ -889,7 +889,17 @@ function ProductRowView({
   const links = product.categoryLinks ?? [];
   const hasLinks = links.length > 0;
   const hasProductStock = product.stockQuantity !== null;
-  const out = !product.available || (hasProductStock && product.stockQuantity! <= 0);
+  // Vérifier le stock catégorie (même logique que côté client)
+  const catInsufficient = hasLinks
+    ? links.some((l) => {
+        const cat = categories.find((c) => c.id === l.categoryId);
+        return cat?.stock !== null && cat?.stock !== undefined && cat.stock < l.quantityPerUnit;
+      })
+    : (() => {
+        const cat = categories.find((c) => c.id === product.categoryId);
+        return cat?.stock !== null && cat?.stock !== undefined && cat.stock < product.stockConsumption;
+      })();
+  const out = !product.available || catInsufficient || (hasProductStock && product.stockQuantity! <= 0);
   return (
     <div className={`rounded-xl border border-stone-200 bg-white p-3 flex flex-col sm:flex-row sm:items-center gap-3 hover:border-stone-300 transition-colors ${product.isDaily ? "ring-2 ring-amber-300/50" : ""}`}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -938,7 +948,7 @@ function ProductRowView({
             {out && (
               <span className="inline-flex items-center gap-1 text-red-600 font-medium">
                 <span className="w-1 h-1 rounded-full bg-red-500" />
-                Indispo
+                {catInsufficient ? "Épuisé (stock catégorie)" : "Indispo"}
               </span>
             )}
           </div>
