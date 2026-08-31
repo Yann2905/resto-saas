@@ -1130,14 +1130,18 @@ function ProductFormInline({
             <SearchableSelect
               value={form.categoryId}
               onChange={(v) => {
-                const cat = allCategories.find((c) => c.id === v);
-                const hasStock = cat?.stock !== null && cat?.stock !== undefined;
-                // Auto-ajouter le lien de déduction si la catégorie a un stock
-                // et qu'elle n'est pas déjà dans les liens
-                const alreadyLinked = form.categoryLinks.some((l) => l.categoryId === v);
-                const newLinks = hasStock && !alreadyLinked
-                  ? [...form.categoryLinks, { categoryId: v, quantityPerUnit: "1" }]
-                  : form.categoryLinks;
+                const newCat = allCategories.find((c) => c.id === v);
+                const newHasStock = newCat?.stock !== null && newCat?.stock !== undefined;
+                // Retirer l'ancien lien auto (celui de l'ancienne catégorie)
+                const oldCatId = form.categoryId;
+                let newLinks = oldCatId
+                  ? form.categoryLinks.filter((l) => l.categoryId !== oldCatId)
+                  : [...form.categoryLinks];
+                // Ajouter le lien de déduction de la nouvelle catégorie si elle a un stock
+                const alreadyLinked = newLinks.some((l) => l.categoryId === v);
+                if (newHasStock && !alreadyLinked) {
+                  newLinks = [...newLinks, { categoryId: v, quantityPerUnit: "1" }];
+                }
                 setForm({ ...form, categoryId: v, categoryLinks: newLinks });
               }}
               options={leafCategories
