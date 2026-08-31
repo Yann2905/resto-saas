@@ -6,6 +6,7 @@ import { Check, Minus, Plus, QrCode, Search, Sun, UtensilsCrossed, X } from "luc
 import { Category, Product } from "@/types";
 import { formatFCFA } from "@/lib/format";
 import { addToCart, cartCount, cartTotal, getCart } from "@/lib/cart";
+import { supabase } from "@/lib/supabase";
 import SwipeConfirm from "./_components/swipe-confirm";
 
 type Props = {
@@ -20,8 +21,8 @@ type Props = {
 
 export default function MenuClient({
   restaurant,
-  categories,
-  products,
+  categories: initialCategories,
+  products: initialProducts,
   tableNumber,
   roomLabel,
   deliveryMode = false,
@@ -34,6 +35,11 @@ export default function MenuClient({
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [detailQty, setDetailQty] = useState(1);
+
+  // State local pour les catégories et produits (mis à jour en temps réel)
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+
   const tableKey = deliveryMode ? "delivery" : (roomLabel ?? (tableNumber ? String(tableNumber) : "na"));
   const locationLabel = deliveryMode ? "Livraison" : (roomLabel ? `Chambre ${roomLabel}` : `Table ${tableNumber}`);
   const locationParam = deliveryMode
@@ -52,6 +58,62 @@ export default function MenuClient({
     window.addEventListener("cart:updated", refresh);
     return () => window.removeEventListener("cart:updated", refresh);
   }, [restaurant.id, tableKey]);
+
+  // ── Realtime : mettre à jour stock catégories + stock/available produits ──
+  useEffect(() => {
+    // Catégories : écouter les changements de stock
+    const catChannel = supabase
+      .channel(`client-categories-${restaurant.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "categories",
+          filter: `restaurant_id=eq.${restaurant.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as { id: string; stock: number | null };
+          setCategories((prev) =>
+            prev.map((c) => c.id === updated.id ? { ...c, stock: updated.stock } : c)
+          );
+        },
+      )
+      .subscribe();
+
+    // Produits : écouter les changements de stock_quantity et available
+    const prodChannel = supabase
+      .channel(`client-products-${restaurant.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "products",
+          filter: `restaurant_id=eq.${restaurant.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as {
+            id: string;
+            stock_quantity: number | null;
+            available: boolean;
+          };
+          setProducts((prev) =>
+            prev.map((p) =>
+              p.id === updated.id
+                ? { ...p, stockQuantity: updated.stock_quantity, available: updated.available }
+                : p
+            )
+          );
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(catChannel);
+      supabase.removeChannel(prodChannel);
+    };
+  }, [restaurant.id]);
 
   // Available products only
   const availableProducts = useMemo(
