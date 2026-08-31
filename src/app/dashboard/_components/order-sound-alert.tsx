@@ -8,51 +8,115 @@ import { alertLowStock } from "@/lib/swal";
 let audioCtx: AudioContext | null = null;
 let audioUnlocked = false;
 
-function unlockAudio() {
-  if (audioUnlocked) return;
-  try {
+function getAudioContext(): AudioContext {
+  if (!audioCtx) {
     const AC =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext })
         .webkitAudioContext;
     audioCtx = new AC();
-    if (audioCtx.state === "suspended") void audioCtx.resume();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
+  }
+  return audioCtx;
+}
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  try {
+    const ctx = getAudioContext();
+    if (ctx.state === "suspended") void ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
     gain.gain.value = 0;
-    osc.connect(gain).connect(audioCtx.destination);
+    osc.connect(gain).connect(ctx.destination);
     osc.start();
-    osc.stop(audioCtx.currentTime + 0.01);
+    osc.stop(ctx.currentTime + 0.01);
     audioUnlocked = true;
   } catch {
     /* ignore */
   }
 }
 
+// Fallback: jouer un bip via un élément Audio (data URI) quand AudioContext est bloqué
+function playFallbackBeep() {
+  try {
+    // Génère un WAV PCM très court (bip 880Hz, 200ms, 8kHz sample rate)
+    const sampleRate = 8000;
+    const duration = 0.3;
+    const numSamples = Math.floor(sampleRate * duration);
+    const buffer = new ArrayBuffer(44 + numSamples);
+    const view = new DataView(buffer);
+    // WAV header
+    const writeStr = (offset: number, str: string) => {
+      for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    };
+    writeStr(0, "RIFF");
+    view.setUint32(4, 36 + numSamples, true);
+    writeStr(8, "WAVE");
+    writeStr(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM
+    view.setUint16(22, 1, true); // mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate, true);
+    view.setUint16(32, 1, true);
+    view.setUint16(34, 8, true); // 8 bits
+    writeStr(36, "data");
+    view.setUint32(40, numSamples, true);
+    for (let i = 0; i < numSamples; i++) {
+      const t = i / sampleRate;
+      const val = Math.sin(2 * Math.PI * 880 * t) * 0.5;
+      view.setUint8(44 + i, Math.floor((val + 1) * 127.5));
+    }
+    const blob = new Blob([buffer], { type: "audio/wav" });
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.volume = 0.8;
+    audio.play().then(() => {
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }).catch(() => {
+      URL.revokeObjectURL(url);
+    });
+  } catch {
+    /* dernier recours échoué */
+  }
+}
+
 export function playChime(orderType?: "food" | "service" | "issue") {
   try {
-    if (!audioCtx) {
-      const AC =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext;
-      audioCtx = new AC();
-    }
-    if (audioCtx.state === "suspended") void audioCtx.resume();
+    const ctx = getAudioContext();
 
-    if (orderType === "issue") {
-      playAlarmSound();
-    } else if (orderType === "service") {
-      playBellSound();
-    } else {
-      playFoodChime();
+    // Tenter de réveiller l'AudioContext
+    if (ctx.state === "suspended") {
+      void ctx.resume().then(() => {
+        playChimeInternal(orderType);
+      }).catch(() => {
+        playFallbackBeep();
+      });
+      // En parallèle, essayer le fallback audio element
+      playFallbackBeep();
+      return;
     }
 
-    if (typeof navigator !== "undefined" && navigator.vibrate) {
-      navigator.vibrate(orderType === "issue" ? [300, 100, 300, 100, 300] : [200, 150, 200, 150, 200]);
-    }
+    playChimeInternal(orderType);
   } catch (e) {
     console.warn("[chime] échec lecture audio:", e);
+    playFallbackBeep();
+  }
+}
+
+function playChimeInternal(orderType?: "food" | "service" | "issue") {
+  if (!audioCtx || audioCtx.state !== "running") return;
+
+  if (orderType === "issue") {
+    playAlarmSound();
+  } else if (orderType === "service") {
+    playBellSound();
+  } else {
+    playFoodChime();
+  }
+
+  if (typeof navigator !== "undefined" && navigator.vibrate) {
+    navigator.vibrate(orderType === "issue" ? [300, 100, 300, 100, 300] : [200, 150, 200, 150, 200]);
   }
 }
 
@@ -110,40 +174,73 @@ function playAlarmSound() {
 
 export function playWarningChime() {
   try {
-    if (!audioCtx) {
-      const AC =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext;
-      audioCtx = new AC();
+    const ctx = getAudioContext();
+    if (ctx.state === "suspended") {
+      void ctx.resume().then(() => {
+        if (audioCtx && audioCtx.state === "running") {
+          playWarningInternal();
+        }
+      });
+      playFallbackBeep();
+      return;
     }
-    if (audioCtx.state === "suspended") void audioCtx.resume();
-    // Deux bips plus graves et rythmés pour l'alerte
-    [523.25, 523.25].forEach((freq, i) => {
-      const osc = audioCtx!.createOscillator();
-      const gain = audioCtx!.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx!.destination);
-      osc.frequency.value = freq;
-      const t = audioCtx!.currentTime + i * 0.25;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.3, t + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
-      osc.start(t);
-      osc.stop(t + 0.2);
-    });
+    playWarningInternal();
   } catch (e) {
     console.warn("[warning-chime] échec lecture audio:", e);
+    playFallbackBeep();
   }
 }
 
-function tryNotify(tableNumber: number, total: number, roomLabel?: string) {
+function playWarningInternal() {
+  if (!audioCtx || audioCtx.state !== "running") return;
+  // Deux bips plus graves et rythmés pour l'alerte
+  [523.25, 523.25].forEach((freq, i) => {
+    const osc = audioCtx!.createOscillator();
+    const gain = audioCtx!.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx!.destination);
+    osc.frequency.value = freq;
+    const t = audioCtx!.currentTime + i * 0.25;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.3, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+    osc.start(t);
+    osc.stop(t + 0.2);
+  });
+}
+
+async function tryNotify(tableNumber: number, total: number, roomLabel?: string) {
   try {
     if (typeof window === "undefined" || !("Notification" in window)) return;
     if (Notification.permission !== "granted") return;
     const location = roomLabel ? `Chambre ${roomLabel}` : tableNumber ? `Table ${tableNumber}` : "Nouvelle commande";
-    new Notification(`Nouvelle commande · ${location}`, {
-      body: total > 0 ? `Total : ${total.toLocaleString("fr-FR")} FCFA` : "",
+    const title = `Nouvelle commande · ${location}`;
+    const body = total > 0 ? `Total : ${total.toLocaleString("fr-FR")} FCFA` : "";
+
+    // Préférer la notification via le Service Worker (fonctionne en arrière-plan)
+    if ("serviceWorker" in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification(title, {
+          body,
+          icon: "/icon-192.png",
+          badge: "/favicon-32.png",
+          tag: "new-order",
+          renotify: true,
+          requireInteraction: true,
+          data: { url: "/dashboard/orders" },
+          // vibrate n'est pas dans le type TS mais supporté par les navigateurs
+          ...(({ vibrate: [200, 100, 200, 100, 200] }) as NotificationOptions),
+        } as NotificationOptions);
+        return; // succès via SW
+      } catch {
+        // fallback vers Notification API directe
+      }
+    }
+
+    // Fallback: Notification API directe (ne fonctionne que fenêtre au premier plan)
+    new Notification(title, {
+      body,
       icon: "/favicon.ico",
       tag: "new-order",
     });
@@ -189,6 +286,11 @@ export default function OrderSoundAlert() {
   const initDone = useRef(false);
 
   useEffect(() => {
+    // Demander la permission de notification si pas encore fait
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      void Notification.requestPermission();
+    }
+    // S'abonner aux push notifications
     subscribeToPush();
   }, []);
 
@@ -198,13 +300,32 @@ export default function OrderSoundAlert() {
     thresholdRef.current = restaurant?.lowStockThreshold ?? 10;
   }, [restaurant?.lowStockThreshold]);
 
+  // Ré-unlock audio à chaque interaction (pas { once: true } car le navigateur
+  // peut re-suspendre l'AudioContext quand l'onglet passe en arrière-plan)
   useEffect(() => {
-    const handler = () => unlockAudio();
-    window.addEventListener("click", handler, { once: true });
-    window.addEventListener("keydown", handler, { once: true });
+    const handler = () => {
+      unlockAudio();
+      // Tenter de réactiver si suspendu
+      if (audioCtx && audioCtx.state === "suspended") {
+        void audioCtx.resume();
+      }
+    };
+    window.addEventListener("click", handler);
+    window.addEventListener("keydown", handler);
+    window.addEventListener("touchstart", handler);
+
+    // Vérifier périodiquement l'état de l'AudioContext et tenter de le réactiver
+    const interval = setInterval(() => {
+      if (audioCtx && audioCtx.state === "suspended") {
+        void audioCtx.resume().catch(() => {});
+      }
+    }, 10_000); // toutes les 10 secondes
+
     return () => {
       window.removeEventListener("click", handler);
       window.removeEventListener("keydown", handler);
+      window.removeEventListener("touchstart", handler);
+      clearInterval(interval);
     };
   }, []);
 
