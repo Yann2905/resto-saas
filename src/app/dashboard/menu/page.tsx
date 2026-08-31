@@ -1129,7 +1129,17 @@ function ProductFormInline({
           <Field label="Catégorie" className="sm:col-span-2">
             <SearchableSelect
               value={form.categoryId}
-              onChange={(v) => setForm({ ...form, categoryId: v })}
+              onChange={(v) => {
+                const cat = allCategories.find((c) => c.id === v);
+                const hasStock = cat?.stock !== null && cat?.stock !== undefined;
+                // Auto-ajouter le lien de déduction si la catégorie a un stock
+                // et qu'elle n'est pas déjà dans les liens
+                const alreadyLinked = form.categoryLinks.some((l) => l.categoryId === v);
+                const newLinks = hasStock && !alreadyLinked
+                  ? [...form.categoryLinks, { categoryId: v, quantityPerUnit: "1" }]
+                  : form.categoryLinks;
+                setForm({ ...form, categoryId: v, categoryLinks: newLinks });
+              }}
               options={leafCategories
                 .map((c) => ({ value: c.id, label: categoryName(c.id) }))
                 .sort((a, b) => a.label.localeCompare(b.label, "fr"))}
